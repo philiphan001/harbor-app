@@ -37,9 +37,9 @@ When the user reveals a gap (says "I don't know", "I'm not sure", "I haven't don
 Keep the acknowledgment brief and natural — just a quick "I'll note that down for you" or "Adding that to your action items" before moving to the next question.
 
 INFORMATION CAPTURE:
-When you learn the parent's name and age, naturally incorporate it into your response.
+When you learn the parent's name and age, naturally incorporate it into your response using the pattern "Name at Age".
 For example: "Thanks! Jack at 90 — that's wonderful that you're thinking ahead."
-This helps confirm you heard correctly and builds rapport.
+This helps confirm you heard correctly and builds rapport. Always use this exact pattern so the system can capture the information.
 
 INTAKE SEQUENCE:
 1. What happened (event type, when, where parent is now)
@@ -80,9 +80,9 @@ When you identify a gap (mark something as Missing or Partial), you should:
 Keep the acknowledgment brief and natural — just a quick "I'll note that for you" or "Adding that to your list" before moving on.
 
 INFORMATION CAPTURE:
-When you learn the parent's name and age, naturally incorporate it into your response.
+When you learn the parent's name and age, naturally incorporate it into your response using the pattern "Name at Age".
 For example: "Great! Mary at 82 — that's wonderful that you're being proactive."
-This helps confirm you heard correctly and builds rapport.
+This helps confirm you heard correctly and builds rapport. Always use this exact pattern so the system can capture the information.
 
 ASSESSMENT DOMAINS:
 1. Medical Readiness (providers, medications, insurance, advance care wishes)
@@ -202,7 +202,7 @@ export async function chat(
       max_tokens: 2048, // Increased from 1024 to allow longer responses with questions
       system: systemPrompt,
       messages: anthropicMessages,
-      tools: [taskCreationTool, profileCaptureTool], // Profile tool re-enabled with fallback
+      tools: [taskCreationTool], // Only task tool - profile extraction via text is more reliable
       temperature: 0.7,
     });
 
@@ -240,56 +240,30 @@ export async function chat(
 
     console.log("🔍 Message:", messageText.substring(0, 200));
     console.log("🔍 Tasks from tool use:", tasks);
-    console.log("👤 Parent profile from tool use:", parentProfile);
 
-    // Fallback: If profile tool was used but message is empty, extract from text
-    if (parentProfile && !messageText.trim()) {
-      console.warn("⚠️ Profile tool returned empty message - extracting from conversation as fallback");
+    // Extract profile data from conversation (no tool use - text extraction only)
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-      const lastUserMessage = messages[messages.length - 1]?.content || "";
+    // Check Claude's response for patterns like "Jack at 90" or "Thanks! Jack at 90"
+    const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
+    const match = messageText.match(nameAgePattern);
 
-      // Try to extract from user's message using simple pattern
+    if (match) {
+      parentProfile = {
+        name: match[1],
+        age: parseInt(match[2], 10)
+      };
+      console.log("👤 Extracted profile from Claude's response:", parentProfile);
+    } else {
+      // Try user message for simple "Name Age" pattern
       const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
       const userMatch = lastUserMessage.match(simplePattern);
-
       if (userMatch) {
         parentProfile = {
           name: userMatch[1],
           age: parseInt(userMatch[2], 10)
         };
-        console.log("👤 Fallback extraction successful:", parentProfile);
-      }
-
-      // Provide fallback message
-      messageText = `Thanks! ${parentProfile.name || "Got it"} at ${parentProfile.age || "that age"} — that's wonderful that you're thinking ahead. Let me continue with the assessment. Do you know who ${parentProfile.name || "your parent"}'s primary care doctor is?`;
-      console.log("👤 Using fallback conversational message");
-    }
-
-    // If no profile from tool but we can extract from conversation, do it
-    if (!parentProfile) {
-      const lastUserMessage = messages[messages.length - 1]?.content || "";
-
-      // Check Claude's response for patterns like "Jack at 90"
-      const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
-      const match = messageText.match(nameAgePattern);
-
-      if (match) {
-        parentProfile = {
-          name: match[1],
-          age: parseInt(match[2], 10)
-        };
-        console.log("👤 Extracted from Claude's response:", parentProfile);
-      } else {
-        // Try user message
-        const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
-        const userMatch = lastUserMessage.match(simplePattern);
-        if (userMatch) {
-          parentProfile = {
-            name: userMatch[1],
-            age: parseInt(userMatch[2], 10)
-          };
-          console.log("👤 Extracted from user message:", parentProfile);
-        }
+        console.log("👤 Extracted profile from user message:", parentProfile);
       }
     }
 
