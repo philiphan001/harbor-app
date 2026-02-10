@@ -199,10 +199,10 @@ export async function chat(
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
+      max_tokens: 2048, // Increased from 1024 to allow longer responses with questions
       system: systemPrompt,
       messages: anthropicMessages,
-      tools: [taskCreationTool], // Removed profileCaptureTool - causing empty messages
+      tools: [taskCreationTool, profileCaptureTool], // Profile tool re-enabled with fallback
       temperature: 0.7,
     });
 
@@ -240,38 +240,57 @@ export async function chat(
 
     console.log("🔍 Message:", messageText.substring(0, 200));
     console.log("🔍 Tasks from tool use:", tasks);
+    console.log("👤 Parent profile from tool use:", parentProfile);
 
-    // Extract profile data from conversation text (more reliable than tool use)
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    const combinedText = lastUserMessage + " " + messageText;
+    // Fallback: If profile tool was used but message is empty, extract from text
+    if (parentProfile && !messageText.trim()) {
+      console.warn("⚠️ Profile tool returned empty message - extracting from conversation as fallback");
 
-    // Try to extract name, age, state from the conversation
-    const extractedProfile: Partial<ParentProfileData> = {};
+      const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-    // Check Claude's response for patterns like "Jack at 90" or "Thanks! Jack at 90"
-    const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
-    const match = messageText.match(nameAgePattern);
-    if (match) {
-      extractedProfile.name = match[1];
-      extractedProfile.age = parseInt(match[2], 10);
-      console.log("👤 Extracted from Claude's response:", extractedProfile);
-    }
-
-    // Also check user's message for simple "name age" pattern
-    if (!extractedProfile.name || !extractedProfile.age) {
+      // Try to extract from user's message using simple pattern
       const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
       const userMatch = lastUserMessage.match(simplePattern);
+
       if (userMatch) {
-        extractedProfile.name = extractedProfile.name || userMatch[1];
-        extractedProfile.age = extractedProfile.age || parseInt(userMatch[2], 10);
-        console.log("👤 Extracted from user message:", extractedProfile);
+        parentProfile = {
+          name: userMatch[1],
+          age: parseInt(userMatch[2], 10)
+        };
+        console.log("👤 Fallback extraction successful:", parentProfile);
       }
+
+      // Provide fallback message
+      messageText = `Thanks! ${parentProfile.name || "Got it"} at ${parentProfile.age || "that age"} — that's wonderful that you're thinking ahead. Let me continue with the assessment. Do you know who ${parentProfile.name || "your parent"}'s primary care doctor is?`;
+      console.log("👤 Using fallback conversational message");
     }
 
-    // If we extracted profile data, use it
-    if (Object.keys(extractedProfile).length > 0) {
-      parentProfile = extractedProfile;
-      console.log("👤 Final extracted profile:", parentProfile);
+    // If no profile from tool but we can extract from conversation, do it
+    if (!parentProfile) {
+      const lastUserMessage = messages[messages.length - 1]?.content || "";
+
+      // Check Claude's response for patterns like "Jack at 90"
+      const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
+      const match = messageText.match(nameAgePattern);
+
+      if (match) {
+        parentProfile = {
+          name: match[1],
+          age: parseInt(match[2], 10)
+        };
+        console.log("👤 Extracted from Claude's response:", parentProfile);
+      } else {
+        // Try user message
+        const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
+        const userMatch = lastUserMessage.match(simplePattern);
+        if (userMatch) {
+          parentProfile = {
+            name: userMatch[1],
+            age: parseInt(userMatch[2], 10)
+          };
+          console.log("👤 Extracted from user message:", parentProfile);
+        }
+      }
     }
 
     // TODO: Add logic to detect when intake is complete
