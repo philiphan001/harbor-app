@@ -36,24 +36,10 @@ When the user reveals a gap (says "I don't know", "I'm not sure", "I haven't don
 
 Keep the acknowledgment brief and natural — just a quick "I'll note that down for you" or "Adding that to your action items" before moving to the next question.
 
-PROFILE CAPTURE:
-As you learn information about the parent, use the update_parent_profile tool to save it:
-- When you learn their name: save it
-- When you learn their age: save it
-- When you learn what state they live in: save it (use two-letter code like "FL", "CA", "TX")
-- When you learn their living arrangement: save it
-
-CRITICAL: When using the profile tool, you MUST also include your normal conversational response. The tool call should happen alongside your text, not instead of it. For example:
-
-CORRECT:
-Text: "Thanks! Jack at 90 — that's wonderful that you're thinking ahead. Let me start with medical readiness..."
-Tool: update_parent_profile({ name: "Jack", age: 90 })
-
-WRONG:
-Text: (empty)
-Tool: update_parent_profile({ name: "Jack", age: 90 })
-
-Never return a response with only a tool call and no conversational text.
+INFORMATION CAPTURE:
+When you learn the parent's name and age, naturally incorporate it into your response.
+For example: "Thanks! Jack at 90 — that's wonderful that you're thinking ahead."
+This helps confirm you heard correctly and builds rapport.
 
 INTAKE SEQUENCE:
 1. What happened (event type, when, where parent is now)
@@ -93,24 +79,10 @@ When you identify a gap (mark something as Missing or Partial), you should:
 
 Keep the acknowledgment brief and natural — just a quick "I'll note that for you" or "Adding that to your list" before moving on.
 
-PROFILE CAPTURE:
-As you learn information about the parent, use the update_parent_profile tool to save it:
-- When you learn their name: save it
-- When you learn their age: save it
-- When you learn what state they live in: save it (use two-letter code like "FL", "CA", "TX", "NY")
-- When you learn their living arrangement: save it
-
-CRITICAL: When using the profile tool, you MUST also include your normal conversational response. The tool call should happen alongside your text, not instead of it. For example:
-
-CORRECT:
-Text: "Great! Mary at 82 — that's wonderful that you're being proactive. Let me start with medical readiness..."
-Tool: update_parent_profile({ name: "Mary", age: 82 })
-
-WRONG:
-Text: (empty)
-Tool: update_parent_profile({ name: "Mary", age: 82 })
-
-Never return a response with only a tool call and no conversational text.
+INFORMATION CAPTURE:
+When you learn the parent's name and age, naturally incorporate it into your response.
+For example: "Great! Mary at 82 — that's wonderful that you're being proactive."
+This helps confirm you heard correctly and builds rapport.
 
 ASSESSMENT DOMAINS:
 1. Medical Readiness (providers, medications, insurance, advance care wishes)
@@ -230,7 +202,7 @@ export async function chat(
       max_tokens: 1024,
       system: systemPrompt,
       messages: anthropicMessages,
-      tools: [taskCreationTool, profileCaptureTool],
+      tools: [taskCreationTool], // Removed profileCaptureTool - causing empty messages
       temperature: 0.7,
     });
 
@@ -268,13 +240,38 @@ export async function chat(
 
     console.log("🔍 Message:", messageText.substring(0, 200));
     console.log("🔍 Tasks from tool use:", tasks);
-    console.log("👤 Parent profile from tool use:", parentProfile);
 
-    // If message is empty but we have profile data, it means Claude only used tool
-    // This shouldn't happen but we need to handle it
-    if (!messageText.trim() && parentProfile) {
-      console.error("⚠️ Claude returned empty message with profile tool use - this is a bug");
-      messageText = "Got it, thank you for that information. Let me continue with the assessment...";
+    // Extract profile data from conversation text (more reliable than tool use)
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    const combinedText = lastUserMessage + " " + messageText;
+
+    // Try to extract name, age, state from the conversation
+    const extractedProfile: Partial<ParentProfileData> = {};
+
+    // Check Claude's response for patterns like "Jack at 90" or "Thanks! Jack at 90"
+    const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
+    const match = messageText.match(nameAgePattern);
+    if (match) {
+      extractedProfile.name = match[1];
+      extractedProfile.age = parseInt(match[2], 10);
+      console.log("👤 Extracted from Claude's response:", extractedProfile);
+    }
+
+    // Also check user's message for simple "name age" pattern
+    if (!extractedProfile.name || !extractedProfile.age) {
+      const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
+      const userMatch = lastUserMessage.match(simplePattern);
+      if (userMatch) {
+        extractedProfile.name = extractedProfile.name || userMatch[1];
+        extractedProfile.age = extractedProfile.age || parseInt(userMatch[2], 10);
+        console.log("👤 Extracted from user message:", extractedProfile);
+      }
+    }
+
+    // If we extracted profile data, use it
+    if (Object.keys(extractedProfile).length > 0) {
+      parentProfile = extractedProfile;
+      console.log("👤 Final extracted profile:", parentProfile);
     }
 
     // TODO: Add logic to detect when intake is complete
