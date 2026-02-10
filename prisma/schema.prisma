@@ -1,0 +1,316 @@
+// Harbor Database Schema
+// Based on harbor-spec.md Section 7: Data Models
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Models
+
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  name             String
+  phone            String?
+  createdAt        DateTime  @default(now())
+  subscriptionTier String    @default("free") // free, core, premium
+
+  situations       Situation[]
+  conversations    Conversation[]
+  situationMembers SituationMember[]
+  acknowledgedAlerts Alert[] @relation("AcknowledgedBy")
+
+  @@map("users")
+}
+
+model Situation {
+  id                      String   @id @default(uuid())
+  elderName               String
+  elderAge                Int?
+  elderDob                DateTime?
+  elderLocation           Json?    // { address, city, state, zip }
+  currentLivingSituation  String?
+  cognitiveStatus         String?
+  mobilityStatus          String?
+  mode                    String   @default("preparedness") // preparedness, crisis, ongoing
+  crisisActivatedAt       DateTime?
+  readinessScore          Int      @default(0)
+  readinessByDomain       Json?    // { medical, financial, legal, housing, family }
+  createdBy               String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  creator             User              @relation(fields: [createdBy], references: [id])
+  members             SituationMember[]
+  medicalConditions   MedicalCondition[]
+  medications         Medication[]
+  providers           Provider[]
+  financialProfile    FinancialProfile?
+  legalDocuments      LegalDocument[]
+  housingAssessment   HousingAssessment?
+  careScenarios       CareScenario[]
+  tasks               Task[]
+  conversations       Conversation[]
+  alerts              Alert[]
+  documents           Document[]
+  readinessHistory    ReadinessHistory[]
+
+  @@map("situations")
+}
+
+model SituationMember {
+  id                String    @id @default(uuid())
+  situationId       String
+  userId            String?
+  name              String
+  relationship      String?
+  location          String?
+  authorizationTier String    @default("standard") // admin, full, standard, limited, provider
+  role              String?
+  contactInfo       Json?
+  invitedAt         DateTime  @default(now())
+  acceptedAt        DateTime?
+
+  situation Situation @relation(fields: [situationId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  tasks     Task[]
+
+  @@map("situation_members")
+}
+
+// Medical Domain
+
+model MedicalCondition {
+  id            String    @id @default(uuid())
+  situationId   String
+  name          String
+  diagnosisDate DateTime?
+  severity      String?
+  trajectory    String?
+  notes         String?
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("medical_conditions")
+}
+
+model Medication {
+  id           String   @id @default(uuid())
+  situationId  String
+  name         String
+  dosage       String?
+  prescriber   String?
+  purpose      String?
+  interactions String[]
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("medications")
+}
+
+model Provider {
+  id              String    @id @default(uuid())
+  situationId     String
+  name            String
+  specialty       String?
+  contactInfo     Json?
+  nextAppointment DateTime?
+  notes           String?
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("providers")
+}
+
+// Financial Domain
+
+model FinancialProfile {
+  id                      String    @id @default(uuid())
+  situationId             String    @unique
+  incomeSources           Json?     // [{ source, monthlyAmount, taxable }]
+  assets                  Json?     // { savings, investments, retirement, homeEquity, other }
+  monthlyExpenses         Json?     // { fixed, variable, medical }
+  insurancePolicies       Json?     // [{ carrier, type, coverage, premiums, terms }]
+  homeValue               Decimal?
+  homeOwned               Boolean?
+  projectedMonthlyGap     Decimal?
+  projectedRunwayMonths   Int?
+  medicaidEligibleDate    DateTime?
+  updatedAt               DateTime  @updatedAt
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("financial_profile")
+}
+
+// Legal Domain
+
+model LegalDocument {
+  id               String    @id @default(uuid())
+  situationId      String
+  documentType     String    // healthcare_proxy, poa, will, trust, dnr, other
+  exists           Boolean   @default(false)
+  holder           String?
+  dateExecuted     DateTime?
+  lastUpdated      DateTime?
+  documentUrl      String?
+  status           String    @default("missing") // missing, uploaded, verified, needs_update
+  notes            String?
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("legal_documents")
+}
+
+// Housing Domain
+
+model HousingAssessment {
+  id                    String   @id @default(uuid())
+  situationId           String   @unique
+  homeType              String?
+  floors                Int?
+  accessibilityScore    Int?     // 0-100
+  safetyItems           Json?    // { grabBars, stairs, bathroom, lighting, fallRisk }
+  modificationNeeded    Boolean?
+  modificationEstimate  Decimal?
+  modificationItems     String[]
+  alternativesResearched Json?   // [{ type, facility, cost, availability, rating }]
+  riskLevel             String?  // low, moderate, high, critical
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("housing_assessment")
+}
+
+// Scenarios
+
+model CareScenario {
+  id                    String    @id @default(uuid())
+  situationId           String
+  title                 String
+  description           String?
+  scenarioType          String    // home_with_aides, assisted_living, family, skilled_nursing, memory_care
+  monthlyCost           Decimal?
+  financialRunwayMonths Int?
+  costBreakdown         Json?
+  pros                  String[]
+  cons                  String[]
+  financialModel        Json?     // detailed financial projections
+  assumptions           Json?
+  generatedAt           DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("care_scenarios")
+}
+
+// Tasks & Coordination
+
+model Task {
+  id          String    @id @default(uuid())
+  situationId String
+  title       String
+  description String?
+  assigneeId  String?
+  domain      String?   // medical, financial, legal, housing, family, logistics
+  priority    String    @default("normal") // urgent, high, normal, low
+  status      String    @default("pending") // pending, in_progress, completed, cancelled
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  situation Situation        @relation(fields: [situationId], references: [id])
+  assignee  SituationMember? @relation(fields: [assigneeId], references: [id])
+
+  @@map("tasks")
+}
+
+// Conversations
+
+model Conversation {
+  id               String   @id @default(uuid())
+  situationId      String?
+  userId           String
+  conversationType String   // intake, general, scenario_exploration, family
+  createdAt        DateTime @default(now())
+
+  situation Situation? @relation(fields: [situationId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  messages  Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String   // user, assistant, system
+  content        String
+  metadata       Json?    // any structured data extracted
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@map("messages")
+}
+
+// Alerts
+
+model Alert {
+  id              String    @id @default(uuid())
+  situationId     String
+  agentType       String?   // regulatory, insurance, provider, benefits, medical, financial
+  severity        String    @default("informational") // informational, actionable, urgent
+  title           String
+  message         String
+  recommendedAction String?
+  financialImpact Decimal?  // estimated savings/cost if applicable
+  acknowledged    Boolean   @default(false)
+  acknowledgedBy  String?
+  createdAt       DateTime  @default(now())
+
+  situation       Situation @relation(fields: [situationId], references: [id])
+  acknowledger    User?     @relation("AcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  @@map("alerts")
+}
+
+// Documents
+
+model Document {
+  id            String   @id @default(uuid())
+  situationId   String
+  name          String
+  documentType  String?
+  status        String   @default("uploaded") // uploaded, processing, verified, needs_update
+  s3Url         String?
+  extractedData Json?    // AI-parsed key terms and data
+  uploadedBy    String
+  uploadedAt    DateTime @default(now())
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("documents")
+}
+
+// Readiness Score History
+
+model ReadinessHistory {
+  id          String   @id @default(uuid())
+  situationId String
+  score       Int
+  byDomain    Json?
+  gaps        Json?
+  recordedAt  DateTime @default(now())
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@map("readiness_history")
+}

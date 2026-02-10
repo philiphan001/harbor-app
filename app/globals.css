@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-source-serif: "Source Serif 4", Georgia, serif;
+  --font-dm-sans: "DM Sans", system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-source-serif);
+  color: #2C3E50;
+}
