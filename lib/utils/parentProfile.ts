@@ -1,8 +1,9 @@
 // Parent Profile Storage
-// Stores basic parent information gathered during intake
+// Supports multiple parents with active parent switching
 
 export interface ParentProfile {
-  name?: string;
+  id: string; // Unique identifier for parent
+  name: string;
   age?: number;
   state?: string; // Two-letter state code (e.g., "FL")
   livingArrangement?: string;
@@ -10,44 +11,131 @@ export interface ParentProfile {
   lastUpdated: string;
 }
 
-const PROFILE_KEY = "harbor_parent_profile";
+const PROFILES_KEY = "harbor_parent_profiles"; // Array of all parent profiles
+const ACTIVE_PARENT_KEY = "harbor_active_parent_id"; // Currently selected parent ID
 
-export function getParentProfile(): ParentProfile | null {
+// Generate a simple ID from name
+function generateParentId(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-');
+}
+
+// Get all parent profiles
+export function getAllParentProfiles(): ParentProfile[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = localStorage.getItem(PROFILES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error("Error reading parent profiles from localStorage:", error);
+    return [];
+  }
+}
+
+// Get the active parent ID
+export function getActiveParentId(): string | null {
   if (typeof window === "undefined") return null;
 
   try {
-    const stored = localStorage.getItem(PROFILE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    return localStorage.getItem(ACTIVE_PARENT_KEY);
   } catch (error) {
-    console.error("Error reading parent profile from localStorage:", error);
+    console.error("Error reading active parent ID:", error);
     return null;
   }
 }
 
-export function saveParentProfile(profile: Partial<ParentProfile>): void {
+// Set the active parent ID
+export function setActiveParentId(parentId: string): void {
   if (typeof window === "undefined") return;
 
   try {
-    const existing = getParentProfile() || {};
-    const updated = {
-      ...existing,
-      ...profile,
-      lastUpdated: new Date().toISOString()
-    };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(updated));
-    console.log("💾 Parent profile updated:", updated);
+    localStorage.setItem(ACTIVE_PARENT_KEY, parentId);
+    console.log("👤 Active parent set to:", parentId);
   } catch (error) {
-    console.error("Error saving parent profile to localStorage:", error);
+    console.error("Error setting active parent ID:", error);
+  }
+}
+
+// Get the currently active parent profile
+export function getParentProfile(): ParentProfile | null {
+  if (typeof window === "undefined") return null;
+
+  const profiles = getAllParentProfiles();
+  if (profiles.length === 0) return null;
+
+  const activeId = getActiveParentId();
+
+  // If there's an active ID, return that profile
+  if (activeId) {
+    const profile = profiles.find(p => p.id === activeId);
+    if (profile) return profile;
+  }
+
+  // Otherwise return the first profile (and set it as active)
+  const firstProfile = profiles[0];
+  setActiveParentId(firstProfile.id);
+  return firstProfile;
+}
+
+// Save or update a parent profile
+export function saveParentProfile(profile: Partial<ParentProfile> & { name: string }): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    const profiles = getAllParentProfiles();
+    const parentId = profile.id || generateParentId(profile.name);
+
+    const existingIndex = profiles.findIndex(p => p.id === parentId);
+
+    if (existingIndex >= 0) {
+      // Update existing profile
+      profiles[existingIndex] = {
+        ...profiles[existingIndex],
+        ...profile,
+        id: parentId,
+        lastUpdated: new Date().toISOString()
+      };
+    } else {
+      // Add new profile
+      const newProfile: ParentProfile = {
+        id: parentId,
+        name: profile.name,
+        age: profile.age,
+        state: profile.state,
+        livingArrangement: profile.livingArrangement,
+        healthStatus: profile.healthStatus,
+        lastUpdated: new Date().toISOString()
+      };
+      profiles.push(newProfile);
+    }
+
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+
+    // If this is the only profile or no active parent is set, make it active
+    if (profiles.length === 1 || !getActiveParentId()) {
+      setActiveParentId(parentId);
+    }
+
+    console.log("💾 Parent profile saved:", parentId);
+  } catch (error) {
+    console.error("Error saving parent profile:", error);
   }
 }
 
 export function updateParentProfile(updates: Partial<ParentProfile>): void {
-  saveParentProfile(updates);
+  const activeProfile = getParentProfile();
+  if (!activeProfile) return;
+
+  saveParentProfile({
+    ...activeProfile,
+    ...updates
+  });
 }
 
 export function clearParentProfile(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(PROFILE_KEY);
+  localStorage.removeItem(PROFILES_KEY);
+  localStorage.removeItem(ACTIVE_PARENT_KEY);
 }
 
 // Helper to extract state from common phrases

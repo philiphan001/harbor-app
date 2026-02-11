@@ -10,6 +10,7 @@ import TaskDetail from "@/components/TaskDetail";
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     // Load tasks from localStorage
@@ -29,6 +30,13 @@ export default function TasksPage() {
       removeTask(selectedTask.title);
       setSelectedTask(null);
     }
+  };
+
+  const handleClearAll = () => {
+    // Clear all tasks
+    localStorage.removeItem("harbor_tasks");
+    setTasks([]);
+    setShowClearConfirm(false);
   };
 
   // Group tasks by priority
@@ -74,14 +82,54 @@ export default function TasksPage() {
             ← Home
           </Link>
 
-          <h1 className="font-serif text-3xl font-semibold text-white mb-2">
-            Your Action Items
-          </h1>
-          <p className="font-serif text-base text-white/80 leading-relaxed italic">
-            Everything you need to tackle, organized by priority
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="font-serif text-3xl font-semibold text-white mb-2">
+                Your Action Items
+              </h1>
+              <p className="font-serif text-base text-white/80 leading-relaxed italic">
+                Everything you need to tackle, organized by priority
+              </p>
+            </div>
+            {tasks.length > 0 && (
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="ml-4 mt-1 bg-white/10 hover:bg-white/20 text-white rounded-lg px-3 py-2 font-sans text-xs font-semibold transition-colors"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Clear All Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6">
+            <div className="font-serif text-xl font-semibold text-slate mb-2">
+              Clear all tasks?
+            </div>
+            <div className="font-sans text-sm text-slateMid mb-6">
+              This will permanently delete all {tasks.length} action items. This cannot be undone.
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 bg-sand hover:bg-sandDark text-slate rounded-xl px-4 py-3 font-sans text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearAll}
+                className="flex-1 bg-coral hover:bg-coral/90 text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold transition-colors"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
         {tasks.length === 0 ? (
@@ -110,13 +158,27 @@ export default function TasksPage() {
           </div>
         ) : (
           <>
+            {/* Reassurance Message */}
+            {(highPriorityTasks.length > 5 || tasks.length > 10) && (
+              <div className="bg-ocean/10 border border-ocean/30 rounded-xl px-5 py-4 mb-6">
+                <div className="font-sans text-sm text-slate leading-relaxed">
+                  <span className="font-semibold">You don't have to do everything at once.</span> I'm here to help you tackle these one at a time. Many can wait until the immediate situation stabilizes. Let's focus on what matters most right now.
+                </div>
+              </div>
+            )}
+
             {/* Urgent Tasks */}
             {highPriorityTasks.length > 0 && (
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-coral rounded-full" />
-                  <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                    Urgent ({highPriorityTasks.length})
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-coral rounded-full" />
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
+                      🎯 Start Here — Next 24-48 Hours
+                    </div>
+                  </div>
+                  <div className="font-sans text-xs font-semibold text-coral">
+                    {highPriorityTasks.length}
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -135,10 +197,15 @@ export default function TasksPage() {
             {/* Medium Priority Tasks */}
             {mediumPriorityTasks.length > 0 && (
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-amber rounded-full" />
-                  <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                    Important ({mediumPriorityTasks.length})
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-amber rounded-full" />
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
+                      📋 Important — This Week When You Can
+                    </div>
+                  </div>
+                  <div className="font-sans text-xs font-semibold text-amber">
+                    {mediumPriorityTasks.length}
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -157,10 +224,15 @@ export default function TasksPage() {
             {/* Low Priority Tasks */}
             {lowPriorityTasks.length > 0 && (
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-sage rounded-full" />
-                  <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                    When You Can ({lowPriorityTasks.length})
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-sage rounded-full" />
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
+                      📌 When Things Settle — Next 2-4 Weeks
+                    </div>
+                  </div>
+                  <div className="font-sans text-xs font-semibold text-sage">
+                    {lowPriorityTasks.length}
                   </div>
                 </div>
                 <div className="space-y-3">

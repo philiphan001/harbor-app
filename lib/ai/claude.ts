@@ -19,7 +19,6 @@ CRITICAL GUIDELINES:
 - Never provide medical advice. Frame as: "Your doctor would be the best person to answer that. What I can help with is..."
 - Progressively build the Situation Model from the conversation.
 - Flag urgent gaps immediately: "We should find out about the healthcare proxy as soon as possible — here's why it matters right now."
-- At the end of intake, summarize what you've learned and what's still missing.
 
 CAPTURING INFORMATION:
 When the user says they KNOW something (e.g., "Yes, I know her primary doctor"), always ask for the details with an easy out:
@@ -27,31 +26,54 @@ When the user says they KNOW something (e.g., "Yes, I know her primary doctor"),
 - If they provide details: acknowledge and continue
 - If they say "later" or "I don't have it handy": create an action item using the tool and move on
 
-TASK CREATION:
-When the user reveals a gap (says "I don't know", "I'm not sure", "I haven't done that", etc.), you should:
-1. Acknowledge it naturally in your response
-2. Briefly mention you're noting it for follow-up (e.g., "Got it — I'll add that to your follow-up list.")
-3. Use the create_action_item tool to log this for their follow-up list
-4. Continue the conversation naturally
+ACTION ITEM TRACKING:
+When the user reveals they don't know something or haven't done something, naturally acknowledge it and mention you'll note it for follow-up.
 
-Keep the acknowledgment brief and natural — just a quick "I'll note that down for you" or "Adding that to your action items" before moving to the next question.
+Keep acknowledgments brief and conversational:
+- "Got it — I'll note that for your follow-up list."
+- "That's completely normal. I'll add that to your action items."
+- "I'll make sure that's on your list to address."
+
+Then immediately continue the conversation with the next question. The conversation should flow naturally without dwelling on the task creation.
 
 INFORMATION CAPTURE:
 When you learn the parent's name and age, naturally incorporate it into your response using the pattern "Name at Age".
 For example: "Thanks! Jack at 90 — that's wonderful that you're thinking ahead."
 This helps confirm you heard correctly and builds rapport. Always use this exact pattern so the system can capture the information.
 
-INTAKE SEQUENCE:
-1. What happened (event type, when, where parent is now)
-2. Parent basics (name, age, living situation)
-3. Medical snapshot (known conditions, medications, current providers)
-4. Immediate decisions pending (discharge timeline, treatment decisions)
-5. Document status (proxy, POA, insurance)
-6. Financial overview (income, savings, insurance coverage)
-7. Family landscape (who else, where, roles, dynamics)
-8. Gap identification and prioritized next steps
+REVISED INTAKE SEQUENCE (USER-DIRECTED):
 
-Your goal is to gather enough information to build an initial Situation Model and provide immediate value. Keep questions focused and practical.`;
+Phase 1: IMMEDIATE TRIAGE (Fixed - Always First, Keep to 4-5 Questions Max)
+1. What happened and when?
+2. Parent's name, age, state
+3. Where is parent now? (Hospital/ER/Home/Other)
+4. Is parent safe and stable right now?
+
+Phase 2: USER PRIORITY (New - Let Them Drive)
+After triage, ask: "I've captured the immediate situation. What's most urgent for you right now?"
+
+Then offer options:
+"You can ask me about:
+- Medical coordination (doctors, medications, hospital discharge)
+- Insurance & costs (coverage, bills, Medicare/Medicaid)
+- Legal documents (healthcare proxy, power of attorney)
+- Family coordination (who to notify, decision-making)
+- Next 24-48 hours (what to do immediately)
+
+Or just say 'I'm not sure' and I'll guide you through the essentials."
+
+Phase 3: ADDRESS USER'S PRIORITY FIRST
+- Dive deep into whatever they ask about
+- Create consolidated tasks for that domain
+- When done, ask: "What else is on your mind? Or should I flag the other areas you'll need to address soon?"
+
+Phase 4: COMPREHENSIVE TASK GENERATION
+Regardless of conversation path, generate tasks for ALL domains at the end, but prioritize:
+- HIGH: What user asked about + time-sensitive items (discharge, immediate medical needs)
+- MEDIUM: Important but not urgent (legal docs, full insurance review)
+- LOW: Can wait until crisis stabilizes (long-term financial planning, family dynamics)
+
+Your goal is to be responsive to their immediate concerns while ensuring nothing critical falls through the cracks.`;
 
 const READINESS_PROMPT = `You are Harbor, helping someone assess their preparedness for their aging parent's care needs. Your tone is encouraging, educational, and practical — like a knowledgeable friend who's been through this before.
 
@@ -70,14 +92,15 @@ When the user says they HAVE something (e.g., "Yes, we have a healthcare proxy")
 - If they provide details: acknowledge and continue
 - If they say "later" or "I don't have it handy": create an action item using the tool and move on
 
-TASK CREATION:
-When you identify a gap (mark something as Missing or Partial), you should:
-1. Acknowledge it naturally ("That's something we'll want to address...")
-2. Briefly mention you're noting it for follow-up (e.g., "I'll add that to your action items.")
-3. Use the create_action_item tool to log this for their follow-up list
-4. Continue with the next assessment question
+ACTION ITEM TRACKING:
+When you identify a gap (mark something as Missing or Partial), briefly acknowledge it and mention you're noting it for follow-up.
 
-Keep the acknowledgment brief and natural — just a quick "I'll note that for you" or "Adding that to your list" before moving on.
+Keep acknowledgments brief:
+- "I'll note that for your action items."
+- "That's something we'll want to address — I'll add it to your list."
+- "Got it — I'll make sure that's on your follow-up list."
+
+Then immediately ask the next assessment question. Keep the conversation flowing naturally.
 
 INFORMATION CAPTURE:
 When you learn the parent's name and age, naturally incorporate it into your response using the pattern "Name at Age".
@@ -178,7 +201,8 @@ const profileCaptureTool = {
 
 export async function chat(
   messages: Message[],
-  mode: "crisis" | "readiness"
+  mode: "crisis" | "readiness",
+  options?: { useTools?: boolean } // NEW: Option to disable tools for continuous extraction
 ): Promise<{
   message: string;
   complete: boolean;
@@ -196,10 +220,60 @@ export async function chat(
     content: msg.content,
   }));
 
+  const useTools = options?.useTools ?? false; // Default to NO TOOLS (continuous extraction mode)
+
   try {
-    const response = await anthropic.messages.create({
+    // If tools are disabled, just return the conversation response (no continuation loops)
+    if (!useTools) {
+      console.log("💬 [Chat] Running in conversation-only mode (no tools)");
+
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: anthropicMessages,
+        temperature: 0.7,
+        // NO TOOLS - just conversation
+      });
+
+      const messageText = response.content
+        .filter(block => block.type === "text")
+        .map(block => block.text)
+        .join("");
+
+      // Extract profile data from conversation
+      let parentProfile: ParentProfileData | undefined;
+      const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
+      const match = messageText.match(nameAgePattern);
+
+      if (match) {
+        parentProfile = {
+          name: match[1],
+          age: parseInt(match[2], 10)
+        };
+        console.log("👤 Extracted profile from Claude's response:", parentProfile);
+      }
+
+      console.log("✅ [Chat] Conversation response (no tools):", messageText.substring(0, 100) + "...");
+
+      return {
+        message: messageText,
+        complete: false,
+        extractedData: {},
+        parentProfile,
+        metadata: {
+          model: response.model,
+          usage: response.usage,
+        },
+      };
+    }
+
+    // LEGACY: Tool-based mode (with continuation loops)
+    console.log("🔧 [Chat] Running in tool-based mode (with task creation)");
+
+    let response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 2048, // Increased from 1024 to allow longer responses with questions
+      max_tokens: 4096, // High enough for task creation + full conversational response
       system: systemPrompt,
       messages: anthropicMessages,
       tools: [taskCreationTool], // Only task tool - profile extraction via text is more reliable
@@ -210,21 +284,89 @@ export async function chat(
     let messageText = "";
     const tasks: Task[] = [];
     let parentProfile: ParentProfileData | undefined;
+    const allResponses = [response]; // Track all responses for merging
 
-    for (const block of response.content) {
+    // Keep continuing while Claude uses tools (loop until we get actual conversation)
+    let continueMessages = [...anthropicMessages];
+    let maxContinuations = 10; // Increased from 5 to allow more task generation
+    let continuationCount = 0;
+    const seenTaskTitles = new Set<string>(); // Track created tasks to prevent duplicates
+
+    while (response.stop_reason === "tool_use" && continuationCount < maxContinuations) {
+      console.log(`🔄 Tool use detected (attempt ${continuationCount + 1}) - sending tool result and continuing conversation`);
+
+      // Build tool results for all tool calls
+      const toolResults = response.content
+        .filter(block => block.type === "tool_use")
+        .map(block => ({
+          type: "tool_result" as const,
+          tool_use_id: block.id,
+          content: "Task saved successfully. Please continue with the next question."
+        }));
+
+      // Continue the conversation with tool results
+      continueMessages = [
+        ...continueMessages,
+        { role: "assistant" as const, content: response.content },
+        { role: "user" as const, content: toolResults }
+      ];
+
+      const continueResponse = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: continueMessages,
+        tools: [taskCreationTool],
+        temperature: 0.7,
+      });
+
+      allResponses.push(continueResponse);
+      response = continueResponse;
+      continuationCount++;
+    }
+
+    if (continuationCount >= maxContinuations) {
+      console.warn("⚠️ Reached max tool use continuations - Claude may not have finished");
+    }
+
+    // Extract from ALL responses (both initial tool call and continuation)
+    for (const resp of allResponses) {
+      for (const block of resp.content) {
       if (block.type === "text") {
         messageText += block.text;
       } else if (block.type === "tool_use" && block.name === "create_action_item") {
         // Extract task from tool use
         const taskInput = block.input as any;
-        console.log("🔧 Tool use detected (task):", taskInput);
-        tasks.push({
-          title: taskInput.title,
-          priority: taskInput.priority,
-          domain: taskInput.domain,
-          why: taskInput.why,
-          suggestedActions: taskInput.suggestedActions,
-        });
+
+        // Check for duplicate - normalize title for comparison
+        const normalizedTitle = taskInput.title.toLowerCase().trim();
+
+        // Check if we've seen a very similar task
+        let isDuplicate = false;
+        for (const seenTitle of seenTaskTitles) {
+          // Simple similarity check - if titles share most words, consider duplicate
+          const seenWords = seenTitle.split(' ');
+          const newWords = normalizedTitle.split(' ');
+          const commonWords = seenWords.filter(word => newWords.includes(word) && word.length > 3);
+
+          if (commonWords.length >= Math.min(seenWords.length, newWords.length) * 0.6) {
+            isDuplicate = true;
+            console.log(`⏭️ Skipping duplicate task: "${taskInput.title}" (similar to existing task)`);
+            break;
+          }
+        }
+
+        if (!isDuplicate) {
+          console.log("🔧 Tool use detected (task):", taskInput);
+          tasks.push({
+            title: taskInput.title,
+            priority: taskInput.priority,
+            domain: taskInput.domain,
+            why: taskInput.why,
+            suggestedActions: taskInput.suggestedActions,
+          });
+          seenTaskTitles.add(normalizedTitle);
+        }
       } else if (block.type === "tool_use" && block.name === "update_parent_profile") {
         // Extract parent profile data
         const profileInput = block.input as any;
@@ -236,10 +378,14 @@ export async function chat(
           livingArrangement: profileInput.livingArrangement
         };
       }
+      }
     }
 
-    console.log("🔍 Message:", messageText.substring(0, 200));
+    console.log("🔍 Full Message:", messageText);
+    console.log("🔍 Message length:", messageText.length);
     console.log("🔍 Tasks from tool use:", tasks);
+    console.log("🔍 Response stop_reason:", response.stop_reason);
+    console.log("🔍 Response usage:", response.usage);
 
     // Extract profile data from conversation (no tool use - text extraction only)
     const lastUserMessage = messages[messages.length - 1]?.content || "";

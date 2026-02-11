@@ -1,95 +1,48 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Task } from "@/lib/ai/claude";
-import { getTasks } from "@/lib/utils/taskStorage";
+import { getParentProfile } from "@/lib/utils/parentProfile";
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
-    // Load tasks from localStorage
-    const storedTasks = getTasks();
-    console.log("📋 Home page loaded. Tasks from storage:", storedTasks);
-    setTasks(storedTasks);
-  }, []);
-
-  const urgentTasks = tasks.filter((t) => t.priority === "high");
-  const otherTasks = tasks.filter((t) => t.priority !== "high");
+    // If user has a parent profile, redirect to dashboard
+    const profile = getParentProfile();
+    if (profile && profile.name && profile.age) {
+      console.log("👤 Profile exists, redirecting to dashboard...");
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark">
-      {/* Header */}
-      <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-12 pb-10 overflow-hidden">
+    <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+      {/* Hero Header */}
+      <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-16 pb-12 overflow-hidden">
         {/* Background circles */}
         <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04]" />
         <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03]" />
 
         <div className="relative">
-          <h1 className="font-serif text-[32px] font-semibold text-white tracking-tight mb-1">
+          <h1 className="font-serif text-[36px] font-semibold text-white tracking-tight mb-2 leading-tight">
             Harbor
           </h1>
-          <div className="font-sans text-[13px] text-white/60 tracking-[2px] uppercase mb-5">
+          <div className="font-sans text-[13px] text-white/60 tracking-[2px] uppercase mb-6">
             Elder Care Navigator
           </div>
-          <p className="font-serif text-lg text-white/90 leading-relaxed font-light italic">
+          <p className="font-serif text-[19px] text-white/90 leading-relaxed font-light">
             A steady hand when your family needs it most.
+          </p>
+          <p className="font-sans text-[14px] text-white/70 leading-relaxed mt-4">
+            AI-powered care coordination for families navigating the unexpected complexity of elder care.
           </p>
         </div>
       </div>
 
-      {/* Action Items Card - Shows if there are tasks */}
-      {tasks.length > 0 && (
-        <div className="px-5 pt-6">
-          <Link href="/tasks">
-            <div className="w-full bg-white border-2 border-ocean rounded-[14px] px-5 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-xl font-bold">
-                    {tasks.length}
-                  </div>
-                  <div>
-                    <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-0.5">
-                      Your Action Items
-                    </div>
-                    <div className="font-sans text-xs text-slateMid">
-                      {urgentTasks.length > 0 && `${urgentTasks.length} urgent`}
-                      {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
-                      {otherTasks.length > 0 && `${otherTasks.length} to address`}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-ocean text-lg">→</div>
-              </div>
-
-              {/* Show top 2 urgent tasks */}
-              {urgentTasks.slice(0, 2).map((task, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-2 py-2 border-t border-sand"
-                >
-                  <div className="w-1.5 h-1.5 bg-coral rounded-full mt-1.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-sans text-sm font-medium text-slate">
-                      {task.title}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {tasks.length > 2 && (
-                <div className="font-sans text-xs text-slateMid mt-2 pt-2 border-t border-sand">
-                  +{tasks.length - 2} more {tasks.length - 2 === 1 ? "item" : "items"}
-                </div>
-              )}
-            </div>
-          </Link>
-        </div>
-      )}
-
-      {/* Crisis CTA */}
-      <div className={`px-5 ${tasks.length > 0 ? "pt-3" : "pt-6"}`}>
+      {/* Primary CTAs */}
+      <div className="px-5 pt-8">
         <Link href="/crisis">
           <div className="w-full bg-coral text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden">
             <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-black/[0.08]" />
@@ -106,7 +59,7 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Preparedness CTA */}
+      {/* Secondary CTA */}
       <div className="px-5 pt-3">
         <Link href="/readiness">
           <div className="w-full bg-ocean text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
@@ -123,63 +76,48 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Care Roadmap CTA */}
-      <div className="px-5 pt-3">
-        <Link href="/roadmap">
-          <div className="w-full bg-amber text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-1.5">
-              Not sure where to start?
-            </div>
-            <div className="font-serif text-[19px] font-medium leading-snug">
-              See the complete Care Roadmap
-            </div>
-            <div className="font-sans text-[13px] opacity-80 mt-1.5">
-              138 decision points across 6 domains — and why you need help →
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="px-5 pt-5">
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-          Or explore how Harbor works
+      {/* Value Propositions */}
+      <div className="px-5 pt-6 pb-8">
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
+          What you get with Harbor
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <ActionCard
-            icon="◉"
-            title="See a Sample Situation Brief"
-            subtitle="What you'll receive in the first 24 hours"
-            href="/demo/brief"
+        <div className="space-y-4">
+          <ValueProp
+            icon="🎯"
+            title="24/7 AI Crisis Intake"
+            description="Get organized in minutes, not days. Our AI guides you through the chaos to create an actionable plan."
           />
-          <ActionCard
-            icon="◈"
-            title="Explore Care Scenarios"
-            subtitle="AI-modeled paths for your parent's care"
-            href="/demo/scenarios"
+          <ValueProp
+            icon="📊"
+            title="Personalized Care Roadmap"
+            description="See exactly what needs to happen across medical, financial, legal, and housing domains."
           />
-          <ActionCard
-            icon="◎"
-            title="Your Family Circle"
-            subtitle="Coordinate roles and keep everyone aligned"
-            href="/demo/family"
+          <ValueProp
+            icon="🔔"
+            title="Proactive Monitoring"
+            description="We track deadlines, insurance changes, and care needs so nothing falls through the cracks."
+          />
+          <ValueProp
+            icon="👥"
+            title="Family Coordination"
+            description="Keep everyone on the same page with shared updates and clear role assignments."
           />
         </div>
       </div>
 
       {/* Trust Bar */}
-      <div className="px-5 py-7 mt-auto">
+      <div className="px-5 py-7 mt-auto border-t border-sandDark">
         <div className="bg-sand rounded-xl p-5 flex gap-4">
           <div className="w-9 h-9 rounded-full bg-ocean text-white flex items-center justify-center font-serif text-base font-semibold shrink-0">
             H
           </div>
           <div>
             <div className="font-serif text-sm font-medium text-slate mb-1">
-              AI-powered care coordination
+              Built for real families in crisis
             </div>
             <div className="font-sans text-[12.5px] text-slateMid leading-relaxed">
-              Every family gets an AI care coordinator that models your complete situation across medical, financial, legal, and housing domains.
+              Harbor models your complete situation across all domains and provides guidance tailored to your parent's unique circumstances.
             </div>
           </div>
         </div>
@@ -188,30 +126,28 @@ export default function Home() {
   );
 }
 
-function ActionCard({
+function ValueProp({
   icon,
   title,
-  subtitle,
-  href,
+  description,
 }: {
   icon: string;
   title: string;
-  subtitle: string;
-  href: string;
+  description: string;
 }) {
   return (
-    <Link href={href}>
-      <div className="w-full bg-sand/50 rounded-xl px-4 py-4 cursor-pointer hover:translate-x-1 transition-transform flex items-center gap-3.5">
-        <div className="w-9 h-9 bg-white/70 rounded-[10px] flex items-center justify-center text-ocean text-xl shrink-0">
-          {icon}
+    <div className="flex items-start gap-3">
+      <div className="w-10 h-10 bg-ocean/10 rounded-lg flex items-center justify-center text-xl shrink-0">
+        {icon}
+      </div>
+      <div className="flex-1">
+        <div className="font-sans text-sm font-semibold text-slate mb-0.5">
+          {title}
         </div>
-        <div>
-          <div className="font-sans text-sm font-semibold text-slate">
-            {title}
-          </div>
-          <div className="font-sans text-xs text-slateMid">{subtitle}</div>
+        <div className="font-sans text-xs text-slateMid leading-relaxed">
+          {description}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -17,8 +17,10 @@ Let's start with the most important question: What happened with your parent?`;
   const handleComplete = (extractedData: any) => {
     setIntakeComplete(true);
     console.log("Intake complete. Extracted data:", extractedData);
-    // TODO: Save to database and redirect to situation brief
-    // router.push('/situation');
+    // Redirect to dashboard with success message
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 1000);
   };
 
   return (

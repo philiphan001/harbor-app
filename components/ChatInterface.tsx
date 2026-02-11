@@ -23,6 +23,7 @@ export default function ChatInterface({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isExtractingTasks, setIsExtractingTasks] = useState(false); // NEW: Track background task extraction
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,50 +66,78 @@ export default function ChatInterface({
       timestamp: new Date(),
     };
 
+    const conversationHistory = [...messages, userMessage];
+
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    setIsExtractingTasks(true); // Start background task extraction
 
     try {
-      const response = await fetch("/api/chat", {
+      // PARALLEL EXTRACTION: Make 2 API calls simultaneously
+      console.log("🚀 Starting parallel requests (conversation + task extraction)");
+
+      // Request 1: Main conversation (NO TOOLS - fast response)
+      const conversationPromise = fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, userMessage],
+          messages: conversationHistory,
           mode,
         }),
       });
 
-      const data = await response.json();
+      // Request 2: Task extraction (runs in parallel)
+      const taskExtractionPromise = fetch("/api/extract-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage.content,
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+
+      // Wait for conversation response (show immediately to user)
+      console.log("⏳ Waiting for conversation response...");
+      const conversationResponse = await conversationPromise;
+      const conversationData = await conversationResponse.json();
 
       const assistantMessage: Message = {
         id: `msg-${Date.now() + 1}`,
         role: "assistant",
-        content: data.message,
+        content: conversationData.message,
         timestamp: new Date(),
-        metadata: data.metadata,
+        metadata: conversationData.metadata,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      setIsLoading(false); // User sees response now!
+      console.log("✅ Conversation response displayed");
 
-      // Add any new tasks to the task list (no toast - keeping it subtle)
-      if (data.tasks && data.tasks.length > 0) {
-        console.log("💾 Saving tasks to localStorage:", data.tasks);
-        setTasks((prev) => [...prev, ...data.tasks]);
-        // Persist to localStorage
-        addTasks(data.tasks);
-        console.log("💾 Tasks saved. Current storage:", localStorage.getItem('harbor_tasks'));
+      // Save parent profile information if captured (from conversation)
+      if (conversationData.parentProfile) {
+        console.log("👤 Saving parent profile:", conversationData.parentProfile);
+        saveParentProfile(conversationData.parentProfile);
       }
 
-      // Save parent profile information if captured
-      if (data.parentProfile) {
-        console.log("👤 Saving parent profile:", data.parentProfile);
-        saveParentProfile(data.parentProfile);
+      // Wait for task extraction (happens in background, doesn't block UI)
+      console.log("⏳ Waiting for task extraction...");
+      const taskResponse = await taskExtractionPromise;
+      const taskData = await taskResponse.json();
+
+      // Add extracted tasks
+      if (taskData.tasks && taskData.tasks.length > 0) {
+        console.log("💾 Saving extracted tasks to localStorage:", taskData.tasks);
+        setTasks((prev) => [...prev, ...taskData.tasks]);
+        addTasks(taskData.tasks);
+        console.log("✅ Task extraction complete");
+      } else {
+        console.log("ℹ️ No new tasks extracted this turn");
       }
 
       // Check if intake is complete
-      if (data.complete && onComplete) {
-        onComplete(data.extractedData);
+      if (conversationData.complete && onComplete) {
+        onComplete(conversationData.extractedData);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -120,8 +149,9 @@ export default function ChatInterface({
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
+    } finally {
+      setIsExtractingTasks(false);
     }
   };
 
@@ -160,7 +190,10 @@ export default function ChatInterface({
       {/* Header */}
       <div className="bg-ocean px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-white/80 hover:text-white transition-colors">
+          <Link
+            href={tasks.length > 0 ? "/dashboard" : "/"}
+            className="text-white/80 hover:text-white transition-colors"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -181,12 +214,7 @@ export default function ChatInterface({
         </div>
       </div>
 
-      {/* Task List - Shows when there are tasks */}
-      {tasks.length > 0 && (
-        <div className="px-4 pt-3">
-          <TaskList tasks={tasks} onTaskClick={handleTaskClick} />
-        </div>
-      )}
+      {/* Task extraction happens silently in background - tasks only shown on dashboard */}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
