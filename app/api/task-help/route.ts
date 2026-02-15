@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTaskHelp, getHealthcareProxyHelp, HelpFlowType } from "@/lib/ai/taskHelp";
 import { Task } from "@/lib/ai/claude";
+import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 
 // POST /api/task-help
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "task-help", AI_EXTRACTION_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const {

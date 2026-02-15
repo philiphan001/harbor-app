@@ -4,8 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { scoreSignal } from "@/lib/ai/judgmentAgent";
 import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
+import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "score-signal", AI_EXTRACTION_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { signal, parentProfile } = body as {

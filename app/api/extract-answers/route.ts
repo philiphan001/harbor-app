@@ -3,12 +3,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import { DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, ANSWER_EXTRACTION_PROMPT } from "@/lib/config/prompts";
+import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
 });
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "extract-answers", AI_EXTRACTION_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { conversationHistory } = body as {

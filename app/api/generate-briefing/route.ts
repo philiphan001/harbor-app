@@ -5,8 +5,12 @@ import { generateWeeklyBriefing } from "@/lib/ai/briefingAgent";
 import { scoreMultipleSignals } from "@/lib/ai/judgmentAgent";
 import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
+import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "generate-briefing", BRIEFING_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { parentId, parentProfile, detections } = body as {

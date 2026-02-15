@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, TASK_EXTRACTION_PROMPT } from "@/lib/config/prompts";
+import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -21,6 +22,9 @@ interface TaskInput {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "extract-tasks", AI_EXTRACTION_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { message, history } = body;

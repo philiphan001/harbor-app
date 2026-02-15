@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chat } from "@/lib/ai/claude";
 import { Message } from "@/lib/types/situation";
+import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "chat", AI_CHAT_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { messages, mode } = body as {

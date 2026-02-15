@@ -4,6 +4,7 @@ import { Task } from "@/lib/ai/claude";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import type { AnthropicToolDefinition } from "@/lib/types/taskCapture";
 import { AI_CONFIG, getTaskCapturePrompt } from "@/lib/config/prompts";
+import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -118,6 +119,9 @@ const getSystemPrompt = (task: Task, parentName?: string) =>
   getTaskCapturePrompt(task.title, task.domain, task.why, parentName);
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = applyRateLimit(request, "task-capture", AI_CHAT_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const { task, messages, userContext } = body as {
