@@ -2,43 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG, ANSWER_EXTRACTION_PROMPT } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
 });
-
-const ANSWER_EXTRACTION_PROMPT = `You are an answer extraction agent for Harbor's Care Readiness Assessment.
-
-Your job is to analyze a conversation and extract structured answers to specific assessment questions.
-
-EXTRACTION RULES:
-1. Match conversation responses to the specific questions provided
-2. If the user clearly answered a question, extract their answer
-3. If the user expressed uncertainty ("I don't know", "not sure", etc), mark as uncertain
-4. If a question wasn't discussed yet, don't include it in results
-5. Be lenient with matching - conversational responses may not use exact wording
-6. Only extract answers you're confident about
-
-OUTPUT FORMAT:
-Return a JSON array of answers in this exact format:
-[
-  {
-    "questionId": "med-1",
-    "selectedOption": "Yes, regular visits" | null,
-    "isUncertain": false,
-    "confidence": "high" | "medium" | "low"
-  }
-]
-
-- If user said "I don't know" or expressed uncertainty: selectedOption=null, isUncertain=true
-- If user gave a clear answer: selectedOption="[the option that best matches]", isUncertain=false
-- confidence: how sure you are this matches their intent
-
-IMPORTANT:
-- Return ONLY valid JSON, no markdown or explanations
-- Only include questions that were actually discussed
-- Match user's response to the closest predefined option
-`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,8 +47,8 @@ Extract any answers the user has provided to the questions above. Return only th
 
     // Call Claude to extract answers
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.extraction,
       system: ANSWER_EXTRACTION_PROMPT,
       messages: [
         {
@@ -88,7 +56,7 @@ Extract any answers the user has provided to the questions above. Return only th
           content: prompt,
         },
       ],
-      temperature: 0.3, // Lower temperature for more consistent extraction
+      temperature: AI_CONFIG.temperature.extraction,
     });
 
     const responseText = response.content

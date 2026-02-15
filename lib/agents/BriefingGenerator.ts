@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { SignalWithJudgment } from "@/lib/types/signal";
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -43,9 +44,9 @@ export class BriefingGenerator {
       const prompt = this.buildBriefingPrompt(signals, context);
 
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
-        temperature: 0.7,
+        model: AI_CONFIG.model,
+        max_tokens: AI_CONFIG.maxTokens.chat,
+        temperature: AI_CONFIG.temperature.conversation,
         messages: [
           {
             role: "user",

@@ -5,6 +5,7 @@ import { SituationContext, getSituationSummary } from "@/lib/types/situationCont
 import { ScoredSignal } from "./judgmentAgent";
 import { getMonday } from "@/lib/utils/dateUtils";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG, BRIEFING_PROMPT } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -21,56 +22,6 @@ export interface WeeklyBriefing {
   urgentCount: number;
   importantCount: number;
 }
-
-const BRIEFING_PROMPT = `You are creating a weekly care briefing for a family caregiver.
-
-Your goal is to synthesize AI-detected signals into a clear, actionable summary that helps the caregiver stay ahead of their parent's care needs.
-
-STRUCTURE:
-Use this exact format:
-
-# This Week for [Parent Name]
-
-## 🔴 Urgent Actions
-[Only items requiring action THIS WEEK with clear deadlines. If none, write "No urgent actions this week."]
-
-For each urgent item:
-- **[Title]**
-  - Why it matters: [Brief explanation]
-  - Deadline: [Specific date]
-  - Next step: [Clear, specific action]
-
-## ⚠️ Important Updates
-[Significant changes to be aware of - action can wait 2-4 weeks. If none, write "No important updates this week."]
-
-For each important item:
-- **[Title]**
-  - What changed: [Brief explanation]
-  - Impact: [How this affects the parent]
-  - Consider: [Optional action to consider]
-
-## 📋 Recommended Next Steps
-[Proactive items to address when you have time. If none, write "All caught up for now."]
-
-For each recommended item:
-- **[Title]** - [One-line description]
-
-## 📊 Situation Snapshot
-[Quick overview of key metrics - 2-3 bullet points max]
-
-TONE:
-- Supportive but direct
-- Avoid medical jargon - use plain language
-- Be specific about what to do and why it matters
-- Focus on actionable next steps, not just information
-- Acknowledge the emotional weight of caregiving
-
-IMPORTANT:
-- Only include signals that are truly relevant (scored 70+)
-- Don't overwhelm - prioritize ruthlessly
-- If something scored high (85+), it goes in Urgent
-- If something scored medium-high (70-84), it goes in Important
-- Keep the briefing scannable - busy caregivers need quick reads`;
 
 export async function generateWeeklyBriefing(
   context: SituationContext,
@@ -145,9 +96,9 @@ Generate the weekly briefing following the structure in your instructions.`;
     console.log(`   Urgent: ${urgentSignals.length}, Important: ${importantSignals.length}, Recommended: ${recommendedSignals.length}`);
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
-      temperature: 0.5,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.briefing,
+      temperature: AI_CONFIG.temperature.briefing,
       system: BRIEFING_PROMPT,
       messages: [
         {

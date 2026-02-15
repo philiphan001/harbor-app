@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Signal, SignalWithJudgment } from "@/lib/types/signal";
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -29,9 +30,9 @@ export class JudgmentAgent {
       const prompt = this.buildScoringPrompt(signal, context);
 
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        temperature: 0.3, // Lower temperature for more consistent scoring
+        model: AI_CONFIG.model,
+        max_tokens: AI_CONFIG.maxTokens.judgment,
+        temperature: AI_CONFIG.temperature.extraction,
         messages: [
           {
             role: "user",

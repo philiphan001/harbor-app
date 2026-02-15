@@ -2,6 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Task } from "./claude";
 import { getStateFormInfo, getRecommendedApproach } from "@/lib/data/stateHealthcareProxyForms";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import {
+  AI_CONFIG,
+  DOCUMENT_HUNTER_PROMPT,
+  ACTION_GUIDE_PROMPT,
+  SCRIPT_GENERATOR_PROMPT,
+} from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -17,40 +23,6 @@ interface TaskHelpContext {
     familyComplexity?: "simple" | "moderate" | "complex";
   };
 }
-
-// System prompts for different help flows
-const DOCUMENT_HUNTER_PROMPT = `You are Harbor's Document Hunter assistant. Your job is to help users find important documents and information they need.
-
-CRITICAL GUIDELINES:
-- Ask clarifying questions to understand what they're looking for
-- Provide specific, practical suggestions for where to look
-- Offer scripts for calling offices/agencies to request documents
-- Be reassuring - most documents can be obtained even if lost
-- Suggest alternatives if original documents are unavailable
-
-Your tone is helpful, practical, and resourceful - like a research librarian who's seen it all.`;
-
-const ACTION_GUIDE_PROMPT = `You are Harbor's Action Guide assistant. Your job is to break down complex tasks into simple, achievable steps.
-
-CRITICAL GUIDELINES:
-- Provide step-by-step instructions that are specific and actionable
-- Anticipate obstacles and provide solutions
-- Offer time estimates for each step
-- Celebrate progress and encourage momentum
-- Link to relevant resources when helpful
-
-Your tone is encouraging, practical, and detail-oriented - like a project manager who wants you to succeed.`;
-
-const SCRIPT_GENERATOR_PROMPT = `You are Harbor's Script Generator assistant. Your job is to help users have difficult conversations and make important phone calls.
-
-CRITICAL GUIDELINES:
-- Provide word-for-word scripts they can use or adapt
-- Include multiple options (direct vs. gentle approach)
-- Anticipate common objections and provide responses
-- Help them practice what to say
-- Reduce anxiety around difficult conversations
-
-Your tone is empathetic, practical, and confidence-building - like a communications coach.`;
 
 export async function getTaskHelp(
   context: TaskHelpContext,
@@ -98,14 +70,14 @@ export async function getTaskHelp(
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.taskHelp,
       system: systemPrompt,
       messages: conversationHistory.map((msg) => ({
         role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
         content: msg.content,
       })),
-      temperature: 0.7,
+      temperature: AI_CONFIG.temperature.conversation,
     });
 
     const messageText = response.content

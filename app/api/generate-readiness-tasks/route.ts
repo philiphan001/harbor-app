@@ -3,46 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { Domain } from "@/components/DomainProgress";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG, TASK_GENERATION_PROMPT } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
 });
-
-const TASK_GENERATION_PROMPT = `You are a task generation agent for Harbor's Care Readiness Assessment.
-
-Your job is to analyze a user's answers for a specific domain and generate actionable tasks for any gaps or areas marked as uncertain.
-
-TASK GENERATION RULES:
-1. ONLY create tasks for genuine gaps or areas of concern
-2. If the user answered "I don't know" or "I'm not certain", create a task to help them find out
-3. If they selected a concerning option (e.g., "No" to important questions, "Not suitable" for safety), create a task
-4. DO NOT create tasks for things they have covered well (e.g., if they have a healthcare proxy, don't create a task for it)
-5. Keep tasks specific and actionable
-6. Prioritize realistically:
-   - HIGH: Urgent legal/medical needs, safety concerns, immediate gaps
-   - MEDIUM: Important but not urgent (planning, documentation, reviews)
-   - LOW: Nice-to-have improvements
-7. Provide 3-5 specific suggested actions per task
-
-OUTPUT FORMAT:
-Return a JSON array of tasks in this exact format:
-[
-  {
-    "title": "Short, action-oriented title",
-    "priority": "high" | "medium" | "low",
-    "domain": "medical" | "financial" | "legal" | "housing" | "caregiving",
-    "why": "Brief explanation of why this matters",
-    "suggestedActions": [
-      "Specific action 1",
-      "Specific action 2",
-      "Specific action 3"
-    ]
-  }
-]
-
-If no tasks are needed for this domain (everything is well-covered), return an empty array: []
-
-IMPORTANT: Return ONLY valid JSON. No markdown, no explanations, just the JSON array.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,8 +51,8 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
 
     // Call Claude to generate tasks
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.extraction,
       system: TASK_GENERATION_PROMPT,
       messages: [
         {
@@ -95,7 +60,7 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
           content: prompt,
         },
       ],
-      temperature: 0.7,
+      temperature: AI_CONFIG.temperature.conversation,
     });
 
     const responseText = response.content

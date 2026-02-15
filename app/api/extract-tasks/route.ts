@@ -1,69 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import { AI_CONFIG, TASK_EXTRACTION_PROMPT } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
 });
-
-// Task extraction prompt - focused solely on extracting actionable tasks
-const TASK_EXTRACTION_PROMPT = `You are a task extraction agent for Harbor, an AI elder care navigator.
-
-Your role is to analyze a conversation between a user and Harbor's crisis intake agent, and extract actionable tasks that the user needs to complete.
-
-EXTRACTION RULES:
-
-1. CONSOLIDATE RELATED TASKS:
-   - ❌ DON'T: "Get doctor's name", "Get doctor's phone", "Get doctor's address"
-   - ✅ DO: "Get primary care doctor contact information (name, phone, office address)"
-
-2. PRIORITIZE REALISTICALLY:
-   - HIGH: Needed in next 24-48 hours (hospital discharge, immediate safety, urgent appointments)
-   - MEDIUM: Important this week (legal documents, insurance verification, care planning)
-   - LOW: Can wait 2-4 weeks (long-term housing, estate planning, preventive care)
-
-3. LIMIT HIGH PRIORITY TASKS to 5-8 maximum
-   - Most legal/financial tasks are MEDIUM or LOW unless there's an immediate deadline
-
-4. PROVIDE CLEAR, ACTIONABLE TITLES:
-   - Each task should be something the user can DO
-   - Include context in the title itself
-   - Example: "Contact hospital discharge planner about post-surgery care plan"
-
-5. EXPLAIN THE "WHY":
-   - Every task needs a clear reason explaining its importance
-   - Connect it to the parent's situation
-   - Example: "This ensures your father has proper care when he returns home after hip surgery"
-
-6. SUGGEST 2-4 CONCRETE ACTIONS:
-   - Break down HOW to complete the task
-   - Be specific with who to call, what to ask, what to bring
-   - Example: "Call main hospital line, ask for discharge planning, request meeting before release"
-
-7. ASSIGN CORRECT DOMAIN:
-   - medical: Healthcare, medications, doctors, hospital
-   - financial: Insurance, bills, Medicare, expenses
-   - legal: POA, advance directives, guardianship, estate
-   - housing: Home modifications, assisted living, nursing homes
-   - family: Communication, roles, emotional support
-   - caregiving: Daily care tasks, respite, caregiver support
-
-OUTPUT FORMAT:
-Return a JSON array of tasks. Each task must have:
-{
-  "title": "Clear, actionable task title",
-  "why": "Why this task matters for the parent's situation",
-  "priority": "high" | "medium" | "low",
-  "domain": "medical" | "financial" | "legal" | "housing" | "family" | "caregiving",
-  "suggestedActions": ["Action 1", "Action 2", "Action 3"]
-}
-
-IMPORTANT:
-- Only extract tasks from the LATEST message in the conversation
-- Don't repeat tasks that have already been created in previous turns
-- If there are no new actionable tasks in this turn, return an empty array: []
-- Focus on what's NEW in this conversation turn
-`;
 
 interface Message {
   role: "user" | "assistant";
@@ -100,8 +42,8 @@ export async function POST(request: NextRequest) {
 
     // Use structured output to extract tasks as JSON
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.extraction,
       system: TASK_EXTRACTION_PROMPT,
       messages: conversationHistory.map((msg) => ({
         role: msg.role,

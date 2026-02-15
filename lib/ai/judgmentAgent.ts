@@ -5,6 +5,7 @@ import { SituationContext, getSituationSummary } from "@/lib/types/situationCont
 import { AgentDetection } from "@/lib/types/agents";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type Priority } from "@/lib/constants/domains";
+import { AI_CONFIG, JUDGMENT_PROMPT } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -18,48 +19,6 @@ export interface ScoredSignal extends Omit<AgentDetection, "relevanceScore"> {
   recommendedAction?: string;
   scoredAt: string;
 }
-
-const JUDGMENT_PROMPT = `You are a judgment agent evaluating the relevance of elder care signals.
-
-Your job is to score how relevant this signal is to THIS specific parent's situation.
-
-SCORING CRITERIA:
-1. **Direct Impact** (40 points): Does this specifically affect THIS parent?
-   - Not "seniors in general" - THIS parent with THESE conditions in THIS state
-   - Consider their insurance, medications, location, financial situation
-   - Generic advice scores low, specific applicability scores high
-
-2. **Urgency** (25 points): Does this require action soon?
-   - Has a deadline or expiration?
-   - Time-sensitive opportunity or risk?
-   - Can wait vs. needs action this week/month?
-
-3. **Financial Impact** (20 points): Money matters
-   - Could save money (switch plans, avoid penalties)?
-   - Required expense coming up?
-   - Affects eligibility for programs?
-
-4. **Risk Mitigation** (15 points): What happens if ignored?
-   - Safety risk (medication recall, facility issue)?
-   - Legal/compliance risk (missing enrollment period)?
-   - Quality of care impact?
-
-SCORING SCALE:
-- 85-100: **Critical** - Directly affects parent, action required soon, high impact
-- 70-84: **High** - Relevant to situation, should act within 2-4 weeks
-- 50-69: **Medium** - Somewhat relevant, good to know, action optional
-- 30-49: **Low** - Tangentially relevant, mostly informational
-- 0-29: **Noise** - Not relevant to this specific parent
-
-Return ONLY valid JSON in this exact format:
-{
-  "relevanceScore": 85,
-  "reasoning": "Parent is on SilverScript Choice which is increasing $4/month. Open enrollment in 2 weeks - prime time to compare plans. Could save $200-500/year.",
-  "actionable": true,
-  "priority": "high",
-  "estimatedImpact": "Potential savings of $200-500/year",
-  "recommendedAction": "Use Medicare Plan Finder during Oct 15-Dec 7 to compare Part D options"
-}`;
 
 export async function scoreSignal(
   signal: AgentDetection,
@@ -81,9 +40,9 @@ ${signal.sourceUrl ? `Source: ${signal.sourceUrl}` : ""}
 Evaluate this signal's relevance to the parent's situation above.`;
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      temperature: 0.3,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.judgment,
+      temperature: AI_CONFIG.temperature.extraction,
       system: JUDGMENT_PROMPT,
       messages: [
         {

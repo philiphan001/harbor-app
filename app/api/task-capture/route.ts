@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Task } from "@/lib/ai/claude";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import type { AnthropicToolDefinition } from "@/lib/types/taskCapture";
+import { AI_CONFIG, getTaskCapturePrompt } from "@/lib/config/prompts";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -112,34 +113,9 @@ const getExtractionTools = (task: Task): AnthropicToolDefinition[] => {
   return tools;
 };
 
-// System prompt for task-specific data capture
-const getSystemPrompt = (task: Task, parentName?: string) => {
-  return `You are Harbor, helping someone gather information about: "${task.title}"
-
-Your goal is to have a brief, natural conversation to extract the specific information needed for this task, then save it using the appropriate tool.
-
-CRITICAL GUIDELINES:
-- Keep responses SHORT and conversational (2-3 sentences max)
-- Ask ONE specific follow-up question at a time
-- When you have enough information, use the appropriate save tool
-- After using a save tool, confirm what you saved and ask if there's anything else
-- If user says "that's it" or "nothing else", thank them and mark as complete
-
-TASK CONTEXT:
-- Domain: ${task.domain}
-- Why this matters: ${task.why}
-${parentName ? `- Parent's name: ${parentName}` : ""}
-
-EXAMPLE FLOW:
-User: "His doctor is Dr. Smith"
-You: "Got it — Dr. Smith. Do you have the office phone number?"
-User: "555-1234"
-You: [uses save_doctor_info tool] "Perfect! I've saved Dr. Smith at 555-1234. Anything else about his doctor?"
-User: "No that's it"
-You: "Great! This information is now saved. ✓"
-
-Keep it brief, natural, and focused on extracting the specific data points.`;
-};
+// System prompt for task-specific data capture (uses centralized prompt config)
+const getSystemPrompt = (task: Task, parentName?: string) =>
+  getTaskCapturePrompt(task.title, task.domain, task.why, parentName);
 
 export async function POST(request: NextRequest) {
   try {
@@ -168,12 +144,12 @@ export async function POST(request: NextRequest) {
 
     // Call Claude with extraction tools
     let response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
+      model: AI_CONFIG.model,
+      max_tokens: AI_CONFIG.maxTokens.taskCapture,
       system: systemPrompt,
       messages: anthropicMessages,
       tools,
-      temperature: 0.7,
+      temperature: AI_CONFIG.temperature.conversation,
     });
 
     // Extract response
@@ -205,12 +181,12 @@ export async function POST(request: NextRequest) {
       ];
 
       const continueResponse = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
+        model: AI_CONFIG.model,
+        max_tokens: AI_CONFIG.maxTokens.taskCapture,
         system: systemPrompt,
         messages: continueMessages,
         tools,
-        temperature: 0.7,
+        temperature: AI_CONFIG.temperature.conversation,
       });
 
       allResponses.push(continueResponse);
