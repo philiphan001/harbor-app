@@ -281,21 +281,31 @@ model Alert {
   @@map("alerts")
 }
 
-// Documents
+// Documents & Ingestion
 
 model Document {
-  id            String   @id @default(uuid())
-  situationId   String
-  name          String
-  documentType  String?
-  status        String   @default("uploaded") // uploaded, processing, verified, needs_update
-  s3Url         String?
-  extractedData Json?    // AI-parsed key terms and data
-  uploadedBy    String
-  uploadedAt    DateTime @default(now())
+  id              String    @id @default(uuid())
+  situationId     String
+  name            String
+  fileType        String?   // image/jpeg, image/png, application/pdf, etc.
+  fileSizeBytes   Int?
+  documentType    String?   // insurance_card, medication, discharge, legal, doctor_card, bill, other
+  status          String    @default("uploaded") // uploaded, processing, extracted, confirmed, failed
+  storagePath     String?   // Supabase Storage path: documents/{situationId}/{id}.ext
+  extractedData   Json?     // AI-parsed structured data
+  confirmedData   Json?     // User-confirmed/edited version of extractedData
+  confidence      Float?    // 0.0–1.0 extraction confidence from AI
+  extractionModel String?   // Which AI model was used for extraction
+  errorMessage    String?   // Error details if status = failed
+  uploadedBy      String
+  uploadedAt      DateTime  @default(now())
+  confirmedAt     DateTime?
+  expiresAt       DateTime? // For auto-deletion policy (HIPAA-minded)
 
   situation Situation @relation(fields: [situationId], references: [id])
 
+  @@index([situationId])
+  @@index([status])
   @@map("documents")
 }
 

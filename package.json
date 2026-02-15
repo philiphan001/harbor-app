@@ -22,6 +22,7 @@
     "eslint": "^10.0.0",
     "eslint-config-next": "^16.1.6",
     "next": "^16.1.6",
+    "pdf-parse": "^2.4.5",
     "postcss": "^8.5.6",
     "prisma": "^7.3.0",
     "react": "^19.2.4",
@@ -31,6 +32,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/pdf-parse": "^1.1.5",
     "jsdom": "^28.1.0",
     "vitest": "^4.0.18"
   }

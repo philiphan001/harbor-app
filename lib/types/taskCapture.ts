@@ -69,7 +69,8 @@ export type TaskDataPayload =
   | InsuranceInfo
   | LegalDocumentInfo
   | TaskNotes
-  | ManualNotes;
+  | ManualNotes
+  | import("@/lib/ingestion/types").ExtractedData;
 
 // ==================== Task Completion Callback Types ====================
 
