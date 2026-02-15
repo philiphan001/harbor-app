@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTaskHelp, getHealthcareProxyHelp, HelpFlowType } from "@/lib/ai/taskHelp";
 import { Task } from "@/lib/ai/claude";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/task-help");
 
 // POST /api/task-help
 export async function POST(request: NextRequest) {
@@ -65,7 +68,7 @@ export async function POST(request: NextRequest) {
       message: helpMessage
     });
   } catch (error) {
-    console.error("Task help API error:", error);
+    log.errorWithStack("Failed to get task help", error);
     return NextResponse.json(
       { error: "Failed to get task help" },
       { status: 500 }

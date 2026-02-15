@@ -6,6 +6,9 @@ import { ScoredSignal } from "./judgmentAgent";
 import { getMonday } from "@/lib/utils/dateUtils";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, BRIEFING_PROMPT } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("BriefingAgent");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -92,8 +95,12 @@ ${recommendedSummary || "None"}
 
 Generate the weekly briefing following the structure in your instructions.`;
 
-    console.log(`Generating briefing for ${context.profile.name}`);
-    console.log(`   Urgent: ${urgentSignals.length}, Important: ${importantSignals.length}, Recommended: ${recommendedSignals.length}`);
+    log.info("Generating briefing", {
+      parentName: context.profile.name,
+      urgent: urgentSignals.length,
+      important: importantSignals.length,
+      recommended: recommendedSignals.length
+    });
 
     const response = await anthropic.messages.create({
       model: AI_CONFIG.model,
@@ -127,11 +134,11 @@ Generate the weekly briefing following the structure in your instructions.`;
       importantCount: importantSignals.length,
     };
 
-    console.log(`Briefing generated: ${briefing.signalCount} signals processed`);
+    log.info("Briefing generated", { signalCount: briefing.signalCount });
 
     return briefing;
   } catch (error) {
-    console.error("Error generating briefing:", error);
+    log.errorWithStack("Failed to generate briefing", error);
     throw error;
   }
 }

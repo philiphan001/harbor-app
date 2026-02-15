@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { chat } from "@/lib/ai/claude";
 import { Message } from "@/lib/types/situation";
 import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/chat");
 
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "chat", AI_CHAT_LIMIT);
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Chat API error:", error);
+    log.errorWithStack("Chat API error", error);
     return NextResponse.json(
       { error: "Failed to process chat message" },
       { status: 500 }

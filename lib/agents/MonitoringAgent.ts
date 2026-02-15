@@ -2,6 +2,9 @@
 
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { Signal, createSignal } from "@/lib/types/signal";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("MonitoringAgent");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export abstract class MonitoringAgent<TExternalData = any, TChange = any> {
@@ -16,7 +19,10 @@ export abstract class MonitoringAgent<TExternalData = any, TChange = any> {
    * @returns Array of signals detected
    */
   async run(parentId: string, context: SituationContext): Promise<Signal[]> {
-    console.log(`🔍 [${this.agentId}] Starting monitoring for ${context.profile.name}...`);
+    log.info("Starting monitoring", {
+      agentId: this.agentId,
+      parentName: context.profile.name
+    });
 
     try {
       // 1. Fetch external data
@@ -28,10 +34,10 @@ export abstract class MonitoringAgent<TExternalData = any, TChange = any> {
       // 3. Generate signals
       const signals = await this.generateSignals(changes, context);
 
-      console.log(`✅ [${this.agentId}] Generated ${signals.length} signals`);
+      log.info("Generated signals", { agentId: this.agentId, count: signals.length });
       return signals;
     } catch (error) {
-      console.error(`❌ [${this.agentId}] Error:`, error);
+      log.errorWithStack("Monitoring agent error", error);
       return [];
     }
   }
@@ -88,7 +94,7 @@ export abstract class MonitoringAgent<TExternalData = any, TChange = any> {
    * Helper: Log agent activity
    */
   protected log(message: string): void {
-    console.log(`[${this.agentId}] ${message}`);
+    log.info(message, { agentId: this.agentId });
   }
 
   /**

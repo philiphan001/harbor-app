@@ -5,6 +5,9 @@ import { Domain } from "@/components/DomainProgress";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, TASK_GENERATION_PROMPT } from "@/lib/config/prompts";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/readiness-tasks");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
       parentProfile?: { name?: string; age?: number; state?: string };
     };
 
-    console.log(`📋 Generating tasks for ${domain} domain with ${answers.length} answers`);
+    log.info("Generating readiness tasks", { domain, answerCount: answers.length });
 
     // Get the questions for this domain
     const domainData = DOMAIN_QUESTIONS.find((d) => d.domain === domain);
@@ -72,7 +75,7 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
       .map((block) => (block as { type: "text"; text: string }).text)
       .join("");
 
-    console.log("🤖 Claude response:", responseText.substring(0, 200));
+    log.debug("Claude response received", { preview: responseText.substring(0, 200) });
 
     // Parse the JSON response
     let tasks: Array<{ title: string; priority: string; domain: string; why: string; suggestedActions: string[] }> = [];
@@ -85,12 +88,11 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
         tasks = JSON.parse(responseText);
       }
     } catch (parseError) {
-      console.error("❌ Error parsing JSON:", parseError);
-      console.error("Response text:", responseText);
+      log.error("Failed to parse JSON response", { error: String(parseError) });
       return NextResponse.json({ tasks: [], count: 0, error: "Failed to parse tasks" });
     }
 
-    console.log(`✅ Generated ${tasks.length} tasks for ${domain} domain`);
+    log.info("Tasks generated", { count: tasks.length, domain });
 
     return NextResponse.json({
       tasks,
@@ -98,7 +100,7 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
       domain,
     });
   } catch (error) {
-    console.error("Error generating readiness tasks:", error);
+    log.errorWithStack("Failed to generate readiness tasks", error);
     return NextResponse.json(
       { error: "Failed to generate tasks", tasks: [], count: 0 },
       { status: 500 }

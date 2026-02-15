@@ -5,6 +5,9 @@ import { getAnthropicApiKey } from "@/lib/utils/env";
 import type { AnthropicToolDefinition } from "@/lib/types/taskCapture";
 import { AI_CONFIG, getTaskCapturePrompt } from "@/lib/config/prompts";
 import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/task-capture");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -168,7 +171,7 @@ export async function POST(request: NextRequest) {
     const allResponses = [response];
 
     while (response.stop_reason === "tool_use" && continuationCount < maxContinuations) {
-      console.log(`🔄 Task capture - tool use detected (attempt ${continuationCount + 1})`);
+      log.debug("Tool use detected in task capture", { attempt: continuationCount + 1 });
 
       const toolResults = response.content
         .filter((block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use")
@@ -205,7 +208,7 @@ export async function POST(request: NextRequest) {
           messageText += block.text;
         } else if (block.type === "tool_use") {
           // Extract data from tool use
-          console.log("📋 Task data captured:", block.name, block.input);
+          log.info("Task data captured", { toolName: block.name });
           extractedData = {
             ...(extractedData || {}),
             toolName: block.name,
@@ -225,7 +228,7 @@ export async function POST(request: NextRequest) {
       extractedData,
     });
   } catch (error) {
-    console.error("Task capture API error:", error);
+    log.errorWithStack("Failed to process task capture", error);
     return NextResponse.json(
       { error: "Failed to process task capture" },
       { status: 500 }

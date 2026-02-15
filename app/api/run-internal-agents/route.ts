@@ -2,14 +2,17 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runAllInternalAgents } from "@/lib/ai/internalAgents";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/internal-agents");
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Running internal utility agents...");
+    log.info("Running internal utility agents");
 
     const detections = runAllInternalAgents();
 
-    console.log(`   Found ${detections.length} internal detections`);
+    log.info("Internal detections found", { count: detections.length });
 
     return NextResponse.json({
       success: true,
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in /api/run-internal-agents:", error);
+    log.errorWithStack("Failed to run internal agents", error);
     return NextResponse.json(
       {
         error: "Failed to run internal agents",

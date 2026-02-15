@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SituationContext } from "@/lib/types/situationContext";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/context");
 
 // Note: In production, this would use a database (PostgreSQL/Supabase)
 // For now, this is a pass-through API that could be used for server-side operations
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
       parentId,
     });
   } catch (error) {
-    console.error("Context API error:", error);
+    log.errorWithStack("Failed to get context", error);
     return NextResponse.json(
       { error: "Failed to get context" },
       { status: 500 }
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
       parentId,
     });
   } catch (error) {
-    console.error("Context API error:", error);
+    log.errorWithStack("Failed to initialize context", error);
     return NextResponse.json(
       { error: "Failed to initialize context" },
       { status: 500 }
@@ -95,7 +98,7 @@ export async function PATCH(request: NextRequest) {
       domain,
     });
   } catch (error) {
-    console.error("Context API error:", error);
+    log.errorWithStack("Failed to update context", error);
     return NextResponse.json(
       { error: "Failed to update context" },
       { status: 500 }
@@ -122,7 +125,7 @@ export async function DELETE(request: NextRequest) {
       parentId,
     });
   } catch (error) {
-    console.error("Context API error:", error);
+    log.errorWithStack("Failed to delete context", error);
     return NextResponse.json(
       { error: "Failed to delete context" },
       { status: 500 }

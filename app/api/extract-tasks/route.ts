@@ -3,6 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, TASK_EXTRACTION_PROMPT } from "@/lib/config/prompts";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/extract-tasks");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("🔍 [Extract] Starting task extraction...");
+    log.info("Starting task extraction");
 
     // Build conversation context
     const conversationHistory: Message[] = [
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
     const responseText =
       response.content[0].type === "text" ? response.content[0].text : "";
 
-    console.log("📄 [Extract] Raw response:", responseText);
+    log.debug("Raw response received", { response: responseText });
 
     // Parse JSON response
     let tasks: TaskInput[] = [];
@@ -70,23 +73,22 @@ export async function POST(request: NextRequest) {
       } else if (responseText.trim().startsWith("[")) {
         tasks = JSON.parse(responseText);
       } else {
-        console.log("⚠️ [Extract] No JSON array found in response");
+        log.warn("No JSON array found in response");
         tasks = [];
       }
     } catch (parseError) {
-      console.error("❌ [Extract] Failed to parse JSON:", parseError);
-      console.log("Response was:", responseText);
+      log.error("Failed to parse JSON response", { error: String(parseError) });
       tasks = [];
     }
 
-    console.log(`✅ [Extract] Extracted ${tasks.length} tasks`);
+    log.info("Tasks extracted", { count: tasks.length });
 
     return NextResponse.json({
       tasks,
       count: tasks.length,
     });
   } catch (error) {
-    console.error("❌ [Extract] Error:", error);
+    log.errorWithStack("Failed to extract tasks", error);
     return NextResponse.json(
       {
         error: "Failed to extract tasks",

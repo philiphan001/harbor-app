@@ -6,6 +6,9 @@ import { scoreMultipleSignals } from "@/lib/ai/judgmentAgent";
 import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/generate-briefing");
 
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "generate-briefing", BRIEFING_LIMIT);
@@ -46,18 +49,20 @@ export async function POST(request: NextRequest) {
 
     context.lastUpdated = new Date().toISOString();
 
-    console.log(`Generating weekly briefing for ${context.profile.name}...`);
-    console.log(`   Found ${detections.length} detections to score`);
+    log.info("Generating weekly briefing", {
+      parentName: context.profile.name,
+      detectionCount: detections.length
+    });
 
     // Score all signals
     const scoredSignals = await scoreMultipleSignals(detections, context);
 
-    console.log(`   Scored ${scoredSignals.length} signals`);
+    log.info("Signals scored", { count: scoredSignals.length });
 
     // Filter to relevant signals (score >= 50)
     const relevantSignals = scoredSignals.filter((s) => s.relevanceScore >= 50);
 
-    console.log(`   ${relevantSignals.length} signals are relevant (score >= 50)`);
+    log.info("Relevant signals filtered", { count: relevantSignals.length });
 
     if (relevantSignals.length === 0) {
       return NextResponse.json(
@@ -72,14 +77,14 @@ export async function POST(request: NextRequest) {
     // Generate briefing
     const briefing = await generateWeeklyBriefing(context, relevantSignals);
 
-    console.log(`Briefing generated`);
+    log.info("Briefing generated successfully");
 
     return NextResponse.json({
       success: true,
       briefing,
     });
   } catch (error) {
-    console.error("Error in /api/generate-briefing:", error);
+    log.errorWithStack("Failed to generate briefing", error);
     return NextResponse.json(
       {
         error: "Failed to generate briefing",

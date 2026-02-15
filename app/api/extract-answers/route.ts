@@ -4,6 +4,9 @@ import { DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, ANSWER_EXTRACTION_PROMPT } from "@/lib/config/prompts";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("api/extract-answers");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
       conversationHistory: Array<{ role: string; content: string }>;
     };
 
-    console.log(`📋 Extracting structured answers from ${conversationHistory.length} messages`);
+    log.info("Extracting structured answers", { messageCount: conversationHistory.length });
 
     // Build the question catalog for Claude
     const questionCatalog = DOMAIN_QUESTIONS.map((domain) => {
@@ -68,7 +71,7 @@ Extract any answers the user has provided to the questions above. Return only th
       .map((block) => (block as { type: "text"; text: string }).text)
       .join("");
 
-    console.log("🤖 Claude response:", responseText.substring(0, 200));
+    log.debug("Claude response received", { preview: responseText.substring(0, 200) });
 
     // Parse the JSON response
     let answers: Array<{ questionId: string; selectedOption: string | null; isUncertain: boolean; confidence: string }> = [];
@@ -81,8 +84,7 @@ Extract any answers the user has provided to the questions above. Return only th
         answers = JSON.parse(responseText);
       }
     } catch (parseError) {
-      console.error("❌ Error parsing JSON:", parseError);
-      console.error("Response text:", responseText);
+      log.error("Failed to parse JSON response", { error: String(parseError) });
       return NextResponse.json({ answers: [], count: 0, error: "Failed to parse answers" });
     }
 
@@ -91,14 +93,17 @@ Extract any answers the user has provided to the questions above. Return only th
       (a) => a.confidence === "high" || a.confidence === "medium"
     );
 
-    console.log(`✅ Extracted ${confidentAnswers.length} answers (${answers.length} total, filtered by confidence)`);
+    log.info("Answers extracted", {
+      confidentCount: confidentAnswers.length,
+      totalCount: answers.length
+    });
 
     return NextResponse.json({
       answers: confidentAnswers,
       count: confidentAnswers.length,
     });
   } catch (error) {
-    console.error("Error extracting answers:", error);
+    log.errorWithStack("Failed to extract answers", error);
     return NextResponse.json(
       { error: "Failed to extract answers", answers: [], count: 0 },
       { status: 500 }

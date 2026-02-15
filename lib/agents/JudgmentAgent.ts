@@ -5,6 +5,9 @@ import { Signal, SignalWithJudgment } from "@/lib/types/signal";
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("JudgmentAgent");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -24,7 +27,7 @@ export class JudgmentAgent {
     signal: Signal,
     context: SituationContext
   ): Promise<SignalWithJudgment> {
-    console.log(`⚖️ [${this.agentId}] Scoring signal: ${signal.title}`);
+    log.info("Scoring signal", { title: signal.title });
 
     try {
       const prompt = this.buildScoringPrompt(signal, context);
@@ -60,13 +63,14 @@ export class JudgmentAgent {
         suggestedPriority: judgment.suggestedPriority,
       };
 
-      console.log(
-        `✅ [${this.agentId}] Score: ${judgment.relevanceScore}/100 (${judgment.suggestedPriority})`
-      );
+      log.info("Signal scored", {
+        score: judgment.relevanceScore,
+        priority: judgment.suggestedPriority
+      });
 
       return scoredSignal;
     } catch (error) {
-      console.error(`❌ [${this.agentId}] Error scoring signal:`, error);
+      log.errorWithStack("Error scoring signal", error);
 
       // Return signal with default low score on error
       return {

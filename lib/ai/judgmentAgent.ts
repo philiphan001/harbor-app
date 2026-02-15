@@ -6,6 +6,9 @@ import { AgentDetection } from "@/lib/types/agents";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type Priority } from "@/lib/constants/domains";
 import { AI_CONFIG, JUDGMENT_PROMPT } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("JudgmentAgent");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -71,7 +74,7 @@ Evaluate this signal's relevance to the parent's situation above.`;
       scoredAt: new Date().toISOString(),
     };
   } catch (error) {
-    console.error("L Error scoring signal:", error);
+    log.errorWithStack("Error scoring signal", error);
 
     // Fallback scoring if Claude fails
     return {

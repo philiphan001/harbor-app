@@ -4,6 +4,9 @@ import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type ExtendedDomain, type Priority } from "@/lib/constants/domains";
 import type { ChatResponse, ClaudeResponseMetadata, TaskDataPayload } from "@/lib/types/taskCapture";
 import { AI_CONFIG, CRISIS_INTAKE_PROMPT, READINESS_PROMPT } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("Chat");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -111,7 +114,7 @@ export async function chat(
   try {
     // If tools are disabled, just return the conversation response (no continuation loops)
     if (!useTools) {
-      console.log("💬 [Chat] Running in conversation-only mode (no tools)");
+      log.info("Running in conversation-only mode (no tools)");
 
       const response = await anthropic.messages.create({
         model: AI_CONFIG.model,
@@ -137,10 +140,10 @@ export async function chat(
           name: match[1],
           age: parseInt(match[2], 10)
         };
-        console.log("👤 Extracted profile from Claude's response:", parentProfile);
+        log.info("Extracted profile from response", { name: parentProfile.name, age: parentProfile.age });
       }
 
-      console.log("✅ [Chat] Conversation response (no tools):", messageText.substring(0, 100) + "...");
+      log.info("Conversation response (no tools)", { length: messageText.length });
 
       return {
         message: messageText,
@@ -155,7 +158,7 @@ export async function chat(
     }
 
     // LEGACY: Tool-based mode (with continuation loops)
-    console.log("🔧 [Chat] Running in tool-based mode (with task creation)");
+    log.info("Running in tool-based mode (with task creation)");
 
     let response = await anthropic.messages.create({
       model: AI_CONFIG.model,
@@ -179,7 +182,7 @@ export async function chat(
     const seenTaskTitles = new Set<string>(); // Track created tasks to prevent duplicates
 
     while (response.stop_reason === "tool_use" && continuationCount < maxContinuations) {
-      console.log(`🔄 Tool use detected (attempt ${continuationCount + 1}) - sending tool result and continuing conversation`);
+      log.debug("Tool use continuation", { attempt: continuationCount + 1 });
 
       // Build tool results for all tool calls
       const toolResults = response.content
@@ -212,7 +215,7 @@ export async function chat(
     }
 
     if (continuationCount >= maxContinuations) {
-      console.warn("⚠️ Reached max tool use continuations - Claude may not have finished");
+      log.warn("Reached max tool use continuations", { maxContinuations });
     }
 
     // Extract from ALL responses (both initial tool call and continuation)
@@ -237,13 +240,13 @@ export async function chat(
 
           if (commonWords.length >= Math.min(seenWords.length, newWords.length) * 0.6) {
             isDuplicate = true;
-            console.log(`⏭️ Skipping duplicate task: "${taskInput.title}" (similar to existing task)`);
+            log.debug("Skipping duplicate task", { title: taskInput.title as string });
             break;
           }
         }
 
         if (!isDuplicate) {
-          console.log("🔧 Tool use detected (task):", taskInput);
+          log.info("Task extracted via tool use", { title: taskInput.title as string, domain: taskInput.domain as string });
           tasks.push({
             title: taskInput.title as string,
             priority: taskInput.priority as Priority,
@@ -256,7 +259,7 @@ export async function chat(
       } else if (block.type === "tool_use" && block.name === "update_parent_profile") {
         // Extract parent profile data
         const profileInput = block.input as Record<string, unknown>;
-        console.log("👤 Profile update detected:", profileInput);
+        log.info("Profile update detected", { name: profileInput.name as string });
         parentProfile = {
           name: profileInput.name as string | undefined,
           age: profileInput.age as number | undefined,
@@ -267,11 +270,7 @@ export async function chat(
       }
     }
 
-    console.log("🔍 Full Message:", messageText);
-    console.log("🔍 Message length:", messageText.length);
-    console.log("🔍 Tasks from tool use:", tasks);
-    console.log("🔍 Response stop_reason:", response.stop_reason);
-    console.log("🔍 Response usage:", response.usage);
+    log.debug("Response complete", { length: messageText.length, tasks: tasks.length, stopReason: response.stop_reason ?? "unknown" });
 
     // Extract profile data from conversation (no tool use - text extraction only)
     const lastUserMessage = messages[messages.length - 1]?.content || "";
@@ -285,7 +284,7 @@ export async function chat(
         name: match[1],
         age: parseInt(match[2], 10)
       };
-      console.log("👤 Extracted profile from Claude's response:", parentProfile);
+      log.info("Extracted profile from response", { name: parentProfile.name, age: parentProfile.age });
     } else {
       // Try user message for simple "Name Age" pattern
       const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
@@ -295,7 +294,7 @@ export async function chat(
           name: userMatch[1],
           age: parseInt(userMatch[2], 10)
         };
-        console.log("👤 Extracted profile from user message:", parentProfile);
+        log.info("Extracted profile from user message", { name: parentProfile.name, age: parentProfile.age });
       }
     }
 
@@ -316,7 +315,7 @@ export async function chat(
       },
     };
   } catch (error) {
-    console.error("Claude API error:", error);
+    log.errorWithStack("Claude API error", error);
     throw new Error("Failed to get response from AI");
   }
 }

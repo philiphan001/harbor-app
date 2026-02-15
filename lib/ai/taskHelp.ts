@@ -8,6 +8,9 @@ import {
   ACTION_GUIDE_PROMPT,
   SCRIPT_GENERATOR_PROMPT,
 } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("TaskHelp");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -87,7 +90,7 @@ export async function getTaskHelp(
 
     return messageText;
   } catch (error) {
-    console.error("Task help AI error:", error);
+    log.errorWithStack("Failed to get task help", error);
     throw new Error("Failed to get task help");
   }
 }

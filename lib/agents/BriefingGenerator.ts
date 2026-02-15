@@ -5,6 +5,9 @@ import { SignalWithJudgment } from "@/lib/types/signal";
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG } from "@/lib/config/prompts";
+import { createLogger } from "@/lib/utils/logger";
+
+const log = createLogger("BriefingGenerator");
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -38,7 +41,7 @@ export class BriefingGenerator {
     signals: SignalWithJudgment[],
     context: SituationContext
   ): Promise<WeeklyBriefing> {
-    console.log(`📋 [${this.agentId}] Generating briefing for ${context.profile.name}...`);
+    log.info("Generating briefing", { parentName: context.profile.name, signalCount: signals.length });
 
     try {
       const prompt = this.buildBriefingPrompt(signals, context);
@@ -85,11 +88,11 @@ export class BriefingGenerator {
         },
       };
 
-      console.log(`✅ [${this.agentId}] Briefing generated with ${signals.length} signals`);
+      log.info("Briefing generated", { signalCount: signals.length, briefingId: briefing.briefingId });
 
       return briefing;
     } catch (error) {
-      console.error(`❌ [${this.agentId}] Error generating briefing:`, error);
+      log.errorWithStack("Error generating briefing", error);
       throw error;
     }
   }
