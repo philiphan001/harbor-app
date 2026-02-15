@@ -35,13 +35,17 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect unauthenticated users to login (except for public routes)
+  // Public routes that don't require auth
   const publicRoutes = ["/login", "/signup", "/auth/callback"];
   const isPublicRoute = publicRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
-  if (!user && !isPublicRoute) {
+  // API routes handle their own auth (return 401, not redirect)
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
+
+  // Redirect unauthenticated users to login (except public + API routes)
+  if (!user && !isPublicRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

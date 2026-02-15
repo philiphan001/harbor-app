@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit, STANDARD_LIMIT } from "@/lib/utils/rateLimit";
+import { requireAuth } from "@/lib/supabase/auth";
 import { saveDomainData, getDomainData } from "@/lib/db/domainData";
 
 const log = createLogger("api/domain-data");
@@ -11,6 +12,9 @@ const log = createLogger("api/domain-data");
 export async function GET(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "domain-data-get", STANDARD_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const parentId = request.nextUrl.searchParams.get("parentId");
@@ -39,6 +43,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "domain-data-post", STANDARD_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

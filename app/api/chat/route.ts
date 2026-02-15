@@ -3,12 +3,16 @@ import { chat } from "@/lib/ai/claude";
 import { Message } from "@/lib/types/situation";
 import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/chat");
 
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "chat", AI_CHAT_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

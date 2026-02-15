@@ -6,6 +6,7 @@ import { scoreMultipleSignals } from "@/lib/ai/judgmentAgent";
 import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
+import { requireAuth } from "@/lib/supabase/auth";
 import { createLogger } from "@/lib/utils/logger";
 
 const log = createLogger("api/generate-briefing");
@@ -13,6 +14,9 @@ const log = createLogger("api/generate-briefing");
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "generate-briefing", BRIEFING_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

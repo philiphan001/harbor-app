@@ -4,8 +4,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit } from "@/lib/utils/rateLimit";
+import { requireAuth } from "@/lib/supabase/auth";
 import { processFile } from "@/lib/ingestion/pipeline";
-import { validateFile } from "@/lib/ingestion/pipeline";
 import {
   type DocumentType,
   MAX_FILE_SIZE_BYTES,
@@ -20,6 +20,9 @@ const UPLOAD_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "upload", UPLOAD_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     // Parse multipart form data

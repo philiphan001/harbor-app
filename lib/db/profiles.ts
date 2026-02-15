@@ -6,12 +6,14 @@ import { createLogger } from "@/lib/utils/logger";
 const log = createLogger("db/profiles");
 
 export interface ProfileInput {
-  parentId: string; // Client-side ID (used as situation elderName slug)
+  parentId: string; // Client-side slug for which elder (e.g. "mom", "dad")
   name: string;
   age?: number;
   state?: string;
   livingArrangement?: string;
   healthStatus?: string;
+  authUserId?: string; // Supabase auth user ID (when authenticated)
+  authEmail?: string; // Supabase auth email (when authenticated)
 }
 
 export interface ProfileRecord {
@@ -28,26 +30,44 @@ export interface ProfileRecord {
 
 /**
  * Upsert a parent profile: creates or updates User + Situation.
- * Uses a placeholder email since we don't have auth yet.
+ * If authUserId is provided, uses Supabase auth ID for the User record.
+ * Otherwise falls back to placeholder email (backward compat).
  */
 export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord> {
-  const email = `${input.parentId}@harbor.local`; // placeholder until auth
+  log.info("Upserting profile", { parentId: input.parentId, name: input.name, hasAuth: !!input.authUserId });
 
-  log.info("Upserting profile", { parentId: input.parentId, name: input.name });
+  let user;
 
-  // Upsert user
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { name: input.name },
-    create: {
-      email,
-      name: input.name,
-    },
-  });
+  if (input.authUserId) {
+    // Authenticated flow — use Supabase auth user ID
+    user = await prisma.user.upsert({
+      where: { id: input.authUserId },
+      update: {
+        name: input.name,
+        email: input.authEmail ?? undefined,
+      },
+      create: {
+        id: input.authUserId,
+        email: input.authEmail ?? `${input.authUserId}@harbor.local`,
+        name: input.name,
+      },
+    });
+  } else {
+    // Legacy flow — placeholder email
+    const email = `${input.parentId}@harbor.local`;
+    user = await prisma.user.upsert({
+      where: { email },
+      update: { name: input.name },
+      create: { email, name: input.name },
+    });
+  }
 
-  // Find existing situation for this user/elder or create one
+  // Find existing situation for this user by elderName slug (parentId)
   const existingSituation = await prisma.situation.findFirst({
-    where: { createdBy: user.id },
+    where: {
+      createdBy: user.id,
+      elderName: input.name,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -96,7 +116,7 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
 }
 
 /**
- * Get a profile by the client-side parentId.
+ * Get a profile by the client-side parentId (legacy flow).
  */
 export async function getProfile(parentId: string): Promise<ProfileRecord | null> {
   const email = `${parentId}@harbor.local`;
@@ -129,7 +149,35 @@ export async function getProfile(parentId: string): Promise<ProfileRecord | null
 }
 
 /**
- * Get all profiles (all users with their situations).
+ * Get all profiles for an authenticated user (by Supabase auth user ID).
+ */
+export async function getProfilesForAuthUser(authUserId: string): Promise<ProfileRecord[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: authUserId },
+    include: {
+      situations: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+
+  if (!user || user.situations.length === 0) return [];
+
+  return user.situations.map((situation) => ({
+    userId: user.id,
+    situationId: situation.id,
+    parentId: situation.elderName.toLowerCase().replace(/\s+/g, "-"),
+    name: situation.elderName,
+    age: situation.elderAge ?? undefined,
+    state: (situation.elderLocation as { state?: string })?.state,
+    livingArrangement: situation.currentLivingSituation ?? undefined,
+    healthStatus: situation.cognitiveStatus ?? undefined,
+    lastUpdated: situation.updatedAt.toISOString(),
+  }));
+}
+
+/**
+ * Get all profiles (all users with their situations) — legacy flow.
  */
 export async function getAllProfiles(): Promise<ProfileRecord[]> {
   const users = await prisma.user.findMany({
@@ -208,8 +256,37 @@ export async function deleteProfile(parentId: string): Promise<boolean> {
 
 /**
  * Get the situationId for a parentId (needed by other DB functions).
+ * Legacy flow — uses placeholder email.
  */
 export async function getSituationId(parentId: string): Promise<string | null> {
   const profile = await getProfile(parentId);
   return profile?.situationId ?? null;
+}
+
+/**
+ * Get the situationId for an auth user + parentId.
+ * Finds the situation by the auth user's DB record + elderName match.
+ * Falls back to legacy flow if no auth-created situation exists.
+ */
+export async function getSituationIdForAuthUser(
+  authUserId: string,
+  parentId: string
+): Promise<string | null> {
+  // First try: find situation by auth user ID
+  const situations = await prisma.situation.findMany({
+    where: { createdBy: authUserId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (situations.length > 0) {
+    // If there's a parentId, try to match by elderName slug
+    const match = situations.find(
+      (s) => s.elderName.toLowerCase().replace(/\s+/g, "-") === parentId
+    );
+    // Return matched or first situation
+    return match?.id ?? situations[0].id;
+  }
+
+  // Fallback: try legacy flow
+  return getSituationId(parentId);
 }

@@ -5,6 +5,7 @@ import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, ANSWER_EXTRACTION_PROMPT } from "@/lib/config/prompts";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/extract-answers");
 
@@ -15,6 +16,9 @@ const anthropic = new Anthropic({
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "extract-answers", AI_EXTRACTION_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

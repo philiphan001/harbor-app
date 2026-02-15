@@ -6,12 +6,16 @@ import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/score-signal");
 
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "score-signal", AI_EXTRACTION_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

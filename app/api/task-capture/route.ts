@@ -6,6 +6,7 @@ import type { AnthropicToolDefinition } from "@/lib/types/taskCapture";
 import { AI_CONFIG, getTaskCapturePrompt } from "@/lib/config/prompts";
 import { applyRateLimit, AI_CHAT_LIMIT } from "@/lib/utils/rateLimit";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/task-capture");
 
@@ -124,6 +125,9 @@ const getSystemPrompt = (task: Task, parentName?: string) =>
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "task-capture", AI_CHAT_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

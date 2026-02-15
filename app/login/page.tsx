@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,6 +12,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  // Show error from auth callback (e.g., email confirmation failed)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const callbackError = params.get("error");
+    if (callbackError === "auth_callback_failed") {
+      setError("Email confirmation failed. Please try again.");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

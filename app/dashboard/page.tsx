@@ -20,6 +20,7 @@ import { getAgentActivity } from "@/lib/utils/agentStorage";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
+import UserNav from "@/components/auth/UserNav";
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -96,16 +97,19 @@ export default function DashboardPage() {
               {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
             </h1>
 
-            <ParentSwitcher
-              allProfiles={allProfiles}
-              activeProfile={parentProfile}
-              isOpen={showParentSwitcher}
-              onToggle={() => setShowParentSwitcher(!showParentSwitcher)}
-              onSwitch={handleSwitchParent}
-              onDelete={handleDeleteParent}
-              confirmDeleteId={confirmDeleteId}
-              onConfirmDelete={setConfirmDeleteId}
-            />
+            <div className="flex items-center gap-2">
+              <ParentSwitcher
+                allProfiles={allProfiles}
+                activeProfile={parentProfile}
+                isOpen={showParentSwitcher}
+                onToggle={() => setShowParentSwitcher(!showParentSwitcher)}
+                onSwitch={handleSwitchParent}
+                onDelete={handleDeleteParent}
+                confirmDeleteId={confirmDeleteId}
+                onConfirmDelete={setConfirmDeleteId}
+              />
+              <UserNav />
+            </div>
           </div>
 
           {parentProfile?.age && parentProfile?.state && (

@@ -3,6 +3,7 @@ import { getTaskHelp, getHealthcareProxyHelp, HelpFlowType } from "@/lib/ai/task
 import { Task } from "@/lib/ai/claude";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/task-help");
 
@@ -10,6 +11,9 @@ const log = createLogger("api/task-help");
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "task-help", AI_EXTRACTION_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = await request.json();

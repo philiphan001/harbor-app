@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SituationContext } from "@/lib/types/situationContext";
 import { createLogger } from "@/lib/utils/logger";
+import { requireAuth } from "@/lib/supabase/auth";
 
 const log = createLogger("api/context");
 
@@ -8,6 +8,9 @@ const log = createLogger("api/context");
 // For now, this is a pass-through API that could be used for server-side operations
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");
@@ -35,6 +38,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
     const { parentId, name, age, state } = body;
@@ -62,6 +68,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
     const { parentId, domain, updates } = body;
@@ -107,6 +116,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = new URL(request.url);
     const parentId = searchParams.get("parentId");

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
+import { requireAuth } from "@/lib/supabase/auth";
 import { type ExtractedData, type DocumentType } from "@/lib/ingestion/types";
 
 const log = createLogger("api/upload-confirm");
@@ -18,6 +19,9 @@ interface ConfirmBody {
 export async function POST(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "upload-confirm", AI_EXTRACTION_LIMIT);
   if (rateLimitResponse) return rateLimitResponse;
+
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
 
   try {
     const body = (await request.json()) as ConfirmBody;
