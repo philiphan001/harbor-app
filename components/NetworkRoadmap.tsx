@@ -10,7 +10,7 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
 });
 
 export default function NetworkRoadmap() {
-  const graphRef = useRef<any>();
+  const graphRef = useRef<any>(null);
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);

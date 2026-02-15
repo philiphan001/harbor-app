@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { Task } from "@/lib/ai/claude";
+import { getAnthropicApiKey } from "@/lib/utils/env";
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  apiKey: getAnthropicApiKey(),
 });
 
 // Define data extraction tools based on task domain
@@ -17,7 +18,7 @@ const getExtractionTools = (task: Task) => {
         name: "save_doctor_info",
         description: "Save primary care doctor contact information",
         input_schema: {
-          type: "object",
+          type: "object" as const,
           properties: {
             name: { type: "string", description: "Doctor's full name" },
             phone: { type: "string", description: "Office phone number" },
@@ -34,7 +35,7 @@ const getExtractionTools = (task: Task) => {
         name: "save_medication_list",
         description: "Save medication information",
         input_schema: {
-          type: "object",
+          type: "object" as const,
           properties: {
             medications: {
               type: "array",
@@ -60,7 +61,7 @@ const getExtractionTools = (task: Task) => {
         name: "save_insurance_info",
         description: "Save health insurance information",
         input_schema: {
-          type: "object",
+          type: "object" as const,
           properties: {
             provider: { type: "string", description: "Insurance company name" },
             policyNumber: { type: "string", description: "Policy or member ID number" },
@@ -79,7 +80,7 @@ const getExtractionTools = (task: Task) => {
         name: "save_legal_document_info",
         description: "Save legal document information",
         input_schema: {
-          type: "object",
+          type: "object" as const,
           properties: {
             documentType: { type: "string", description: "Type of document (e.g., 'Healthcare Proxy', 'Power of Attorney')" },
             status: { type: "string", description: "Status (e.g., 'completed', 'in progress', 'not started')" },
@@ -98,7 +99,7 @@ const getExtractionTools = (task: Task) => {
     name: "save_task_notes",
     description: "Save general notes or information about this task",
     input_schema: {
-      type: "object",
+      type: "object" as const,
       properties: {
         notes: { type: "string", description: "Information gathered about this task" },
         complete: { type: "boolean", description: "Whether the task information gathering is complete" },
@@ -182,14 +183,14 @@ export async function POST(request: NextRequest) {
     // Handle tool use loop (same as main chat)
     let maxContinuations = 3;
     let continuationCount = 0;
-    let continueMessages = [...anthropicMessages];
+    let continueMessages: Anthropic.Messages.MessageParam[] = [...anthropicMessages];
     const allResponses = [response];
 
     while (response.stop_reason === "tool_use" && continuationCount < maxContinuations) {
       console.log(`🔄 Task capture - tool use detected (attempt ${continuationCount + 1})`);
 
       const toolResults = response.content
-        .filter(block => block.type === "tool_use")
+        .filter((block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use")
         .map(block => ({
           type: "tool_result" as const,
           tool_use_id: block.id,

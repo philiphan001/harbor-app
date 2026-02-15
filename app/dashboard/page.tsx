@@ -8,22 +8,52 @@ import {
   getParentProfile,
   getAllParentProfiles,
   setActiveParentId,
+  deleteParentProfile,
   type ParentProfile
 } from "@/lib/utils/parentProfile";
+import { deleteTasksForParent, removeOrphanedTasks } from "@/lib/utils/taskStorage";
+import { deleteTaskDataForParent } from "@/lib/utils/taskData";
+import { deleteBriefingsForParent } from "@/lib/utils/briefingStorage";
+import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
+import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
+import { getAgentActivity } from "@/lib/utils/agentStorage";
+import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
+import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
+import ReadinessCard from "@/components/dashboard/ReadinessCard";
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [allProfiles, setAllProfiles] = useState<ParentProfile[]>([]);
   const [showParentSwitcher, setShowParentSwitcher] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
+  const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
+  const [unhandledDetections, setUnhandledDetections] = useState(0);
 
   const loadData = () => {
+    removeOrphanedTasks();
+
     const storedTasks = getTasks();
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
+    const readinessScore = calculateReadinessScore();
+
     setTasks(storedTasks);
     setParentProfile(profile);
     setAllProfiles(profiles);
+    setReadiness(readinessScore);
+
+    if (profile?.id) {
+      const briefings = getBriefingsForParent(profile.id);
+      if (briefings.length > 0) {
+        setLatestBriefing(briefings[0]);
+      }
+    }
+
+    const activity = getAgentActivity();
+    const unhandled = activity.recentDetections.filter(d => !d.handled).length;
+    setUnhandledDetections(unhandled);
   };
 
   useEffect(() => {
@@ -32,8 +62,18 @@ export default function DashboardPage() {
 
   const handleSwitchParent = (parentId: string) => {
     setActiveParentId(parentId);
-    loadData(); // Reload data for new active parent
+    loadData();
     setShowParentSwitcher(false);
+  };
+
+  const handleDeleteParent = (parentId: string) => {
+    deleteTasksForParent(parentId);
+    deleteTaskDataForParent(parentId);
+    deleteBriefingsForParent(parentId);
+    deleteParentProfile(parentId);
+    setConfirmDeleteId(null);
+    setShowParentSwitcher(false);
+    loadData();
   };
 
   const urgentTasks = tasks.filter((t) => t.priority === "high");
@@ -43,7 +83,6 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-10 pb-8">
-        {/* Background circles */}
         <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
         <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
 
@@ -52,73 +91,21 @@ export default function DashboardPage() {
             Welcome back
           </div>
 
-          {/* Parent Name with Switcher */}
           <div className="flex items-center justify-between mb-1">
             <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
               {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
             </h1>
 
-            {/* Parent Switcher - Only show if multiple parents */}
-            {allProfiles.length > 1 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowParentSwitcher(!showParentSwitcher)}
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition-colors"
-                >
-                  <div className="font-sans text-xs font-medium text-white">
-                    {allProfiles.length} {allProfiles.length === 1 ? "Parent" : "Parents"}
-                  </div>
-                  <svg
-                    className={`w-4 h-4 text-white transition-transform ${showParentSwitcher ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Dropdown */}
-                {showParentSwitcher && (
-                  <>
-                    {/* Backdrop to close dropdown */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowParentSwitcher(false)}
-                    />
-
-                    {/* Dropdown menu */}
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl border border-sandDark z-20">
-                      <div className="py-1">
-                        {allProfiles.map((profile) => (
-                          <button
-                            key={profile.id}
-                            onClick={() => handleSwitchParent(profile.id)}
-                            className={`w-full px-4 py-3 text-left hover:bg-sand/50 transition-colors ${
-                              profile.id === parentProfile?.id ? "bg-sand/30" : ""
-                            }`}
-                          >
-                            <div className="font-sans text-sm font-semibold text-slate">
-                              {profile.name}
-                            </div>
-                            {profile.age && profile.state && (
-                              <div className="font-sans text-xs text-slateMid mt-0.5">
-                                Age {profile.age} · {profile.state}
-                              </div>
-                            )}
-                            {profile.id === parentProfile?.id && (
-                              <div className="font-sans text-xs text-ocean font-medium mt-1">
-                                ✓ Currently Active
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            <ParentSwitcher
+              allProfiles={allProfiles}
+              activeProfile={parentProfile}
+              isOpen={showParentSwitcher}
+              onToggle={() => setShowParentSwitcher(!showParentSwitcher)}
+              onSwitch={handleSwitchParent}
+              onDelete={handleDeleteParent}
+              confirmDeleteId={confirmDeleteId}
+              onConfirmDelete={setConfirmDeleteId}
+            />
           </div>
 
           {parentProfile?.age && parentProfile?.state && (
@@ -131,6 +118,33 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
+        {/* Readiness Score */}
+        {readiness && <ReadinessCard readiness={readiness} />}
+
+        {/* Unhandled Detections Alert */}
+        {unhandledDetections > 0 && (
+          <Link href="/monitoring" className="block mb-6">
+            <div className="w-full bg-amber/10 border-2 border-amber rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold">
+                    {unhandledDetections}
+                  </div>
+                  <div>
+                    <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-amber mb-0.5">
+                      New Alerts
+                    </div>
+                    <div className="font-sans text-sm text-slate font-medium">
+                      {unhandledDetections} unhandled {unhandledDetections === 1 ? "detection" : "detections"}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-amber text-lg">&rarr;</div>
+              </div>
+            </div>
+          </Link>
+        )}
+
         {/* Action Items Card */}
         <Link href="/tasks" className="block mb-6">
           <div className="w-full bg-white border-2 border-ocean rounded-[14px] px-5 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
@@ -146,30 +160,22 @@ export default function DashboardPage() {
                   {tasks.length > 0 ? (
                     <div className="font-sans text-xs text-slateMid">
                       {urgentTasks.length > 0 && `${urgentTasks.length} urgent`}
-                      {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
+                      {urgentTasks.length > 0 && otherTasks.length > 0 && " \u00b7 "}
                       {otherTasks.length > 0 && `${otherTasks.length} to address`}
                     </div>
                   ) : (
-                    <div className="font-sans text-xs text-slateMid">
-                      All caught up!
-                    </div>
+                    <div className="font-sans text-xs text-slateMid">All caught up!</div>
                   )}
                 </div>
               </div>
-              <div className="text-ocean text-lg">→</div>
+              <div className="text-ocean text-lg">&rarr;</div>
             </div>
 
-            {/* Show top 2 urgent tasks */}
             {urgentTasks.slice(0, 2).map((task, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-2 py-2 border-t border-sand"
-              >
+              <div key={index} className="flex items-start gap-2 py-2 border-t border-sand">
                 <div className="w-1.5 h-1.5 bg-coral rounded-full mt-1.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-sans text-sm font-medium text-slate">
-                    {task.title}
-                  </div>
+                  <div className="font-sans text-sm font-medium text-slate">{task.title}</div>
                 </div>
               </div>
             ))}
@@ -185,7 +191,7 @@ export default function DashboardPage() {
         {/* Weekly Briefing Card */}
         <Link href="/briefing" className="block mb-6">
           <div className="w-full bg-ocean/20 border-2 border-ocean rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-serif text-lg font-semibold">
                   📊
@@ -195,12 +201,38 @@ export default function DashboardPage() {
                     Weekly Briefing
                   </div>
                   <div className="font-sans text-sm text-slate font-medium">
-                    What's happening this week
+                    {latestBriefing ? "This week's insights" : "What's happening this week"}
                   </div>
                 </div>
               </div>
-              <div className="text-ocean text-lg">→</div>
+              <div className="text-ocean text-lg">&rarr;</div>
             </div>
+
+            {latestBriefing && (
+              <div className="pt-3 border-t border-ocean/20">
+                <div className="flex items-center gap-4 mb-2">
+                  {latestBriefing.urgentCount > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-coral rounded-full" />
+                      <div className="font-sans text-xs font-semibold text-coral">
+                        {latestBriefing.urgentCount} Urgent
+                      </div>
+                    </div>
+                  )}
+                  {latestBriefing.importantCount > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-amber rounded-full" />
+                      <div className="font-sans text-xs font-semibold text-amber">
+                        {latestBriefing.importantCount} Important
+                      </div>
+                    </div>
+                  )}
+                  <div className="font-sans text-xs text-slateMid">
+                    {latestBriefing.signalCount} signals analyzed
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Link>
 
@@ -221,61 +253,60 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              <div className="text-sage text-lg">→</div>
+              <div className="text-sage text-lg">&rarr;</div>
             </div>
           </div>
         </Link>
 
-        {/* Quick Actions Section */}
+        {/* Quick Actions */}
         <div>
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
             Quick Actions
           </div>
-
           <div className="space-y-4">
             <Link href="/crisis">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-coral/20 rounded-lg flex items-center justify-center text-coral text-base">
-                    +
-                  </div>
+                  <div className="w-8 h-8 bg-coral/20 rounded-lg flex items-center justify-center text-coral text-base">+</div>
                   <div className="font-sans text-sm font-medium text-slate">
                     {allProfiles.length === 1 ? "Add another parent's profile" : "Update situation or add crisis event"}
                   </div>
                 </div>
-                <div className="text-slateLight text-sm">→</div>
+                <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-
             <Link href="/readiness">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-ocean/20 rounded-lg flex items-center justify-center text-ocean text-base">
-                    ✓
-                  </div>
-                  <div className="font-sans text-sm font-medium text-slate">
-                    Review readiness assessment
-                  </div>
+                  <div className="w-8 h-8 bg-ocean/20 rounded-lg flex items-center justify-center text-ocean text-base">✓</div>
+                  <div className="font-sans text-sm font-medium text-slate">Review readiness assessment</div>
                 </div>
-                <div className="text-slateLight text-sm">→</div>
+                <div className="text-slateLight text-sm">&rarr;</div>
+              </div>
+            </Link>
+            <Link href="/monitoring">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sage/20 rounded-lg flex items-center justify-center text-sage text-base">🤖</div>
+                  <div className="font-sans text-sm font-medium text-slate">View agent activity</div>
+                </div>
+                <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Footer - Trust Bar */}
+      {/* Footer */}
       <div className="px-5 py-6 mt-auto border-t border-sandDark">
         <div className="bg-sand rounded-xl p-4 flex gap-3">
           <div className="w-8 h-8 rounded-full bg-ocean text-white flex items-center justify-center font-serif text-sm font-semibold shrink-0">
             H
           </div>
           <div>
-            <div className="font-serif text-xs font-medium text-slate mb-1">
-              AI-powered care coordination
-            </div>
+            <div className="font-serif text-xs font-medium text-slate mb-1">AI-powered care coordination</div>
             <div className="font-sans text-[11px] text-slateMid leading-relaxed">
-              Your care plan updates automatically as your parent's situation evolves.
+              Your care plan updates automatically as your parent&apos;s situation evolves.
             </div>
           </div>
         </div>

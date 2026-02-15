@@ -9,6 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
+    // Pooled connection for runtime queries (port 6543)
     url: process.env["DATABASE_URL"],
-  },
+    // Direct connection for migrations/db push (port 5432)
+    directUrl: process.env["DIRECT_URL"],
+  } as any,
 });

@@ -99,3 +99,34 @@ export function clearTasksForActiveParent(): void {
   const filtered = allTasks.filter((t) => t.parentId !== activeParentId);
   saveTasks(filtered);
 }
+
+// Delete all tasks for a specific parent
+export function deleteTasksForParent(parentId: string): void {
+  const allTasks = getAllTasks();
+  const filtered = allTasks.filter((t) => t.parentId !== parentId);
+  saveTasks(filtered);
+}
+
+// Clean up orphaned tasks (no parentId) by assigning them to a parent
+export function assignOrphanedTasks(parentId: string): number {
+  const allTasks = getAllTasks();
+  let count = 0;
+  const updated = allTasks.map((t) => {
+    if (!t.parentId) {
+      count++;
+      return { ...t, parentId };
+    }
+    return t;
+  });
+  if (count > 0) saveTasks(updated);
+  return count;
+}
+
+// Remove all orphaned tasks (no parentId)
+export function removeOrphanedTasks(): number {
+  const allTasks = getAllTasks();
+  const filtered = allTasks.filter((t) => t.parentId);
+  const removed = allTasks.length - filtered.length;
+  if (removed > 0) saveTasks(filtered);
+  return removed;
+}

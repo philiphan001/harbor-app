@@ -6,6 +6,7 @@ import { Task } from "@/lib/ai/claude";
 import { getTasks, removeTask } from "@/lib/utils/taskStorage";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import TaskDetail from "@/components/TaskDetail";
+import { DOMAIN_COLORS, DOMAIN_ICONS, type ExtendedDomain } from "@/lib/constants/domains";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -44,15 +45,8 @@ export default function TasksPage() {
   const mediumPriorityTasks = tasks.filter((t) => t.priority === "medium");
   const lowPriorityTasks = tasks.filter((t) => t.priority === "low");
 
-  // Domain colors
-  const domainColors: Record<string, string> = {
-    medical: "#D4725C",
-    financial: "#1B6B7D",
-    legal: "#6B8F71",
-    housing: "#C4943A",
-    family: "#4A6274",
-    caregiving: "#2A8FA4",
-  };
+  // Domain colors (from shared constants)
+  const domainColors = DOMAIN_COLORS;
 
   // Get parent profile for passing to TaskDetail
   const parentProfile = getParentProfile();
@@ -279,12 +273,7 @@ function TaskCard({
             color: domainColor,
           }}
         >
-          {task.domain === "medical" && "♥"}
-          {task.domain === "financial" && "◈"}
-          {task.domain === "legal" && "◉"}
-          {task.domain === "housing" && "⌂"}
-          {task.domain === "family" && "◎"}
-          {task.domain === "caregiving" && "▣"}
+          {DOMAIN_ICONS[task.domain as ExtendedDomain] || "●"}
         </div>
 
         <div className="flex-1 min-w-0">

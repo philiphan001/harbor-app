@@ -3,9 +3,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Signal, SignalWithJudgment } from "@/lib/types/signal";
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
+import { getAnthropicApiKey } from "@/lib/utils/env";
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  apiKey: getAnthropicApiKey(),
 });
 
 export class JudgmentAgent {

@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Task } from "./claude";
 import { getStateFormInfo, getRecommendedApproach } from "@/lib/data/stateHealthcareProxyForms";
+import { getAnthropicApiKey } from "@/lib/utils/env";
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  apiKey: getAnthropicApiKey(),
 });
 
 export type HelpFlowType = "document_hunter" | "action_guide" | "script_generator";

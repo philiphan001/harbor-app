@@ -8,22 +8,29 @@ import TaskList from "./TaskList";
 import TaskDetail from "./TaskDetail";
 import { getTasks, addTasks, removeTask } from "@/lib/utils/taskStorage";
 import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
+import { Answer } from "@/lib/types/readiness";
 
 interface ChatInterfaceProps {
   initialMessage?: string;
   mode: "crisis" | "readiness";
   onComplete?: (data: any) => void;
+  // For readiness mode: shared answer state
+  currentAnswers?: Answer[];
+  onAnswersExtracted?: (answers: Answer[]) => void;
 }
 
 export default function ChatInterface({
   initialMessage,
   mode,
   onComplete,
+  currentAnswers,
+  onAnswersExtracted,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isExtractingTasks, setIsExtractingTasks] = useState(false); // NEW: Track background task extraction
+  const [isExtractingTasks, setIsExtractingTasks] = useState(false);
+  const [isExtractingAnswers, setIsExtractingAnswers] = useState(false); // NEW: Track answer extraction
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -73,9 +80,14 @@ export default function ChatInterface({
     setIsLoading(true);
     setIsExtractingTasks(true); // Start background task extraction
 
+    // For readiness mode, also extract structured answers
+    if (mode === "readiness" && onAnswersExtracted) {
+      setIsExtractingAnswers(true);
+    }
+
     try {
-      // PARALLEL EXTRACTION: Make 2 API calls simultaneously
-      console.log("🚀 Starting parallel requests (conversation + task extraction)");
+      // PARALLEL EXTRACTION: Make 2-3 API calls simultaneously
+      console.log(`🚀 Starting parallel requests (conversation + task extraction${mode === "readiness" ? " + answer extraction" : ""})`);
 
       // Request 1: Main conversation (NO TOOLS - fast response)
       const conversationPromise = fetch("/api/chat", {
@@ -96,6 +108,20 @@ export default function ChatInterface({
           history: messages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
+
+      // Request 3: Answer extraction for readiness mode (runs in parallel)
+      const answerExtractionPromise = mode === "readiness" && onAnswersExtracted
+        ? fetch("/api/extract-answers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              conversationHistory: conversationHistory.map(m => ({
+                role: m.role,
+                content: m.content
+              })),
+            }),
+          })
+        : null;
 
       // Wait for conversation response (show immediately to user)
       console.log("⏳ Waiting for conversation response...");
@@ -133,6 +159,41 @@ export default function ChatInterface({
         console.log("✅ Task extraction complete");
       } else {
         console.log("ℹ️ No new tasks extracted this turn");
+      }
+
+      // Wait for answer extraction (readiness mode only)
+      if (answerExtractionPromise && onAnswersExtracted) {
+        console.log("⏳ Waiting for answer extraction...");
+        const answerResponse = await answerExtractionPromise;
+        const answerData = await answerResponse.json();
+
+        if (answerData.answers && answerData.answers.length > 0) {
+          console.log(`📝 Extracted ${answerData.answers.length} structured answers`);
+
+          // Merge with existing answers (newer answers override older ones)
+          const mergedAnswers = [...(currentAnswers || [])];
+
+          answerData.answers.forEach((newAnswer: Answer) => {
+            const existingIndex = mergedAnswers.findIndex(
+              (a) => a.questionId === newAnswer.questionId
+            );
+
+            if (existingIndex >= 0) {
+              // Replace existing answer
+              mergedAnswers[existingIndex] = newAnswer;
+            } else {
+              // Add new answer
+              mergedAnswers.push(newAnswer);
+            }
+          });
+
+          onAnswersExtracted(mergedAnswers);
+          console.log("✅ Answer extraction complete");
+        } else {
+          console.log("ℹ️ No new structured answers extracted");
+        }
+
+        setIsExtractingAnswers(false);
       }
 
       // Check if intake is complete

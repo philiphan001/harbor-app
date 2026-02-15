@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { Task } from "@/lib/ai/claude";
 import { saveTaskData } from "@/lib/utils/taskData";
+import { DOMAIN_COLORS, PRIORITY_LABELS } from "@/lib/constants/domains";
+import TaskChat from "@/components/task/TaskChat";
+import TaskForm from "@/components/task/TaskForm";
 
 interface TaskDetailProps {
   task: Task;
@@ -21,22 +24,8 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
   const [showDataCapture, setShowDataCapture] = useState(false);
   const [captureMode, setCaptureMode] = useState<"chat" | "form" | null>(null);
 
-  // Domain colors
-  const domainColors: Record<string, string> = {
-    medical: "#D4725C",
-    financial: "#1B6B7D",
-    legal: "#6B8F71",
-    housing: "#C4943A",
-    family: "#4A6274",
-    caregiving: "#2A8FA4",
-  };
-
-  // Priority labels
-  const priorityLabels = {
-    high: "Urgent",
-    medium: "Important",
-    low: "When you can",
-  };
+  const domainColors = DOMAIN_COLORS;
+  const priorityLabels = PRIORITY_LABELS;
 
   // Help content generators based on task type
   const getHelpContent = () => {
@@ -291,7 +280,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
             </div>
 
             <div className="space-y-4">
-              {helpContent.content.map((section, index) => (
+              {helpContent.content.map((section: { heading: string; items: string[] }, index: number) => (
                 <div key={index}>
                   <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-2">
                     {section.heading}
@@ -402,185 +391,4 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
   );
 }
 
-// Mini chat component for conversational data capture
-function TaskChat({
-  task,
-  userContext,
-  onComplete,
-  onCancel,
-}: {
-  task: Task;
-  userContext?: { parentState?: string; parentName?: string };
-  onComplete: (data: any) => void;
-  onCancel: () => void;
-}) {
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
-    {
-      role: "assistant",
-      content: `Great! What information did you find out about "${task.title}"? Just tell me naturally and I'll organize it for you.`,
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = { role: "user" as const, content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/task-capture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          task,
-          messages: [...messages, userMessage],
-          userContext,
-        }),
-      });
-
-      const data = await response.json();
-
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.message },
-      ]);
-
-      // If data capture is complete, call onComplete with extracted data
-      if (data.complete) {
-        setTimeout(() => {
-          onComplete(data.extractedData);
-        }, 1000);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-2">
-        Tell Harbor
-      </div>
-
-      {/* Messages */}
-      <div className="bg-white rounded-xl border border-sandDark p-3 space-y-3 max-h-60 overflow-y-auto">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`rounded-lg px-3 py-2 max-w-[85%] ${
-                msg.role === "user"
-                  ? "bg-ocean text-white"
-                  : "bg-sand text-slate"
-              }`}
-            >
-              <div className="font-sans text-sm leading-relaxed">{msg.content}</div>
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-sand rounded-lg px-3 py-2">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-slateMid rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-slateMid rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-slateMid rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input */}
-      <form onSubmit={sendMessage} className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your response..."
-          disabled={isLoading}
-          className="flex-1 px-3 py-2 border border-sandDark rounded-lg font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:ring-2 focus:ring-ocean focus:border-transparent disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="px-4 py-2 bg-ocean text-white rounded-lg font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Send
-        </button>
-      </form>
-
-      <button
-        onClick={onCancel}
-        className="w-full mt-2 text-slateMid hover:text-slate font-sans text-sm font-medium transition-colors"
-      >
-        Cancel
-      </button>
-    </div>
-  );
-}
-
-// Simple form component for structured data entry
-function TaskForm({
-  task,
-  onComplete,
-  onCancel,
-}: {
-  task: Task;
-  onComplete: (data: any) => void;
-  onCancel: () => void;
-}) {
-  const [formData, setFormData] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onComplete({ notes: formData });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-2">
-        Type It In
-      </div>
-      <textarea
-        value={formData}
-        onChange={(e) => setFormData(e.target.value)}
-        placeholder="Enter the information you gathered..."
-        rows={6}
-        className="w-full px-3 py-2 border border-sandDark rounded-lg font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:ring-2 focus:ring-ocean focus:border-transparent resize-none"
-      />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-sand hover:bg-sandDark text-slate rounded-lg px-4 py-2 font-sans text-sm font-semibold transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!formData.trim()}
-          className="flex-1 bg-ocean hover:bg-oceanMid text-white rounded-lg px-4 py-2 font-sans text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Save
-        </button>
-      </div>
-    </form>
-  );
-}
+// TaskChat and TaskForm are now in components/task/

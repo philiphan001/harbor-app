@@ -56,13 +56,19 @@ export function setActiveParentId(parentId: string): void {
   }
 }
 
-// Get the currently active parent profile
-export function getParentProfile(): ParentProfile | null {
+// Get a parent profile by ID, or the currently active one
+export function getParentProfile(parentId?: string): ParentProfile | null {
   if (typeof window === "undefined") return null;
 
   const profiles = getAllParentProfiles();
   if (profiles.length === 0) return null;
 
+  // If a specific ID was requested, return that profile
+  if (parentId) {
+    return profiles.find(p => p.id === parentId) || null;
+  }
+
+  // Otherwise get the active profile
   const activeId = getActiveParentId();
 
   // If there's an active ID, return that profile
@@ -136,6 +142,38 @@ export function clearParentProfile(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(PROFILES_KEY);
   localStorage.removeItem(ACTIVE_PARENT_KEY);
+}
+
+/**
+ * Delete a specific parent profile and switch active parent if needed.
+ * Returns the new active parent ID (or null if no parents remain).
+ */
+export function deleteParentProfile(parentId: string): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const profiles = getAllParentProfiles();
+    const filtered = profiles.filter((p) => p.id !== parentId);
+
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(filtered));
+
+    // If we deleted the active parent, switch to another
+    const activeId = getActiveParentId();
+    if (activeId === parentId) {
+      if (filtered.length > 0) {
+        setActiveParentId(filtered[0].id);
+        return filtered[0].id;
+      } else {
+        localStorage.removeItem(ACTIVE_PARENT_KEY);
+        return null;
+      }
+    }
+
+    return activeId;
+  } catch (error) {
+    console.error("Error deleting parent profile:", error);
+    return null;
+  }
 }
 
 // Helper to extract state from common phrases

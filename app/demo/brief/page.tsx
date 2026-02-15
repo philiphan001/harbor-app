@@ -123,7 +123,7 @@ export default function SituationBriefDemo() {
         {domains.map((domain) => (
           <div
             key={domain.name}
-            className={`bg-white border border-sandDark rounded-xl px-4 py-4 mb-2.5 border-l-4 border-l-${domain.color}`}
+            className="bg-white border border-sandDark rounded-xl px-4 py-4 mb-2.5 border-l-4"
             style={{
               borderLeftColor:
                 domain.color === "coral"

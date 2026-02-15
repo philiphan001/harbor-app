@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Message } from "@/lib/types/situation";
+import { getAnthropicApiKey } from "@/lib/utils/env";
+import { type ExtendedDomain, type Priority } from "@/lib/constants/domains";
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
+  apiKey: getAnthropicApiKey(),
 });
 
 // System prompts from harbor-spec.md
@@ -82,18 +84,31 @@ CRITICAL GUIDELINES:
 - Celebrate what they DO have: "Great — having the healthcare proxy in place is really important. You're ahead of most families there."
 - For gaps, explain WHY each item matters with a concrete scenario.
 - Use their parent's actual situation to make it real: "Since your mom lives alone in a two-story house, the home safety assessment is especially important."
-- Score items as Complete, Partial, or Missing.
 - At the end, generate the Readiness Score and prioritized action list.
 - The first recommended action should be achievable in under 30 minutes to create momentum.
+
+ASSESSMENT STRUCTURE - SHOW THE ROADMAP UPFRONT:
+Start with: "I'll help you assess your readiness across 4 key areas:
+
+1. **Medical Readiness** - Healthcare providers, medications, insurance, advance directives
+2. **Legal Readiness** - Powers of attorney, wills, estate planning
+3. **Financial Readiness** - Income, expenses, insurance, long-term care funding
+4. **Housing Readiness** - Current living situation and future planning
+
+This usually takes 10-15 minutes. We'll go through each domain together, and I'll identify any gaps we should address.
+
+First, let's start with your parent's basic information..."
+
+Then proceed conversationally through each domain.
 
 CAPTURING INFORMATION:
 When the user says they HAVE something (e.g., "Yes, we have a healthcare proxy"), ask for specifics with an easy out:
 - "Excellent! Who is named as the proxy? (Or say 'later' if you want to add those details to your action items.)"
 - If they provide details: acknowledge and continue
-- If they say "later" or "I don't have it handy": create an action item using the tool and move on
+- If they say "later" or "I don't have it handy": note it for follow-up and move on
 
 ACTION ITEM TRACKING:
-When you identify a gap (mark something as Missing or Partial), briefly acknowledge it and mention you're noting it for follow-up.
+When you identify a gap (something Missing or Partial), briefly acknowledge it and mention you're noting it for follow-up.
 
 Keep acknowledgments brief:
 - "I'll note that for your action items."
@@ -107,20 +122,27 @@ When you learn the parent's name and age, naturally incorporate it into your res
 For example: "Great! Mary at 82 — that's wonderful that you're being proactive."
 This helps confirm you heard correctly and builds rapport. Always use this exact pattern so the system can capture the information.
 
-ASSESSMENT DOMAINS:
-1. Medical Readiness (providers, medications, insurance, advance care wishes)
-2. Financial Readiness (income, assets, insurance, expense awareness, runway)
-3. Legal Readiness (proxy, POA, will, estate plan)
-4. Housing Readiness (safety, modifications, alternatives researched)
-5. Family Readiness (circle set up, roles discussed, preferences aligned)
+ASSESSMENT DOMAINS (Cover systematically):
+1. **Medical Readiness** - Primary care physician, current medications, chronic conditions, medical records access, Medicare/insurance, healthcare proxy/medical POA, advance directives
+2. **Legal Readiness** - Will (up to date), durable power of attorney, advance directives (living will/DNR), document storage, end-of-life wishes discussed
+3. **Financial Readiness** - Monthly income sources, monthly expenses, long-term care insurance, financial account access, estate plan/trust, 6+ month care runway
+4. **Housing Readiness** - Current living arrangement, safety for aging in place, safety features installed, future living discussions, move plan if needed, daily task support
 
-Ask questions naturally and conversationally, not like a form. Make the user feel supported, not interrogated.`;
+Ask questions naturally and conversationally, not like a form. Make the user feel supported, not interrogated.
+
+DOMAIN TRANSITIONS:
+When moving to a new domain, briefly signal the transition:
+- "Great — that covers the medical side. Now let's talk about legal planning..."
+- "Okay, moving to finances. This helps us understand the long-term care runway..."
+- "Last area: housing and living situation..."
+
+This helps users track progress and understand where they are in the assessment.`;
 
 // Task type for extraction
 export interface Task {
   title: string;
-  priority: "high" | "medium" | "low";
-  domain: "medical" | "financial" | "legal" | "housing" | "family" | "caregiving";
+  priority: Priority;
+  domain: ExtendedDomain;
   why: string;
   suggestedActions: string[];
 }
@@ -141,7 +163,7 @@ const taskCreationTool = {
   name: "create_action_item",
   description: "Create an action item when the user reveals they don't know something, haven't done something, or identifies a gap in their care planning. Use this EVERY TIME you identify a gap.",
   input_schema: {
-    type: "object",
+    type: "object" as const,
     properties: {
       title: {
         type: "string",
@@ -176,7 +198,7 @@ const profileCaptureTool = {
   name: "update_parent_profile",
   description: "Save key information about the parent as you learn it during conversation. IMPORTANT: This tool should be called ALONGSIDE your conversational response text, not instead of it. Always include your normal conversational response when using this tool.",
   input_schema: {
-    type: "object",
+    type: "object" as const,
     properties: {
       name: {
         type: "string",
@@ -287,7 +309,7 @@ export async function chat(
     const allResponses = [response]; // Track all responses for merging
 
     // Keep continuing while Claude uses tools (loop until we get actual conversation)
-    let continueMessages = [...anthropicMessages];
+    let continueMessages: Anthropic.Messages.MessageParam[] = [...anthropicMessages];
     let maxContinuations = 10; // Increased from 5 to allow more task generation
     let continuationCount = 0;
     const seenTaskTitles = new Set<string>(); // Track created tasks to prevent duplicates
@@ -297,7 +319,7 @@ export async function chat(
 
       // Build tool results for all tool calls
       const toolResults = response.content
-        .filter(block => block.type === "tool_use")
+        .filter((block): block is Anthropic.Messages.ToolUseBlock => block.type === "tool_use")
         .map(block => ({
           type: "tool_result" as const,
           tool_use_id: block.id,

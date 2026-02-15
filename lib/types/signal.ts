@@ -1,13 +1,15 @@
 // Signal data model for monitoring agent outputs
 
+import { type ExtendedDomain, type Priority, PRIORITY_COLORS, DOMAIN_ICONS } from "@/lib/constants/domains";
+
 export interface Signal {
   id: string;
   agentId: string; // Which agent detected it (e.g., "calendar_monitor", "policy_monitor")
   parentId: string; // Which parent it affects
-  domain: "medical" | "financial" | "legal" | "housing" | "family" | "caregiving" | "general";
+  domain: ExtendedDomain;
   title: string; // Short headline
   description: string; // Full explanation
-  priority: "high" | "medium" | "low";
+  priority: Priority;
   relevanceScore: number; // 0-100 from Judgment Agent
   actionable: boolean; // Does this need user action?
   actionItems?: string[]; // Suggested next steps
@@ -70,23 +72,9 @@ export function formatSignalDate(isoDate: string): string {
 }
 
 export function getSignalIcon(domain: Signal["domain"]): string {
-  const icons: Record<Signal["domain"], string> = {
-    medical: "♥",
-    financial: "◈",
-    legal: "◉",
-    housing: "⌂",
-    family: "◎",
-    caregiving: "✦",
-    general: "●",
-  };
-  return icons[domain];
+  return DOMAIN_ICONS[domain];
 }
 
 export function getSignalColor(priority: Signal["priority"]): string {
-  const colors: Record<Signal["priority"], string> = {
-    high: "#D4725C", // coral
-    medium: "#C9A961", // amber
-    low: "#6B8F71", // sage
-  };
-  return colors[priority];
+  return PRIORITY_COLORS[priority];
 }
