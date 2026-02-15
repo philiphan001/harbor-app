@@ -90,6 +90,12 @@ export const BRIEFING_LIMIT: RateLimitConfig = {
   windowMs: 60_000,
 };
 
+/** Standard CRUD routes — 60 requests per minute */
+export const STANDARD_LIMIT: RateLimitConfig = {
+  maxRequests: 60,
+  windowMs: 60_000,
+};
+
 // --- Next.js helper ---
 
 import { NextRequest, NextResponse } from "next/server";

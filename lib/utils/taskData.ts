@@ -1,9 +1,27 @@
 // Storage for task-specific captured data
+// Write-through: saves to localStorage (fast) + Supabase (persistent)
 import { getActiveParentId } from "./parentProfile";
 
 const STORAGE_KEY = "harbor_task_data";
 
 import type { TaskDataPayload } from "@/lib/types/taskCapture";
+
+// --- Write-through to Supabase (fire-and-forget) ---
+
+function syncTaskDataToDb(
+  parentId: string,
+  toolName: string,
+  taskTitle: string,
+  data: TaskDataPayload
+): void {
+  fetch("/api/domain-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentId, toolName, taskTitle, data }),
+  }).catch(() => {
+    // Silently fail — localStorage is the fallback
+  });
+}
 
 export interface TaskData {
   taskTitle: string;
@@ -56,6 +74,12 @@ export function saveTaskData(taskTitle: string, toolName: string, data: TaskData
   }
 
   saveAllTaskData(allData);
+
+  // Write-through to Supabase
+  if (parentId) {
+    syncTaskDataToDb(parentId, toolName, taskTitle, data);
+  }
+
   console.log("💾 Saved task data:", newData);
 }
 

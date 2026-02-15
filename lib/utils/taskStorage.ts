@@ -8,6 +8,28 @@ export interface TaskWithParent extends Task {
 
 const TASKS_KEY = "harbor_tasks";
 
+// --- Write-through to Supabase (fire-and-forget) ---
+
+function syncTasksToDb(parentId: string, tasks: Task[]): void {
+  fetch("/api/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentId, tasks }),
+  }).catch(() => {});
+}
+
+function removeTaskFromDb(parentId: string, title: string): void {
+  fetch(`/api/tasks?parentId=${encodeURIComponent(parentId)}&title=${encodeURIComponent(title)}`, {
+    method: "DELETE",
+  }).catch(() => {});
+}
+
+function deleteAllTasksFromDb(parentId: string): void {
+  fetch(`/api/tasks?parentId=${encodeURIComponent(parentId)}`, {
+    method: "DELETE",
+  }).catch(() => {});
+}
+
 // Get all tasks (across all parents)
 export function getAllTasks(): TaskWithParent[] {
   if (typeof window === "undefined") return [];
@@ -69,6 +91,9 @@ export function addTasks(newTasks: Task[]): void {
   }));
   allTasks.push(...tasksWithParent);
   saveTasks(allTasks);
+
+  // Write-through to Supabase
+  if (activeParentId) syncTasksToDb(activeParentId, newTasks);
 }
 
 // Remove a task (from active parent's tasks)
@@ -79,6 +104,9 @@ export function removeTask(taskTitle: string): void {
     (t) => !(t.title === taskTitle && t.parentId === activeParentId)
   );
   saveTasks(filtered);
+
+  // Write-through to Supabase
+  if (activeParentId) removeTaskFromDb(activeParentId, taskTitle);
 }
 
 // Clear all tasks
@@ -98,6 +126,9 @@ export function clearTasksForActiveParent(): void {
   const allTasks = getAllTasks();
   const filtered = allTasks.filter((t) => t.parentId !== activeParentId);
   saveTasks(filtered);
+
+  // Write-through to Supabase
+  deleteAllTasksFromDb(activeParentId);
 }
 
 // Delete all tasks for a specific parent

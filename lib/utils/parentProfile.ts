@@ -1,5 +1,6 @@
 // Parent Profile Storage
 // Supports multiple parents with active parent switching
+// Write-through: saves to localStorage (fast) + Supabase (persistent)
 
 export interface ParentProfile {
   id: string; // Unique identifier for parent
@@ -13,6 +14,70 @@ export interface ParentProfile {
 
 const PROFILES_KEY = "harbor_parent_profiles"; // Array of all parent profiles
 const ACTIVE_PARENT_KEY = "harbor_active_parent_id"; // Currently selected parent ID
+
+// --- Write-through to Supabase (fire-and-forget) ---
+
+function syncProfileToDb(profile: ParentProfile): void {
+  fetch("/api/profile", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      parentId: profile.id,
+      name: profile.name,
+      age: profile.age,
+      state: profile.state,
+      livingArrangement: profile.livingArrangement,
+      healthStatus: profile.healthStatus,
+    }),
+  }).catch(() => {
+    // Silently fail — localStorage is the fallback
+  });
+}
+
+function deleteProfileFromDb(parentId: string): void {
+  fetch(`/api/profile?parentId=${encodeURIComponent(parentId)}`, {
+    method: "DELETE",
+  }).catch(() => {});
+}
+
+/**
+ * Hydrate localStorage from the database on first load.
+ * Call this once on app startup.
+ */
+export async function hydrateProfilesFromDb(): Promise<void> {
+  if (typeof window === "undefined") return;
+
+  // Only hydrate if localStorage is empty
+  const existing = getAllParentProfiles();
+  if (existing.length > 0) return;
+
+  try {
+    const response = await fetch("/api/profile");
+    if (!response.ok) return;
+
+    const { profiles } = await response.json();
+    if (!profiles || profiles.length === 0) return;
+
+    const localProfiles: ParentProfile[] = profiles.map(
+      (p: { parentId: string; name: string; age?: number; state?: string; livingArrangement?: string; healthStatus?: string; lastUpdated: string }) => ({
+        id: p.parentId,
+        name: p.name,
+        age: p.age,
+        state: p.state,
+        livingArrangement: p.livingArrangement,
+        healthStatus: p.healthStatus,
+        lastUpdated: p.lastUpdated,
+      })
+    );
+
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(localProfiles));
+    if (localProfiles.length > 0) {
+      setActiveParentId(localProfiles[0].id);
+    }
+  } catch {
+    // DB unavailable — localStorage is the fallback
+  }
+}
 
 // Generate a simple ID from name
 function generateParentId(name: string): string {
@@ -122,6 +187,10 @@ export function saveParentProfile(profile: Partial<ParentProfile> & { name: stri
       setActiveParentId(parentId);
     }
 
+    // Write-through to Supabase
+    const savedProfile = profiles.find(p => p.id === parentId);
+    if (savedProfile) syncProfileToDb(savedProfile);
+
     console.log("💾 Parent profile saved:", parentId);
   } catch (error) {
     console.error("Error saving parent profile:", error);
@@ -156,6 +225,9 @@ export function deleteParentProfile(parentId: string): string | null {
     const filtered = profiles.filter((p) => p.id !== parentId);
 
     localStorage.setItem(PROFILES_KEY, JSON.stringify(filtered));
+
+    // Write-through to Supabase
+    deleteProfileFromDb(parentId);
 
     // If we deleted the active parent, switch to another
     const activeId = getActiveParentId();
