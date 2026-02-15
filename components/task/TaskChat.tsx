@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Task } from "@/lib/ai/claude";
+import type { TaskChatResult } from "@/lib/types/taskCapture";
 
 interface TaskChatProps {
   task: Task;
   userContext?: { parentState?: string; parentName?: string };
-  onComplete: (data: any) => void;
+  onComplete: (data: TaskChatResult | null) => void;
   onCancel: () => void;
 }
 

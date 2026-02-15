@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { runAllInternalAgents, type InternalAgentDetection } from "@/lib/ai/internalAgents";
 
 export default function InsightsPage() {
   const [detections, setDetections] = useState<InternalAgentDetection[]>([]);
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

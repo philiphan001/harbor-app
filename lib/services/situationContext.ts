@@ -245,7 +245,7 @@ export function addFamilyMember(
 
 // ==================== Migration from Existing Data ====================
 
-export function migrateFromParentProfile(parentProfile: any): string {
+export function migrateFromParentProfile(parentProfile: { id?: string; name?: string; age?: number; state?: string }): string {
   // Generate parentId from name (or use existing if available)
   const parentId = parentProfile.id || `parent_${Date.now()}`;
 
@@ -266,7 +266,7 @@ export function migrateFromParentProfile(parentProfile: any): string {
   return parentId;
 }
 
-export function migrateFromTaskData(parentId: string, taskData: any[]): void {
+export function migrateFromTaskData(parentId: string, taskData: Array<{ toolName: string; data: Record<string, unknown> }>): void {
   const context = getSituationContext(parentId);
   if (!context) {
     console.error("Context not found for parent:", parentId);
@@ -278,30 +278,38 @@ export function migrateFromTaskData(parentId: string, taskData: any[]): void {
 
     // Migrate based on tool name
     if (toolName === "save_doctor_info") {
-      if (data.specialty) {
-        addSpecialist(parentId, data);
+      const doc = data as unknown as { name: string; phone: string; address?: string; specialty?: string };
+      if (doc.specialty) {
+        addSpecialist(parentId, doc);
       } else {
-        context.medical.primaryDoctor = data;
+        context.medical.primaryDoctor = doc;
       }
     } else if (toolName === "save_medication_list") {
-      context.medical.medications = data.medications;
+      const medData = data as unknown as { medications: SituationContext["medical"]["medications"] };
+      context.medical.medications = medData.medications;
     } else if (toolName === "save_insurance_info") {
+      const ins = data as unknown as { provider: string; policyNumber: string; groupNumber?: string; phone?: string };
       context.medical.insurance = {
-        provider: data.provider,
-        policyNumber: data.policyNumber,
-        groupNumber: data.groupNumber,
-        phone: data.phone,
+        provider: ins.provider,
+        policyNumber: ins.policyNumber,
+        groupNumber: ins.groupNumber,
+        phone: ins.phone,
         coverageType: "medicare", // default
       };
     } else if (toolName === "save_legal_document_info") {
-      if (data.documentType.toLowerCase().includes("healthcare")) {
-        context.legal.healthcareProxy = data;
-      } else if (data.documentType.toLowerCase().includes("power")) {
-        context.legal.powerOfAttorney = data;
-      } else if (data.documentType.toLowerCase().includes("will")) {
-        context.legal.will = data;
+      const rawLegal = data as unknown as { documentType: string; status: string; agent?: string; location?: string; dateExpires?: string };
+      const legal = {
+        ...rawLegal,
+        status: (rawLegal.status || "not_started") as "not_started" | "in_progress" | "completed",
+      };
+      if (legal.documentType.toLowerCase().includes("healthcare")) {
+        context.legal.healthcareProxy = legal;
+      } else if (legal.documentType.toLowerCase().includes("power")) {
+        context.legal.powerOfAttorney = legal;
+      } else if (legal.documentType.toLowerCase().includes("will")) {
+        context.legal.will = legal;
       } else {
-        context.legal.other.push(data);
+        context.legal.other.push(legal);
       }
     }
   }

@@ -3,7 +3,8 @@
 import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
 import { Signal, createSignal } from "@/lib/types/signal";
 
-export abstract class MonitoringAgent {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export abstract class MonitoringAgent<TExternalData = any, TChange = any> {
   abstract agentId: string;
   abstract domain: Signal["domain"];
   abstract description: string;
@@ -40,7 +41,7 @@ export abstract class MonitoringAgent {
    * @param context The parent's situation context
    * @returns Raw external data
    */
-  protected abstract fetchExternalData(context: SituationContext): Promise<any>;
+  protected abstract fetchExternalData(context: SituationContext): Promise<TExternalData>;
 
   /**
    * Compare external data against context to detect changes/events
@@ -50,8 +51,8 @@ export abstract class MonitoringAgent {
    */
   protected abstract detectChanges(
     context: SituationContext,
-    externalData: any
-  ): Promise<any[]>;
+    externalData: TExternalData
+  ): Promise<TChange[]>;
 
   /**
    * Convert detected changes into structured signals
@@ -60,7 +61,7 @@ export abstract class MonitoringAgent {
    * @returns Array of signals
    */
   protected abstract generateSignals(
-    changes: any[],
+    changes: TChange[],
     context: SituationContext
   ): Promise<Signal[]>;
 

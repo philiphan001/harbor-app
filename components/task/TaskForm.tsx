@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Task } from "@/lib/ai/claude";
+import type { TaskFormResult } from "@/lib/types/taskCapture";
 
 interface TaskFormProps {
   task: Task;
-  onComplete: (data: any) => void;
+  onComplete: (data: TaskFormResult) => void;
   onCancel: () => void;
 }
 

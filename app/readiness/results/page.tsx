@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { runAllInternalAgents, type InternalAgentDetection } from "@/lib/ai/internalAgents";
 
 export default function ReadinessResultsPage() {
   const router = useRouter();
   const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [recommendations, setRecommendations] = useState<InternalAgentDetection[]>([]);
 
   useEffect(() => {

@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { getAgentActivity, markDetectionHandled } from "@/lib/utils/agentStorage";
 import { AgentActivity, AgentDetection, AGENT_METADATA } from "@/lib/types/agents";
 import { generateMockAgentData } from "@/lib/utils/mockAgentData";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
+import type { ScoredSignalResult } from "@/lib/types/taskCapture";
 
 export default function MonitoringPage() {
   const router = useRouter();
   const [activity, setActivity] = useState<AgentActivity | null>(null);
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
 
   useEffect(() => {
     loadActivity();
@@ -227,10 +228,10 @@ function DetectionCard({
 }: {
   detection: AgentDetection;
   onMarkHandled: (id: string, handled: boolean) => void;
-  parentProfile: any;
+  parentProfile: ParentProfile | null;
 }) {
   const [scoring, setScoring] = useState(false);
-  const [scored, setScored] = useState<any>(null);
+  const [scored, setScored] = useState<ScoredSignalResult | null>(null);
   const [showScoreDetails, setShowScoreDetails] = useState(false);
 
   const metadata = AGENT_METADATA[detection.agentType];

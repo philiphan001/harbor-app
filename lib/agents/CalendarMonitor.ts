@@ -10,15 +10,26 @@ interface CalendarEvent {
   title: string;
   description: string;
   daysUntil: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
-export class CalendarMonitor extends MonitoringAgent {
+/** Shape of external data fetched by CalendarMonitor */
+interface CalendarExternalData {
+  medicareDates: {
+    openEnrollment: { start: string; end: string };
+    partDDeadline: string;
+  };
+  medicaidDates: {
+    renewalMonth: number;
+  };
+}
+
+export class CalendarMonitor extends MonitoringAgent<CalendarExternalData, CalendarEvent> {
   agentId = "calendar_monitor";
   domain: Signal["domain"] = "general";
   description = "Monitors age-based transitions, enrollment periods, and important dates";
 
-  protected async fetchExternalData(context: SituationContext): Promise<any> {
+  protected async fetchExternalData(context: SituationContext): Promise<CalendarExternalData> {
     // In production, this would query:
     // - Federal calendar APIs for Medicare/Medicaid dates
     // - State-specific enrollment periods
@@ -43,8 +54,9 @@ export class CalendarMonitor extends MonitoringAgent {
 
   protected async detectChanges(
     context: SituationContext,
-    externalData: any
+    externalData: CalendarExternalData
   ): Promise<CalendarEvent[]> {
+    const data = externalData;
     const events: CalendarEvent[] = [];
     const today = new Date();
 
@@ -81,8 +93,8 @@ export class CalendarMonitor extends MonitoringAgent {
     }
 
     // 2. Check Medicare open enrollment
-    const openEnrollmentStart = new Date(externalData.medicareDates.openEnrollment.start);
-    const openEnrollmentEnd = new Date(externalData.medicareDates.openEnrollment.end);
+    const openEnrollmentStart = new Date(data.medicareDates.openEnrollment.start);
+    const openEnrollmentEnd = new Date(data.medicareDates.openEnrollment.end);
 
     const daysUntilMedicareStart = Math.floor(
       (openEnrollmentStart.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
@@ -126,7 +138,7 @@ export class CalendarMonitor extends MonitoringAgent {
           title: `Upcoming appointment with ${appointment.doctor}`,
           description: `${context.profile.name} has an appointment with ${appointment.doctor} in ${daysUntil} days${appointment.purpose ? ` for ${appointment.purpose}` : ""}.`,
           daysUntil,
-          metadata: appointment,
+          metadata: { ...appointment },
         });
       }
     }
@@ -155,7 +167,7 @@ export class CalendarMonitor extends MonitoringAgent {
             title: `${doc.documentType} expiring soon`,
             description: `${context.profile.name}'s ${doc.documentType} expires in ${daysUntilExpiry} days. Consider renewing or updating this document.`,
             daysUntil: daysUntilExpiry,
-            metadata: doc,
+            metadata: { ...doc },
           });
         }
       }
@@ -198,7 +210,7 @@ export class CalendarMonitor extends MonitoringAgent {
         actionItems.push("Update document if needed");
         actionItems.push("Ensure copies are distributed to relevant parties");
       } else if (event.type === "birthday") {
-        const nextAge = event.metadata?.nextAge;
+        const nextAge = event.metadata?.nextAge as number | undefined;
         if (nextAge === 65) {
           actionItems.push("Enroll in Medicare Part A and Part B");
           actionItems.push("Consider Medicare Supplement (Medigap) plans");

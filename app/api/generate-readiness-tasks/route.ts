@@ -106,7 +106,7 @@ Generate actionable tasks for any gaps, uncertainties, or areas of concern. Retu
     console.log("🤖 Claude response:", responseText.substring(0, 200));
 
     // Parse the JSON response
-    let tasks: any[] = [];
+    let tasks: Array<{ title: string; priority: string; domain: string; why: string; suggestedActions: string[] }> = [];
     try {
       // Try to extract JSON from the response (in case Claude adds markdown)
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);

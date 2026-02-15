@@ -190,7 +190,7 @@ export function runFreshnessMonitor(): InternalAgentDetection[] {
           title: `Review and update ${profile.name}'s profile`,
           priority: "low",
           why: "Living arrangements, health status, or contacts may have changed since last update.",
-          domain: "general" as any,
+          domain: "general" as const,
         },
       });
     }

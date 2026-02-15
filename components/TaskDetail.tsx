@@ -6,6 +6,7 @@ import { saveTaskData } from "@/lib/utils/taskData";
 import { DOMAIN_COLORS, PRIORITY_LABELS } from "@/lib/constants/domains";
 import TaskChat from "@/components/task/TaskChat";
 import TaskForm from "@/components/task/TaskForm";
+import type { HealthcareProxyOption } from "@/lib/types/taskCapture";
 
 interface TaskDetailProps {
   task: Task;
@@ -20,7 +21,12 @@ interface TaskDetailProps {
 export default function TaskDetail({ task, onClose, onMarkComplete, userContext }: TaskDetailProps) {
   const [showHelp, setShowHelp] = useState(false);
   const [loadingHelp, setLoadingHelp] = useState(false);
-  const [enhancedHelp, setEnhancedHelp] = useState<any>(null);
+  const [enhancedHelp, setEnhancedHelp] = useState<{
+    type: string;
+    icon: string;
+    content: Array<{ heading: string; items: string[] }>;
+    detailedOptions?: HealthcareProxyOption[];
+  } | null>(null);
   const [showDataCapture, setShowDataCapture] = useState(false);
   const [captureMode, setCaptureMode] = useState<"chat" | "form" | null>(null);
 
@@ -164,7 +170,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
               },
               {
                 heading: "Your Options",
-                items: data.options.map((opt: any) =>
+                items: data.options.map((opt: { name: string; cost: string; time: string; bestFor: string }) =>
                   `**${opt.name}** (${opt.cost}, ${opt.time}): ${opt.bestFor}`
                 )
               },

@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllTaskData, TaskData } from "@/lib/utils/taskData";
+import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
 
 export default function ProfilePage() {
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [taskData, setTaskData] = useState<TaskData[]>([]);
 
   useEffect(() => {
@@ -203,25 +204,27 @@ function DataCard({ data, color }: { data: TaskData; color: string }) {
   );
 }
 
-function renderDataFields(toolName: string, data: any, color: string) {
+function renderDataFields(toolName: string, data: TaskDataPayload, color: string) {
   if (toolName === "save_doctor_info") {
+    const doc = data as DoctorInfo;
     return (
       <>
-        <DataField label="Doctor Name" value={data.name} color={color} />
-        <DataField label="Phone" value={data.phone} color={color} />
-        {data.address && <DataField label="Address" value={data.address} color={color} />}
-        {data.specialty && <DataField label="Specialty" value={data.specialty} color={color} />}
+        <DataField label="Doctor Name" value={doc.name} color={color} />
+        <DataField label="Phone" value={doc.phone} color={color} />
+        {doc.address && <DataField label="Address" value={doc.address} color={color} />}
+        {doc.specialty && <DataField label="Specialty" value={doc.specialty} color={color} />}
       </>
     );
   }
 
   if (toolName === "save_medication_list") {
+    const medList = data as MedicationList;
     return (
       <div className="space-y-3">
         <div className="font-sans text-sm font-semibold text-slateMid uppercase tracking-wide">
           Medications
         </div>
-        {data.medications.map((med: any, i: number) => (
+        {medList.medications.map((med: MedicationEntry, i: number) => (
           <div
             key={i}
             className="p-3 rounded-lg"
@@ -241,30 +244,33 @@ function renderDataFields(toolName: string, data: any, color: string) {
   }
 
   if (toolName === "save_insurance_info") {
+    const ins = data as InsuranceInfo;
     return (
       <>
-        <DataField label="Provider" value={data.provider} color={color} />
-        <DataField label="Policy Number" value={data.policyNumber} color={color} />
-        {data.groupNumber && <DataField label="Group Number" value={data.groupNumber} color={color} />}
-        {data.phone && <DataField label="Phone" value={data.phone} color={color} />}
+        <DataField label="Provider" value={ins.provider} color={color} />
+        <DataField label="Policy Number" value={ins.policyNumber} color={color} />
+        {ins.groupNumber && <DataField label="Group Number" value={ins.groupNumber} color={color} />}
+        {ins.phone && <DataField label="Phone" value={ins.phone} color={color} />}
       </>
     );
   }
 
   if (toolName === "save_legal_document_info") {
+    const legal = data as LegalDocumentInfo;
     return (
       <>
-        <DataField label="Document Type" value={data.documentType} color={color} />
-        <DataField label="Status" value={data.status} color={color} />
-        {data.agent && <DataField label="Agent/Proxy" value={data.agent} color={color} />}
-        {data.location && <DataField label="Location" value={data.location} color={color} />}
-        {data.dateCompleted && <DataField label="Date Completed" value={data.dateCompleted} color={color} />}
+        <DataField label="Document Type" value={legal.documentType} color={color} />
+        <DataField label="Status" value={legal.status} color={color} />
+        {legal.agent && <DataField label="Agent/Proxy" value={legal.agent} color={color} />}
+        {legal.location && <DataField label="Location" value={legal.location} color={color} />}
+        {legal.dateCompleted && <DataField label="Date Completed" value={legal.dateCompleted} color={color} />}
       </>
     );
   }
 
   if (toolName === "save_task_notes" || toolName === "manual_notes") {
-    return <DataField label="Notes" value={data.notes} color={color} multiline />;
+    const notes = data as { notes: string };
+    return <DataField label="Notes" value={notes.notes} color={color} multiline />;
   }
 
   // Generic fallback

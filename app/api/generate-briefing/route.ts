@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { parentId, parentProfile, detections } = body as {
       parentId?: string;
-      parentProfile?: any;
+      parentProfile?: { id: string; name: string; age?: number; state?: string };
       detections?: AgentDetection[];
     };
 

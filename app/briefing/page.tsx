@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getBriefingsForParent, saveBriefing } from "@/lib/utils/briefingStorage";
 import { formatWeekOf } from "@/lib/utils/dateUtils";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllDetections } from "@/lib/utils/agentStorage";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 
 export default function BriefingPage() {
   const [briefings, setBriefings] = useState<WeeklyBriefing[]>([]);
   const [selectedBriefing, setSelectedBriefing] = useState<WeeklyBriefing | null>(null);
-  const [parentProfile, setParentProfile] = useState<any>(null);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {

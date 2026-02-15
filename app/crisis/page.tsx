@@ -14,7 +14,7 @@ I'm Harbor, your AI care coordinator. I'm here to help you navigate this situati
 
 Let's start with the most important question: What happened with your parent?`;
 
-  const handleComplete = (extractedData: any) => {
+  const handleComplete = (extractedData: Record<string, unknown>) => {
     setIntakeComplete(true);
     console.log("Intake complete. Extracted data:", extractedData);
     // Redirect to dashboard with success message

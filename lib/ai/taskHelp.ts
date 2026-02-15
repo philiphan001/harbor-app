@@ -110,7 +110,7 @@ export async function getTaskHelp(
 
     const messageText = response.content
       .filter((block) => block.type === "text")
-      .map((block) => (block as any).text)
+      .map((block) => (block as { type: "text"; text: string }).text)
       .join("");
 
     return messageText;
@@ -173,7 +173,7 @@ export async function getHealthcareProxyHelp(
     time: string;
     bestFor: string;
     steps: string[];
-    resources?: any[];
+    resources?: Array<{ type?: string; url?: string; name?: string; features?: string[] }>;
   }>;
   recommendation: string;
 }> {

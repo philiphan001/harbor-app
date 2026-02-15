@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Message } from "@/lib/types/situation";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type ExtendedDomain, type Priority } from "@/lib/constants/domains";
+import type { ChatResponse, ClaudeResponseMetadata, TaskDataPayload } from "@/lib/types/taskCapture";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
@@ -225,14 +226,7 @@ export async function chat(
   messages: Message[],
   mode: "crisis" | "readiness",
   options?: { useTools?: boolean } // NEW: Option to disable tools for continuous extraction
-): Promise<{
-  message: string;
-  complete: boolean;
-  extractedData?: any;
-  tasks?: Task[];
-  parentProfile?: ParentProfileData;
-  metadata?: any;
-}> {
+): Promise<ChatResponse> {
   const systemPrompt =
     mode === "crisis" ? CRISIS_INTAKE_PROMPT : READINESS_PROMPT;
 
@@ -358,10 +352,10 @@ export async function chat(
         messageText += block.text;
       } else if (block.type === "tool_use" && block.name === "create_action_item") {
         // Extract task from tool use
-        const taskInput = block.input as any;
+        const taskInput = block.input as Record<string, unknown>;
 
         // Check for duplicate - normalize title for comparison
-        const normalizedTitle = taskInput.title.toLowerCase().trim();
+        const normalizedTitle = (taskInput.title as string).toLowerCase().trim();
 
         // Check if we've seen a very similar task
         let isDuplicate = false;
@@ -381,23 +375,23 @@ export async function chat(
         if (!isDuplicate) {
           console.log("🔧 Tool use detected (task):", taskInput);
           tasks.push({
-            title: taskInput.title,
-            priority: taskInput.priority,
-            domain: taskInput.domain,
-            why: taskInput.why,
-            suggestedActions: taskInput.suggestedActions,
+            title: taskInput.title as string,
+            priority: taskInput.priority as Priority,
+            domain: taskInput.domain as ExtendedDomain,
+            why: taskInput.why as string,
+            suggestedActions: taskInput.suggestedActions as string[],
           });
           seenTaskTitles.add(normalizedTitle);
         }
       } else if (block.type === "tool_use" && block.name === "update_parent_profile") {
         // Extract parent profile data
-        const profileInput = block.input as any;
+        const profileInput = block.input as Record<string, unknown>;
         console.log("👤 Profile update detected:", profileInput);
         parentProfile = {
-          name: profileInput.name,
-          age: profileInput.age,
-          state: profileInput.state,
-          livingArrangement: profileInput.livingArrangement
+          name: profileInput.name as string | undefined,
+          age: profileInput.age as number | undefined,
+          state: profileInput.state as string | undefined,
+          livingArrangement: profileInput.livingArrangement as string | undefined
         };
       }
       }
@@ -457,7 +451,23 @@ export async function chat(
   }
 }
 
-export async function generateScenarios(situationModel: any): Promise<any[]> {
+/** Domain score breakdown */
+interface DomainScores {
+  medical: number;
+  financial: number;
+  legal: number;
+  housing: number;
+  family: number;
+}
+
+/** Readiness score result */
+interface ReadinessScoreResult {
+  overall: number;
+  byDomain: DomainScores;
+  gaps: string[];
+}
+
+export async function generateScenarios(situationModel: Record<string, unknown>): Promise<Record<string, unknown>[]> {
   // TODO: Implement scenario generation
   // This will use a specialized prompt to generate care pathway scenarios
   // based on the complete situation model
@@ -465,8 +475,8 @@ export async function generateScenarios(situationModel: any): Promise<any[]> {
 }
 
 export async function calculateReadinessScore(
-  assessmentData: any
-): Promise<{ overall: number; byDomain: any; gaps: any[] }> {
+  assessmentData: Record<string, unknown>
+): Promise<ReadinessScoreResult> {
   // TODO: Implement readiness score calculation
   // This will analyze the assessment responses and calculate scores
   // across all 5 domains

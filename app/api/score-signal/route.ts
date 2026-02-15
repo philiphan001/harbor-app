@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { signal, parentProfile } = body as {
       signal: AgentDetection;
-      parentProfile?: any;
+      parentProfile?: { id: string; name: string; age?: number; state?: string };
     };
 
     if (!signal) {

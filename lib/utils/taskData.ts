@@ -3,10 +3,12 @@ import { getActiveParentId } from "./parentProfile";
 
 const STORAGE_KEY = "harbor_task_data";
 
+import type { TaskDataPayload } from "@/lib/types/taskCapture";
+
 export interface TaskData {
   taskTitle: string;
   toolName: string;
-  data: any;
+  data: TaskDataPayload;
   capturedAt: string;
   parentId?: string;
 }
@@ -29,7 +31,7 @@ function saveAllTaskData(data: TaskData[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function saveTaskData(taskTitle: string, toolName: string, data: any) {
+export function saveTaskData(taskTitle: string, toolName: string, data: TaskDataPayload) {
   if (typeof window === "undefined") return;
 
   const parentId = getActiveParentId();

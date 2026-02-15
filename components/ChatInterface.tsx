@@ -13,7 +13,7 @@ import { Answer } from "@/lib/types/readiness";
 interface ChatInterfaceProps {
   initialMessage?: string;
   mode: "crisis" | "readiness";
-  onComplete?: (data: any) => void;
+  onComplete?: (data: Record<string, unknown>) => void;
   // For readiness mode: shared answer state
   currentAnswers?: Answer[];
   onAnswersExtracted?: (answers: Answer[]) => void;

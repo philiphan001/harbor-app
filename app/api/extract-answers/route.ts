@@ -99,7 +99,7 @@ Extract any answers the user has provided to the questions above. Return only th
     console.log("🤖 Claude response:", responseText.substring(0, 200));
 
     // Parse the JSON response
-    let answers: any[] = [];
+    let answers: Array<{ questionId: string; selectedOption: string | null; isUncertain: boolean; confidence: string }> = [];
     try {
       // Try to extract JSON from the response
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);

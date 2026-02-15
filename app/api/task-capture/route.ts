@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { Task } from "@/lib/ai/claude";
 import { getAnthropicApiKey } from "@/lib/utils/env";
+import type { AnthropicToolDefinition } from "@/lib/types/taskCapture";
 
 const anthropic = new Anthropic({
   apiKey: getAnthropicApiKey(),
 });
 
 // Define data extraction tools based on task domain
-const getExtractionTools = (task: Task) => {
-  const tools: any[] = [];
+const getExtractionTools = (task: Task): AnthropicToolDefinition[] => {
+  const tools: AnthropicToolDefinition[] = [];
 
   if (task.domain === "medical") {
     // Medical information extraction
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     // Extract response
     let messageText = "";
-    let extractedData: any = null;
+    let extractedData: { toolName: string; data: Record<string, unknown> } | null = null;
     let complete = false;
 
     // Handle tool use loop (same as main chat)
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
           extractedData = {
             ...(extractedData || {}),
             toolName: block.name,
-            data: block.input,
+            data: block.input as Record<string, unknown>,
           };
         }
       }

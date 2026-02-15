@@ -3,6 +3,7 @@
 import { SituationContext, createEmptySituationContext } from "@/lib/types/situationContext";
 import { getParentProfile, getAllParentProfiles } from "./parentProfile";
 import { getTaskDataForParent } from "./taskData";
+import type { DoctorInfo, MedicationList, InsuranceInfo, LegalDocumentInfo } from "@/lib/types/taskCapture";
 
 const SITUATION_CONTEXT_KEY = "harbor_situation_contexts";
 
@@ -33,55 +34,63 @@ export function getSituationContextFromProfile(parentId: string): SituationConte
 
     // Map captured data to situation context
     switch (toolName) {
-      case "save_doctor_info":
-        if (data.specialty === "Primary Care" || !context.medical.primaryDoctor) {
+      case "save_doctor_info": {
+        const doc = data as DoctorInfo;
+        if (doc.specialty === "Primary Care" || !context.medical.primaryDoctor) {
           context.medical.primaryDoctor = {
-            name: data.name,
-            phone: data.phone,
-            address: data.address,
-            specialty: data.specialty,
+            name: doc.name,
+            phone: doc.phone,
+            address: doc.address,
+            specialty: doc.specialty,
           };
         } else {
           context.medical.specialists.push({
-            name: data.name,
-            phone: data.phone,
-            address: data.address,
-            specialty: data.specialty,
+            name: doc.name,
+            phone: doc.phone,
+            address: doc.address,
+            specialty: doc.specialty,
           });
         }
         break;
+      }
 
-      case "save_medication_list":
-        context.medical.medications = data.medications || [];
+      case "save_medication_list": {
+        const medList = data as MedicationList;
+        context.medical.medications = medList.medications || [];
         break;
+      }
 
-      case "save_insurance_info":
+      case "save_insurance_info": {
+        const ins = data as InsuranceInfo;
         context.medical.insurance = {
-          provider: data.provider || "",
-          policyNumber: data.policyNumber || "",
-          groupNumber: data.groupNumber,
+          provider: ins.provider || "",
+          policyNumber: ins.policyNumber || "",
+          groupNumber: ins.groupNumber,
           coverageType: "medicare", // Default for now
-          partDPlan: data.partDPlan,
         };
         break;
+      }
 
-      case "save_legal_document_info":
-        if (data.documentType?.toLowerCase().includes("healthcare proxy")) {
+      case "save_legal_document_info": {
+        const legal = data as LegalDocumentInfo;
+        const legalStatus = (legal.status || "not_started") as "not_started" | "in_progress" | "completed";
+        if (legal.documentType?.toLowerCase().includes("healthcare proxy")) {
           context.legal.healthcareProxy = {
-            documentType: data.documentType,
-            status: data.status || "not_started",
-            agent: data.agent,
-            location: data.location,
+            documentType: legal.documentType,
+            status: legalStatus,
+            agent: legal.agent,
+            location: legal.location,
           };
-        } else if (data.documentType?.toLowerCase().includes("power of attorney")) {
+        } else if (legal.documentType?.toLowerCase().includes("power of attorney")) {
           context.legal.powerOfAttorney = {
-            documentType: data.documentType,
-            status: data.status || "not_started",
-            agent: data.agent,
-            location: data.location,
+            documentType: legal.documentType,
+            status: legalStatus,
+            agent: legal.agent,
+            location: legal.location,
           };
         }
         break;
+      }
 
       default:
         // Store other data for future use
