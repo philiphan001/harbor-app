@@ -20,6 +20,7 @@ import { getAgentActivity } from "@/lib/utils/agentStorage";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
+import ConversationHistory from "@/components/dashboard/ConversationHistory";
 import UserNav from "@/components/auth/UserNav";
 
 export default function DashboardPage() {
@@ -261,6 +262,9 @@ export default function DashboardPage() {
             </div>
           </div>
         </Link>
+
+        {/* Recent Conversations */}
+        <ConversationHistory />
 
         {/* Quick Actions */}
         <div>

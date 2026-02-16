@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import ChatInterface from "@/components/ChatInterface";
 import { useRouter } from "next/navigation";
 
 export default function CrisisPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resumeConversationId = searchParams.get("conversationId") ?? undefined;
   const [intakeComplete, setIntakeComplete] = useState(false);
 
   const initialMessage = `First — take a breath. You're doing the right thing by reaching out.
@@ -28,6 +31,7 @@ Let's start with the most important question: What happened with your parent?`;
       mode="crisis"
       initialMessage={initialMessage}
       onComplete={handleComplete}
+      conversationId={resumeConversationId}
     />
   );
 }

@@ -12,9 +12,13 @@ import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
 type AssessmentMode = "intro" | "chat" | "questionnaire";
 
-export default function ReadinessAssessment() {
+interface ReadinessAssessmentProps {
+  conversationId?: string;
+}
+
+export default function ReadinessAssessment({ conversationId }: ReadinessAssessmentProps = {}) {
   const router = useRouter();
-  const [mode, setMode] = useState<AssessmentMode>("intro");
+  const [mode, setMode] = useState<AssessmentMode>(conversationId ? "chat" : "intro");
   const [currentDomain, setCurrentDomain] = useState<Domain>("medical");
   const [completedDomains, setCompletedDomains] = useState<Domain[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
@@ -299,6 +303,7 @@ First, let's start with your parent's basic information. What's their name and a
           onComplete={handleChatComplete}
           currentAnswers={answers}
           onAnswersExtracted={handleAnswersExtracted}
+          conversationId={conversationId}
         />
       </div>
     );

@@ -17,6 +17,66 @@ interface ChatInterfaceProps {
   // For readiness mode: shared answer state
   currentAnswers?: Answer[];
   onAnswersExtracted?: (answers: Answer[]) => void;
+  // For resuming an existing conversation
+  conversationId?: string;
+}
+
+// --- Conversation persistence helpers (fire-and-forget) ---
+
+async function createConversationApi(
+  conversationType: string,
+  situationId?: string
+): Promise<string | null> {
+  try {
+    const res = await fetch("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationType, situationId }),
+    });
+    if (!res.ok) {
+      console.warn("Failed to create conversation:", res.status);
+      return null;
+    }
+    const data = await res.json();
+    return data.conversation?.id ?? null;
+  } catch (err) {
+    console.warn("Failed to create conversation:", err);
+    return null;
+  }
+}
+
+async function persistMessages(
+  convId: string,
+  msgs: Array<{ role: string; content: string; metadata?: Record<string, unknown> }>
+): Promise<void> {
+  try {
+    await fetch(`/api/conversations/${convId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: msgs }),
+    });
+  } catch (err) {
+    console.warn("Failed to persist messages:", err);
+  }
+}
+
+async function loadConversationMessages(
+  convId: string
+): Promise<Message[]> {
+  try {
+    const res = await fetch(`/api/conversations/${convId}/messages`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.messages || []).map((m: { id: string; role: string; content: string; metadata?: unknown; createdAt: string }) => ({
+      id: m.id,
+      role: m.role as "user" | "assistant" | "system",
+      content: m.content,
+      timestamp: new Date(m.createdAt),
+      metadata: m.metadata as Record<string, unknown> | undefined,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export default function ChatInterface({
@@ -25,14 +85,18 @@ export default function ChatInterface({
   onComplete,
   currentAnswers,
   onAnswersExtracted,
+  conversationId: initialConversationId,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isExtractingTasks, setIsExtractingTasks] = useState(false);
-  const [isExtractingAnswers, setIsExtractingAnswers] = useState(false); // NEW: Track answer extraction
+  const [isExtractingAnswers, setIsExtractingAnswers] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(
+    initialConversationId ?? null
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -49,9 +113,20 @@ export default function ChatInterface({
     setTasks(storedTasks);
   }, []);
 
+  // Resume an existing conversation if conversationId is provided
   useEffect(() => {
-    // Send initial AI message
-    if (initialMessage) {
+    if (initialConversationId) {
+      loadConversationMessages(initialConversationId).then((loaded) => {
+        if (loaded.length > 0) {
+          setMessages(loaded);
+        }
+      });
+    }
+  }, [initialConversationId]);
+
+  useEffect(() => {
+    // Send initial AI message (only for new conversations)
+    if (initialMessage && !initialConversationId) {
       const welcomeMessage: Message = {
         id: `msg-${Date.now()}`,
         role: "assistant",
@@ -60,7 +135,7 @@ export default function ChatInterface({
       };
       setMessages([welcomeMessage]);
     }
-  }, [initialMessage]);
+  }, [initialMessage, initialConversationId]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +161,24 @@ export default function ChatInterface({
     }
 
     try {
+      // --- Ensure we have a conversation ID for persistence ---
+      let convId = activeConversationId;
+      if (!convId) {
+        // Create conversation on first user message (fire-and-forget, non-blocking)
+        const createPromise = createConversationApi(mode);
+        // We'll await it below alongside the other requests
+        convId = await createPromise;
+        if (convId) {
+          setActiveConversationId(convId);
+          // Also persist the initial welcome message if there was one
+          if (initialMessage) {
+            persistMessages(convId, [
+              { role: "assistant", content: initialMessage },
+            ]);
+          }
+        }
+      }
+
       // PARALLEL EXTRACTION: Make 2-3 API calls simultaneously
       console.log(`🚀 Starting parallel requests (conversation + task extraction${mode === "readiness" ? " + answer extraction" : ""})`);
 
@@ -139,6 +232,18 @@ export default function ChatInterface({
       setMessages((prev) => [...prev, assistantMessage]);
       setIsLoading(false); // User sees response now!
       console.log("✅ Conversation response displayed");
+
+      // --- Persist user + assistant messages (fire-and-forget) ---
+      if (convId) {
+        persistMessages(convId, [
+          { role: "user", content: userMessage.content },
+          {
+            role: "assistant",
+            content: assistantMessage.content,
+            metadata: assistantMessage.metadata as Record<string, unknown> | undefined,
+          },
+        ]);
+      }
 
       // Save parent profile information if captured (from conversation)
       if (conversationData.parentProfile) {
