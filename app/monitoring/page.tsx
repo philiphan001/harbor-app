@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getAgentActivity, markDetectionHandled } from "@/lib/utils/agentStorage";
+import { getAgentActivity, markDetectionHandled as markLocalHandled } from "@/lib/utils/agentStorage";
 import { AgentActivity, AgentDetection, AGENT_METADATA } from "@/lib/types/agents";
 import { generateMockAgentData } from "@/lib/utils/mockAgentData";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
@@ -13,21 +13,79 @@ export default function MonitoringPage() {
   const router = useRouter();
   const [activity, setActivity] = useState<AgentActivity | null>(null);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
+  const [runningAgents, setRunningAgents] = useState(false);
+  const [lastRunResult, setLastRunResult] = useState<string | null>(null);
+
+  const loadActivity = useCallback(async () => {
+    // Start with localStorage data (fast, always available)
+    const localData = getAgentActivity();
+
+    // Try to fetch DB detections and merge
+    try {
+      const response = await fetch("/api/agents/detections");
+      if (response.ok) {
+        const { detections: dbDetections } = await response.json();
+        if (dbDetections && dbDetections.length > 0) {
+          // Merge: DB detections + localStorage detections (dedup by title)
+          const seenTitles = new Set(dbDetections.map((d: AgentDetection) => d.title));
+          const localOnly = localData.recentDetections.filter(
+            (d) => !seenTitles.has(d.title)
+          );
+          localData.recentDetections = [...dbDetections, ...localOnly]
+            .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+            .slice(0, 50);
+        }
+      }
+    } catch {
+      // DB unavailable — localStorage is the fallback
+    }
+
+    setActivity(localData);
+  }, []);
 
   useEffect(() => {
     loadActivity();
     const profile = getParentProfile();
     setParentProfile(profile);
-  }, []);
+  }, [loadActivity]);
 
-  const loadActivity = () => {
-    const data = getAgentActivity();
-    setActivity(data);
+  const handleMarkHandled = async (detectionId: string, handled: boolean) => {
+    // Try DB first
+    try {
+      await fetch("/api/agents/detections", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alertId: detectionId }),
+      });
+    } catch {
+      // Fall back to localStorage
+    }
+
+    // Also update localStorage
+    markLocalHandled(detectionId, handled);
+    loadActivity();
   };
 
-  const handleMarkHandled = (detectionId: string, handled: boolean) => {
-    markDetectionHandled(detectionId, handled);
-    loadActivity();
+  const handleRunAgents = async () => {
+    setRunningAgents(true);
+    setLastRunResult(null);
+    try {
+      const response = await fetch("/api/cron/agents");
+      const data = await response.json();
+      if (data.success) {
+        setLastRunResult(
+          `Found ${data.totalNewAlerts} new alerts in ${Math.round(data.duration / 1000)}s`
+        );
+        // Reload detections
+        await loadActivity();
+      } else {
+        setLastRunResult(`Error: ${data.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      setLastRunResult("Failed to run agents — check server logs");
+    } finally {
+      setRunningAgents(false);
+    }
   };
 
   const handleGenerateMockData = () => {
@@ -83,20 +141,43 @@ export default function MonitoringPage() {
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
-        {/* Generate Mock Data Button */}
-        {activity.recentDetections.length === 0 && (
-          <div className="mb-6 bg-sand rounded-xl px-5 py-4">
+        {/* Run Agents / Empty State */}
+        <div className="mb-6 bg-sand rounded-xl px-5 py-4">
+          {activity.recentDetections.length === 0 ? (
             <div className="font-sans text-sm text-slate mb-3">
-              No agent detections yet. Generate mock data to test the briefing feature.
+              No agent detections yet. Run agents to scan for policy changes and eldercare news.
             </div>
+          ) : (
+            <div className="font-sans text-sm text-slate mb-3">
+              {activity.recentDetections.filter(d => !d.handled).length} unhandled detections.
+              Run agents again to check for new updates.
+            </div>
+          )}
+
+          <div className="flex gap-2">
             <button
-              onClick={handleGenerateMockData}
-              className="w-full bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+              onClick={handleRunAgents}
+              disabled={runningAgents}
+              className="flex-1 bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50"
             >
-              Generate Mock Agent Data
+              {runningAgents ? "Running Agents..." : "Run Agents Now"}
             </button>
+            {activity.recentDetections.length === 0 && (
+              <button
+                onClick={handleGenerateMockData}
+                className="bg-sand border border-sandDark text-slateMid rounded-xl px-4 py-3 font-sans text-xs font-medium hover:bg-sandDark transition-colors"
+              >
+                Demo Data
+              </button>
+            )}
           </div>
-        )}
+
+          {lastRunResult && (
+            <div className="mt-3 font-sans text-xs text-slateMid bg-white rounded-lg px-3 py-2">
+              {lastRunResult}
+            </div>
+          )}
+        </div>
 
         {/* Agent Status */}
         <div className="mb-6">
