@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ChatInterface from "@/components/ChatInterface";
 import { useRouter } from "next/navigation";
 
-export default function CrisisPage() {
+function CrisisContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeConversationId = searchParams.get("conversationId") ?? undefined;
@@ -33,5 +33,13 @@ Let's start with the most important question: What happened with your parent?`;
       onComplete={handleComplete}
       conversationId={resumeConversationId}
     />
+  );
+}
+
+export default function CrisisPage() {
+  return (
+    <Suspense>
+      <CrisisContent />
+    </Suspense>
   );
 }

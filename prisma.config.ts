@@ -9,7 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    // Pooled connection (port 6543) — works on networks without IPv6
+    // Pooled connection for runtime queries
     url: process.env["DATABASE_URL"]!,
-  },
+    // Direct connection for migrations (DDL) — Prisma 7 supports this at runtime
+    ...(process.env["DIRECT_URL"] ? { directUrl: process.env["DIRECT_URL"] } : {}),
+  } as { url: string },
 });

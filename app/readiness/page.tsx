@@ -1,11 +1,20 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ReadinessAssessment from "@/components/ReadinessAssessment";
 
-export default function ReadinessPage() {
+function ReadinessContent() {
   const searchParams = useSearchParams();
   const conversationId = searchParams.get("conversationId") ?? undefined;
 
   return <ReadinessAssessment conversationId={conversationId} />;
+}
+
+export default function ReadinessPage() {
+  return (
+    <Suspense>
+      <ReadinessContent />
+    </Suspense>
+  );
 }
