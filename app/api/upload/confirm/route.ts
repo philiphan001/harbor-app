@@ -1,10 +1,11 @@
-// POST /api/upload/confirm — Confirm extracted data and save to situation context
+// POST /api/upload/confirm — Confirm extracted data and persist to DB
 // This is the human-in-the-loop step: user reviews and optionally edits before saving
 
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit, AI_EXTRACTION_LIMIT } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
+import { confirmDocument, getDocument } from "@/lib/db/documents";
 import { type ExtractedData, type DocumentType } from "@/lib/ingestion/types";
 
 const log = createLogger("api/upload-confirm");
@@ -41,25 +42,38 @@ export async function POST(request: NextRequest) {
       dataType: confirmedData.type,
     });
 
-    // In production, this would:
-    // 1. Update Document record: status = 'confirmed', confirmedData, confirmedAt
-    // 2. Map confirmed data into the appropriate Situation domain tables:
-    //    - insurance_card → FinancialProfile.insurancePolicies
-    //    - medication → Medication table
-    //    - doctor_card → Provider table
-    //    - legal_document → LegalDocument table
-    //    - discharge_summary → MedicalCondition + Medication + Provider
-    //    - bill_statement → FinancialProfile data
-    //    - lab_results → stored as document reference
-    //
-    // For now, we return success and let the client store in localStorage
+    // Try to update the Document record in DB
+    let dbConfirmed = false;
+
+    // Check if uploadId is a real document ID (UUID format)
+    const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(uploadId);
+
+    if (isDbId) {
+      try {
+        const doc = await getDocument(uploadId);
+        if (doc) {
+          await confirmDocument(
+            uploadId,
+            confirmedData as unknown as Record<string, unknown>
+          );
+          dbConfirmed = true;
+          log.info("Document confirmed in DB", { uploadId });
+        }
+      } catch (dbError) {
+        log.errorWithStack("Failed to confirm document in DB", dbError);
+        // Continue — client can still save to localStorage
+      }
+    }
 
     return NextResponse.json({
       success: true,
       uploadId,
       parentId,
       documentType,
-      message: "Data confirmed and saved",
+      dbConfirmed,
+      message: dbConfirmed
+        ? "Data confirmed and saved to database"
+        : "Data confirmed (save to local storage)",
       confirmedAt: new Date().toISOString(),
     });
   } catch (error) {

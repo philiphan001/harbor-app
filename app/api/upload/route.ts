@@ -1,4 +1,4 @@
-// POST /api/upload — Accept file upload, run extraction pipeline
+// POST /api/upload — Accept file upload, store to Supabase Storage, run extraction
 // Accepts multipart/form-data with: file, documentType?, parentId
 
 import { NextRequest, NextResponse } from "next/server";
@@ -6,6 +6,9 @@ import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
 import { processFile } from "@/lib/ingestion/pipeline";
+import { uploadFile } from "@/lib/supabase/storage";
+import { createDocument } from "@/lib/db/documents";
+import { getSituationIdForAuthUser } from "@/lib/db/profiles";
 import {
   type DocumentType,
   MAX_FILE_SIZE_BYTES,
@@ -85,28 +88,69 @@ export async function POST(request: NextRequest) {
       documentType || undefined
     );
 
-    // Generate an upload ID for tracking
-    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
     log.info("Extraction complete", {
-      uploadId,
       documentType: result.documentType,
       confidence: result.confidence,
     });
 
-    // Note: In production, we would:
-    // 1. Store original file to Supabase Storage
-    // 2. Create a Document record in the database
-    // 3. Return uploadId for status tracking
-    // For now, we return the extraction result directly (localStorage flow)
+    // --- Persist to DB + Storage (fire-and-forget friendly) ---
+
+    // Find the situationId for this user + parent
+    const situationId = await getSituationIdForAuthUser(auth.user.id, parentId);
+
+    let documentId: string | undefined;
+    let storagePath: string | undefined;
+
+    if (situationId) {
+      // Create a temporary document ID for storage path
+      const tempId = crypto.randomUUID();
+
+      // Upload file to Supabase Storage
+      const path = await uploadFile(
+        situationId,
+        tempId,
+        buffer,
+        file.type,
+        file.name
+      );
+      storagePath = path || undefined;
+
+      // Create Document record in database
+      try {
+        const doc = await createDocument({
+          situationId,
+          name: file.name,
+          fileType: file.type,
+          fileSizeBytes: file.size,
+          documentType: result.documentType,
+          storagePath: storagePath || `pending/${tempId}`,
+          extractedData: result.data as unknown as Record<string, unknown>,
+          confidence: result.confidence,
+          extractionModel: "claude-sonnet-4-20250514",
+          uploadedBy: auth.user.id,
+        });
+
+        documentId = doc.id;
+        log.info("Document persisted", { documentId, storagePath });
+      } catch (dbError) {
+        // DB write failed — still return extraction to client
+        log.errorWithStack("Failed to persist document to DB", dbError);
+      }
+    } else {
+      log.warn("No situationId found for upload — file not persisted to DB", {
+        userId: auth.user.id,
+        parentId,
+      });
+    }
 
     return NextResponse.json({
-      uploadId,
+      uploadId: documentId || `upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       status: "extracted",
       fileName: file.name,
       fileType: file.type,
       fileSizeBytes: file.size,
       parentId,
+      storagePath,
       extraction: {
         documentType: result.documentType,
         confidence: result.confidence,
@@ -125,10 +169,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Configure Next.js to handle large file uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

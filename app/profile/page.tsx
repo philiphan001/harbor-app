@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
-import { getAllTaskData, TaskData } from "@/lib/utils/taskData";
+import { getParentProfile, getActiveParentId, type ParentProfile } from "@/lib/utils/parentProfile";
+import { getAllTaskData, hydrateTaskDataFromDb, TaskData } from "@/lib/utils/taskData";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
 
 export default function ProfilePage() {
@@ -13,6 +13,16 @@ export default function ProfilePage() {
   useEffect(() => {
     setParentProfile(getParentProfile());
     setTaskData(getAllTaskData());
+
+    // Hydrate from DB if available (merges into localStorage, then re-read)
+    const parentId = getActiveParentId();
+    if (parentId) {
+      hydrateTaskDataFromDb(parentId).then((hydrated) => {
+        if (hydrated) {
+          setTaskData(getAllTaskData());
+        }
+      });
+    }
   }, []);
 
   // Group data by domain

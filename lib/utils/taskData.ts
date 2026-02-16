@@ -125,3 +125,114 @@ export function clearAllTaskData() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
 }
+
+/**
+ * Hydrate localStorage task data from the database.
+ * Fetches domain data from /api/domain-data and merges into localStorage.
+ * Only hydrates if localStorage is empty for this parent (unless force=true).
+ */
+export async function hydrateTaskDataFromDb(
+  parentId: string,
+  force = false
+): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+
+  if (!force) {
+    const existing = getTaskDataForParent(parentId);
+    if (existing.length > 0) return false;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/domain-data?parentId=${encodeURIComponent(parentId)}`
+    );
+    if (!response.ok) return false;
+
+    const { data } = await response.json();
+    if (!data) return false;
+
+    const now = new Date().toISOString();
+    const newEntries: TaskData[] = [];
+
+    // Convert DB domain data back into TaskData format
+    if (data.providers && data.providers.length > 0) {
+      for (const p of data.providers) {
+        newEntries.push({
+          taskTitle: `Doctor: ${p.name}`,
+          toolName: "save_doctor_info",
+          data: {
+            name: p.name,
+            phone: p.contactInfo?.phone || "",
+            address: p.contactInfo?.address,
+            specialty: p.specialty,
+          },
+          capturedAt: now,
+          parentId,
+        });
+      }
+    }
+
+    if (data.medications && data.medications.length > 0) {
+      newEntries.push({
+        taskTitle: "Medications",
+        toolName: "save_medication_list",
+        data: {
+          medications: data.medications.map((m: { name: string; dosage?: string; frequency?: string; purpose?: string }) => ({
+            name: m.name,
+            dosage: m.dosage || "",
+            frequency: "",
+            purpose: m.purpose,
+          })),
+        },
+        capturedAt: now,
+        parentId,
+      });
+    }
+
+    if (data.insurance) {
+      const policies = Array.isArray(data.insurance) ? data.insurance : [data.insurance];
+      for (const policy of policies) {
+        if (policy && typeof policy === "object") {
+          newEntries.push({
+            taskTitle: `Insurance: ${policy.provider || "Unknown"}`,
+            toolName: "save_insurance_info",
+            data: {
+              provider: policy.provider || "",
+              policyNumber: policy.policyNumber || "",
+              groupNumber: policy.groupNumber,
+              phone: policy.phone,
+            },
+            capturedAt: now,
+            parentId,
+          });
+        }
+      }
+    }
+
+    if (data.legalDocuments && data.legalDocuments.length > 0) {
+      for (const doc of data.legalDocuments) {
+        newEntries.push({
+          taskTitle: `Legal: ${doc.documentType}`,
+          toolName: "save_legal_document_info",
+          data: {
+            documentType: doc.documentType,
+            status: doc.status,
+            agent: doc.holder,
+          },
+          capturedAt: now,
+          parentId,
+        });
+      }
+    }
+
+    if (newEntries.length === 0) return false;
+
+    // Merge into localStorage (replace entries for this parent)
+    const allData = getAllTaskDataRaw().filter((d) => d.parentId !== parentId);
+    saveAllTaskData([...allData, ...newEntries]);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
