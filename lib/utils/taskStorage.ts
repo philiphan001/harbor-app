@@ -30,6 +30,38 @@ function deleteAllTasksFromDb(parentId: string): void {
   }).catch(() => {});
 }
 
+/**
+ * Hydrate localStorage tasks from the database.
+ * If force=true, overwrites localStorage with DB data.
+ */
+export async function hydrateTasksFromDb(parentId: string, force = false): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+
+  if (!force) {
+    const existing = getTasksForParent(parentId);
+    if (existing.length > 0) return false;
+  }
+
+  try {
+    const response = await fetch(`/api/tasks?parentId=${encodeURIComponent(parentId)}`);
+    if (!response.ok) return false;
+
+    const { tasks: dbTasks } = await response.json();
+    if (!dbTasks || dbTasks.length === 0) return false;
+
+    // Merge DB tasks into localStorage (replace tasks for this parent)
+    const allTasks = getAllTasks().filter((t) => t.parentId !== parentId);
+    const withParent: TaskWithParent[] = dbTasks.map((t: Task) => ({
+      ...t,
+      parentId,
+    }));
+    saveTasks([...allTasks, ...withParent]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Get all tasks (across all parents)
 export function getAllTasks(): TaskWithParent[] {
   if (typeof window === "undefined") return [];

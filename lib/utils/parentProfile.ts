@@ -41,22 +41,25 @@ function deleteProfileFromDb(parentId: string): void {
 }
 
 /**
- * Hydrate localStorage from the database on first load.
- * Call this once on app startup.
+ * Hydrate localStorage from the database.
+ * If force=true, always overwrites localStorage with DB data (DB is source of truth).
+ * If force=false (default), only hydrates when localStorage is empty.
  */
-export async function hydrateProfilesFromDb(): Promise<void> {
-  if (typeof window === "undefined") return;
+export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
+  if (typeof window === "undefined") return false;
 
-  // Only hydrate if localStorage is empty
-  const existing = getAllParentProfiles();
-  if (existing.length > 0) return;
+  // Skip if localStorage has data and not forcing
+  if (!force) {
+    const existing = getAllParentProfiles();
+    if (existing.length > 0) return false;
+  }
 
   try {
     const response = await fetch("/api/profile");
-    if (!response.ok) return;
+    if (!response.ok) return false;
 
     const { profiles } = await response.json();
-    if (!profiles || profiles.length === 0) return;
+    if (!profiles || profiles.length === 0) return false;
 
     const localProfiles: ParentProfile[] = profiles.map(
       (p: { parentId: string; name: string; age?: number; state?: string; livingArrangement?: string; healthStatus?: string; lastUpdated: string }) => ({
@@ -71,11 +74,18 @@ export async function hydrateProfilesFromDb(): Promise<void> {
     );
 
     localStorage.setItem(PROFILES_KEY, JSON.stringify(localProfiles));
-    if (localProfiles.length > 0) {
+
+    // Preserve active parent if valid, otherwise default to first
+    const currentActive = getActiveParentId();
+    const isStillValid = localProfiles.some((p) => p.id === currentActive);
+    if (!isStillValid && localProfiles.length > 0) {
       setActiveParentId(localProfiles[0].id);
     }
+
+    return true;
   } catch {
     // DB unavailable — localStorage is the fallback
+    return false;
   }
 }
 

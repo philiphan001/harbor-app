@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
-import { getTasks } from "@/lib/utils/taskStorage";
+import { getTasks, hydrateTasksFromDb } from "@/lib/utils/taskStorage";
 import {
   getParentProfile,
   getAllParentProfiles,
   setActiveParentId,
   deleteParentProfile,
+  hydrateProfilesFromDb,
   type ParentProfile
 } from "@/lib/utils/parentProfile";
 import { deleteTasksForParent, removeOrphanedTasks } from "@/lib/utils/taskStorage";
@@ -33,12 +34,21 @@ export default function DashboardPage() {
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
 
-  const loadData = () => {
+  const loadData = async () => {
+    // Hydrate localStorage from DB (no-op if localStorage already has data)
+    await hydrateProfilesFromDb();
+
     removeOrphanedTasks();
 
-    const storedTasks = getTasks();
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
+
+    // Hydrate tasks from DB for active parent
+    if (profile?.id) {
+      await hydrateTasksFromDb(profile.id);
+    }
+
+    const storedTasks = getTasks();
     const readinessScore = calculateReadinessScore();
 
     setTasks(storedTasks);
@@ -60,6 +70,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSwitchParent = (parentId: string) => {
