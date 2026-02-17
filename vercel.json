@@ -4,5 +4,11 @@
       "path": "/api/cron/agents",
       "schedule": "0 10 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/upload/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }

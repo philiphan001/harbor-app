@@ -46,9 +46,16 @@ export default function DocumentUpload({
 
   const handleFileSelect = useCallback(
     (file: File) => {
+      // iOS Safari sometimes sends HEIC with empty or wrong MIME type
+      let effectiveType = file.type;
+      if (!effectiveType || effectiveType === "application/octet-stream") {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "heic" || ext === "heif") effectiveType = "image/heic";
+      }
+
       // Validate type
-      if (!isSupportedFileType(file.type)) {
-        onError?.(`Unsupported file type: ${file.type}. Please upload an image (JPEG, PNG, WebP, HEIC) or PDF.`);
+      if (!isSupportedFileType(effectiveType)) {
+        onError?.(`Unsupported file type: ${effectiveType || "unknown"}. Please upload an image (JPEG, PNG, WebP, HEIC) or PDF.`);
         return;
       }
 
@@ -123,8 +130,17 @@ export default function DocumentUpload({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Upload failed");
+        let errorMessage = `Upload failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response may not be JSON (e.g. 405 from proxy)
+          if (response.status === 405) {
+            errorMessage = "File too large or upload not supported. Try a smaller file.";
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
