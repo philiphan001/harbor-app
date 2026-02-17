@@ -1,9 +1,6 @@
 // POST /api/extract — Run AI extraction on a file already in Supabase Storage
 // Called after client uploads directly to Storage, passing the storage path.
 
-export const maxDuration = 60; // seconds — Claude extraction takes time
-export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit } from "@/lib/utils/rateLimit";

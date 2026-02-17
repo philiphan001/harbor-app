@@ -1,9 +1,6 @@
 // POST /api/upload — Accept file upload, store to Supabase Storage, run extraction
 // Accepts multipart/form-data with: file, documentType?, parentId
 
-export const maxDuration = 60; // seconds — extraction via Claude takes time
-export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import { createLogger } from "@/lib/utils/logger";
 import { applyRateLimit } from "@/lib/utils/rateLimit";
