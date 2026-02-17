@@ -9,6 +9,7 @@ import {
   getDocumentTypeLabel,
   isSupportedFileType,
 } from "@/lib/ingestion/types";
+import { createClient } from "@/lib/supabase/client";
 
 interface DocumentUploadProps {
   parentId: string;
@@ -21,15 +22,29 @@ interface DocumentUploadProps {
 }
 
 const DOCUMENT_TYPES: { value: DocumentType; label: string; icon: string }[] = [
-  { value: "insurance_card", label: "Insurance Card", icon: "🪪" },
-  { value: "medication", label: "Medication / Pill Bottle", icon: "💊" },
-  { value: "discharge_summary", label: "Discharge Papers", icon: "🏥" },
-  { value: "legal_document", label: "Legal Document", icon: "📜" },
-  { value: "doctor_card", label: "Doctor's Card", icon: "👨‍⚕️" },
-  { value: "bill_statement", label: "Bill / Statement", icon: "🧾" },
-  { value: "lab_results", label: "Lab Results", icon: "🔬" },
-  { value: "other", label: "Other (auto-detect)", icon: "📎" },
+  { value: "insurance_card", label: "Insurance Card", icon: "\uD83E\uDEAA" },
+  { value: "medication", label: "Medication / Pill Bottle", icon: "\uD83D\uDC8A" },
+  { value: "discharge_summary", label: "Discharge Papers", icon: "\uD83C\uDFE5" },
+  { value: "legal_document", label: "Legal Document", icon: "\uD83D\uDCDC" },
+  { value: "doctor_card", label: "Doctor's Card", icon: "\uD83D\uDC68\u200D\u2695\uFE0F" },
+  { value: "bill_statement", label: "Bill / Statement", icon: "\uD83E\uDDFE" },
+  { value: "lab_results", label: "Lab Results", icon: "\uD83D\uDD2C" },
+  { value: "other", label: "Other (auto-detect)", icon: "\uD83D\uDCCE" },
 ];
+
+const BUCKET = "documents";
+
+/** Resolve MIME type, handling iOS Safari HEIC edge cases */
+function resolveFileType(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "heic" || ext === "heif") return "image/heic";
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "webp") return "image/webp";
+  return file.type || "application/octet-stream";
+}
 
 export default function DocumentUpload({
   parentId,
@@ -46,12 +61,7 @@ export default function DocumentUpload({
 
   const handleFileSelect = useCallback(
     (file: File) => {
-      // iOS Safari sometimes sends HEIC with empty or wrong MIME type
-      let effectiveType = file.type;
-      if (!effectiveType || effectiveType === "application/octet-stream") {
-        const ext = file.name.split(".").pop()?.toLowerCase();
-        if (ext === "heic" || ext === "heif") effectiveType = "image/heic";
-      }
+      const effectiveType = resolveFileType(file);
 
       // Validate type
       if (!isSupportedFileType(effectiveType)) {
@@ -69,7 +79,7 @@ export default function DocumentUpload({
       setSelectedFile(file);
 
       // Generate preview for images
-      if (file.type.startsWith("image/")) {
+      if (effectiveType.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (e) => setPreview(e.target?.result as string);
         reader.readAsDataURL(file);
@@ -112,33 +122,57 @@ export default function DocumentUpload({
     if (!selectedFile) return;
 
     setIsUploading(true);
-    setUploadProgress("Uploading...");
 
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("parentId", parentId);
-      if (selectedType) {
-        formData.append("documentType", selectedType);
+      const fileType = resolveFileType(selectedFile);
+
+      // Step 1: Upload directly to Supabase Storage from the browser
+      setUploadProgress("Uploading file...");
+
+      const supabase = createClient();
+      const fileId = crypto.randomUUID();
+      const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "bin";
+      // Use a temp path; the extract API will create the DB record with situationId
+      const storagePath = `uploads/${fileId}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(storagePath, selectedFile, {
+          contentType: fileType,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(
+          uploadError.message?.includes("not found") || uploadError.message?.includes("Bucket")
+            ? 'Storage bucket "documents" not configured. Please contact support.'
+            : `Upload failed: ${uploadError.message}`
+        );
       }
 
+      // Step 2: Call extraction API with the storage path (no file body — lightweight JSON)
       setUploadProgress("Analyzing document...");
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/extract", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storagePath,
+          fileName: selectedFile.name,
+          fileType,
+          fileSizeBytes: selectedFile.size,
+          documentType: selectedType || undefined,
+          parentId,
+        }),
       });
 
       if (!response.ok) {
-        let errorMessage = `Upload failed (${response.status})`;
+        let errorMessage = `Extraction failed (${response.status})`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch {
-          // Response may not be JSON (e.g. 405 from proxy)
-          if (response.status === 405) {
-            errorMessage = "File too large or upload not supported. Try a smaller file.";
-          }
+          // Non-JSON response
         }
         throw new Error(errorMessage);
       }
@@ -226,7 +260,7 @@ export default function DocumentUpload({
           />
 
           <div className="space-y-2">
-            <div className="text-4xl">📄</div>
+            <div className="text-4xl">{"\uD83D\uDCC4"}</div>
             <p className="text-slate-600 font-medium">
               Drop a file here, or tap to choose
             </p>
@@ -250,7 +284,7 @@ export default function DocumentUpload({
                 />
               ) : (
                 <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
-                  📄
+                  {"\uD83D\uDCC4"}
                 </div>
               )}
               <div>
@@ -259,7 +293,7 @@ export default function DocumentUpload({
                 </p>
                 <p className="text-xs text-slate-400">
                   {(selectedFile.size / 1024).toFixed(0)} KB
-                  {selectedType && ` · ${getDocumentTypeLabel(selectedType)}`}
+                  {selectedType && ` \u00B7 ${getDocumentTypeLabel(selectedType)}`}
                 </p>
               </div>
             </div>
