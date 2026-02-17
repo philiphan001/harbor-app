@@ -16,6 +16,34 @@ import { extractFromPdf } from "./pdfExtractor";
 
 const log = createLogger("IngestionPipeline");
 
+/** Check if file type is HEIC/HEIF (needs conversion for Claude Vision) */
+function isHeicType(fileType: string): boolean {
+  return fileType === "image/heic" || fileType === "image/heif";
+}
+
+/**
+ * Convert HEIC/HEIF buffer to JPEG using sharp.
+ * Returns the converted buffer and new file type.
+ */
+async function convertHeicToJpeg(
+  buffer: Buffer
+): Promise<{ buffer: Buffer; fileType: string }> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const jpegBuffer = await sharp(buffer).jpeg({ quality: 92 }).toBuffer();
+    log.info("HEIC converted to JPEG", {
+      originalSize: buffer.length,
+      convertedSize: jpegBuffer.length,
+    });
+    return { buffer: jpegBuffer, fileType: "image/jpeg" };
+  } catch (error) {
+    log.errorWithStack("HEIC to JPEG conversion failed", error);
+    throw new Error(
+      "Unable to process HEIC image. Please convert to JPEG or PNG before uploading."
+    );
+  }
+}
+
 /** Validation result */
 export interface ValidationResult {
   valid: boolean;
@@ -80,8 +108,18 @@ export async function processFile(
 
   // Route to appropriate extractor
   if (isImageType(fileType)) {
-    const mediaType = normalizeMediaType(fileType);
-    const base64 = fileBuffer.toString("base64");
+    // Convert HEIC/HEIF to JPEG before sending to Claude Vision
+    let processBuffer = fileBuffer;
+    let processFileType = fileType;
+    if (isHeicType(fileType)) {
+      log.info("Converting HEIC to JPEG server-side");
+      const converted = await convertHeicToJpeg(fileBuffer);
+      processBuffer = converted.buffer;
+      processFileType = converted.fileType;
+    }
+
+    const mediaType = normalizeMediaType(processFileType);
+    const base64 = processBuffer.toString("base64");
     return extractFromImage(base64, mediaType, documentType);
   }
 
@@ -144,9 +182,9 @@ function normalizeMediaType(fileType: string): ClaudeMediaType {
       return "image/webp";
     case "image/heic":
     case "image/heif":
-      // HEIC/HEIF should be converted to JPEG before reaching here
-      // If they weren't, we'll try sending as JPEG and hope the base64 is right
-      log.warn("HEIC/HEIF passed without conversion, attempting as JPEG");
+      // HEIC/HEIF should have been converted to JPEG by convertHeicToJpeg()
+      // If we still get here, something went wrong — log and try JPEG
+      log.warn("HEIC/HEIF reached normalizeMediaType without conversion");
       return "image/jpeg";
     default:
       return "image/jpeg";

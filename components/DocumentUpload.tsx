@@ -46,6 +46,42 @@ function resolveFileType(file: File): string {
   return file.type || "application/octet-stream";
 }
 
+/** Check if a file type is HEIC/HEIF */
+function isHeic(fileType: string): boolean {
+  return fileType === "image/heic" || fileType === "image/heif";
+}
+
+/**
+ * Convert an image file to JPEG using Canvas.
+ * Works in browsers that support HEIC rendering (Safari/iOS).
+ * Returns the original file if conversion fails (server will handle it).
+ */
+async function convertToJpeg(file: File): Promise<{ blob: Blob; converted: boolean }> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("No canvas context");
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    const jpegBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
+        "image/jpeg",
+        0.92
+      );
+    });
+
+    return { blob: jpegBlob, converted: true };
+  } catch {
+    // Browser can't render HEIC (Chrome/Firefox) — return original, server will convert
+    return { blob: file, converted: false };
+  }
+}
+
 export default function DocumentUpload({
   parentId,
   onExtractionComplete,
@@ -124,20 +160,33 @@ export default function DocumentUpload({
     setIsUploading(true);
 
     try {
-      const fileType = resolveFileType(selectedFile);
+      let fileType = resolveFileType(selectedFile);
+      let uploadBlob: Blob = selectedFile;
+      let uploadExt = selectedFile.name.split(".").pop()?.toLowerCase() || "bin";
+
+      // Convert HEIC/HEIF to JPEG before uploading (Claude Vision can't process HEIC)
+      if (isHeic(fileType)) {
+        setUploadProgress("Converting image...");
+        const { blob, converted } = await convertToJpeg(selectedFile);
+        if (converted) {
+          uploadBlob = blob;
+          fileType = "image/jpeg";
+          uploadExt = "jpg";
+        }
+        // If not converted, upload as-is — server-side sharp will handle it
+      }
 
       // Step 1: Upload directly to Supabase Storage from the browser
       setUploadProgress("Uploading file...");
 
       const supabase = createClient();
       const fileId = crypto.randomUUID();
-      const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "bin";
       // Use a temp path; the extract API will create the DB record with situationId
-      const storagePath = `uploads/${fileId}.${ext}`;
+      const storagePath = `uploads/${fileId}.${uploadExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(storagePath, selectedFile, {
+        .upload(storagePath, uploadBlob, {
           contentType: fileType,
           upsert: false,
         });
@@ -160,7 +209,7 @@ export default function DocumentUpload({
           storagePath,
           fileName: selectedFile.name,
           fileType,
-          fileSizeBytes: selectedFile.size,
+          fileSizeBytes: uploadBlob.size,
           documentType: selectedType || undefined,
           parentId,
         }),
