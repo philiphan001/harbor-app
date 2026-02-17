@@ -172,202 +172,179 @@ export default function DashboardPage() {
         </div>
       ) : (
       <div className="flex-1 px-5 py-6">
-        {/* Readiness Score */}
-        {readiness && <ReadinessCard readiness={readiness} />}
-
-        {/* Unhandled Detections Alert */}
+        {/* Alerts Banner */}
         {unhandledDetections > 0 && (
-          <Link href="/monitoring" className="block mb-6">
-            <div className="w-full bg-amber/10 border-2 border-amber rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
+          <Link href="/monitoring" className="block mb-5">
+            <div className="w-full bg-amber/10 border-2 border-amber rounded-[14px] px-5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold">
+                  <div className="w-8 h-8 bg-amber rounded-lg flex items-center justify-center text-white font-sans text-sm font-bold">
                     {unhandledDetections}
                   </div>
-                  <div>
-                    <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-amber mb-0.5">
-                      New Alerts
-                    </div>
-                    <div className="font-sans text-sm text-slate font-medium">
-                      {unhandledDetections} unhandled {unhandledDetections === 1 ? "detection" : "detections"}
-                    </div>
+                  <div className="font-sans text-sm text-slate font-medium">
+                    {unhandledDetections} new {unhandledDetections === 1 ? "alert" : "alerts"} to review
                   </div>
                 </div>
-                <div className="text-amber text-lg">&rarr;</div>
+                <div className="text-amber text-sm">&rarr;</div>
               </div>
             </div>
           </Link>
         )}
 
-        {/* Action Items Card */}
-        <Link href="/tasks" className="block mb-6">
-          <div className="w-full bg-white border-2 border-ocean rounded-[14px] px-5 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-xl font-bold">
-                  {tasks.length}
-                </div>
-                <div>
-                  <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-0.5">
-                    Your Action Items
-                  </div>
-                  {tasks.length > 0 ? (
-                    <div className="font-sans text-xs text-slateMid">
-                      {urgentTasks.length > 0 && `${urgentTasks.length} urgent`}
-                      {urgentTasks.length > 0 && otherTasks.length > 0 && " \u00b7 "}
-                      {otherTasks.length > 0 && `${otherTasks.length} to address`}
-                    </div>
-                  ) : (
-                    <div className="font-sans text-xs text-slateMid">All caught up!</div>
-                  )}
-                </div>
-              </div>
-              <div className="text-ocean text-lg">&rarr;</div>
-            </div>
+        {/* Readiness Score */}
+        {readiness && <ReadinessCard readiness={readiness} />}
 
-            {urgentTasks.slice(0, 2).map((task, index) => (
-              <div key={index} className="flex items-start gap-2 py-2 border-t border-sand">
-                <div className="w-1.5 h-1.5 bg-coral rounded-full mt-1.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-sans text-sm font-medium text-slate">{task.title}</div>
+        {/* No assessment prompt */}
+        {!readiness && tasks.length === 0 && (
+          <Link href="/readiness" className="block mb-5">
+            <div className="w-full bg-ocean/5 border-2 border-dashed border-ocean/40 rounded-[14px] px-5 py-5 cursor-pointer hover:border-ocean transition-colors text-center">
+              <div className="font-serif text-lg font-semibold text-ocean mb-1">
+                Check Your Crisis Readiness
+              </div>
+              <div className="font-sans text-xs text-slateMid">
+                Find out how prepared you are to handle an emergency with {parentProfile?.name || "your parent"} &rarr;
+              </div>
+            </div>
+          </Link>
+        )}
+
+        {/* --- Daily Check-ins: Tasks + Briefing --- */}
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
+          Daily Check-in
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          {/* Tasks Card */}
+          <Link href="/tasks" className="block">
+            <div className="bg-white border-2 border-ocean rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold mb-3">
+                {tasks.length}
+              </div>
+              <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-1">
+                Action Items
+              </div>
+              {tasks.length > 0 ? (
+                <div className="font-sans text-[11px] text-slateMid leading-relaxed">
+                  {urgentTasks.length > 0 && <span className="text-coral font-semibold">{urgentTasks.length} urgent</span>}
+                  {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
+                  {otherTasks.length > 0 && `${otherTasks.length} more`}
                 </div>
+              ) : (
+                <div className="font-sans text-[11px] text-sage">All caught up</div>
+              )}
+            </div>
+          </Link>
+
+          {/* Briefing Card */}
+          <Link href="/briefing" className="block">
+            <div className="bg-white border-2 border-ocean/50 rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-10 h-10 bg-ocean/80 rounded-xl flex items-center justify-center text-white text-lg mb-3">
+                📊
+              </div>
+              <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-1">
+                Briefing
+              </div>
+              {latestBriefing ? (
+                <div className="font-sans text-[11px] text-slateMid leading-relaxed">
+                  {latestBriefing.urgentCount > 0 && <span className="text-coral font-semibold">{latestBriefing.urgentCount} urgent</span>}
+                  {latestBriefing.urgentCount > 0 && " · "}
+                  {latestBriefing.signalCount} signals
+                </div>
+              ) : (
+                <div className="font-sans text-[11px] text-slateMid">This week&apos;s update</div>
+              )}
+            </div>
+          </Link>
+        </div>
+
+        {/* Urgent tasks preview */}
+        {urgentTasks.length > 0 && (
+          <div className="mb-6 bg-coral/5 border border-coral/20 rounded-xl px-4 py-3">
+            {urgentTasks.slice(0, 3).map((task, index) => (
+              <div key={index} className={`flex items-start gap-2 py-2 ${index > 0 ? "border-t border-coral/10" : ""}`}>
+                <div className="w-1.5 h-1.5 bg-coral rounded-full mt-1.5 shrink-0" />
+                <div className="font-sans text-sm text-slate leading-snug">{task.title}</div>
               </div>
             ))}
-
-            {tasks.length > 2 && (
-              <div className="font-sans text-xs text-slateMid mt-2 pt-2 border-t border-sand">
-                +{tasks.length - 2} more {tasks.length - 2 === 1 ? "item" : "items"}
-              </div>
+            {urgentTasks.length > 3 && (
+              <Link href="/tasks" className="block pt-2 border-t border-coral/10">
+                <div className="font-sans text-xs text-coral font-medium">
+                  +{urgentTasks.length - 3} more urgent &rarr;
+                </div>
+              </Link>
             )}
           </div>
-        </Link>
+        )}
 
-        {/* Weekly Briefing Card */}
-        <Link href="/briefing" className="block mb-6">
-          <div className="w-full bg-ocean/20 border-2 border-ocean rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-serif text-lg font-semibold">
-                  📊
-                </div>
-                <div>
-                  <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-0.5">
-                    Weekly Briefing
-                  </div>
-                  <div className="font-sans text-sm text-slate font-medium">
-                    {latestBriefing ? "This week's insights" : "What's happening this week"}
-                  </div>
-                </div>
+        {/* --- Care Hub --- */}
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
+          Care Hub
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          {/* Information Hub */}
+          <Link href="/profile" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-10 h-10 bg-sage/20 rounded-xl flex items-center justify-center text-sage text-lg mb-3">
+                👤
               </div>
-              <div className="text-ocean text-lg">&rarr;</div>
+              <div className="font-sans text-xs font-semibold text-slate mb-0.5">
+                Information Hub
+              </div>
+              <div className="font-sans text-[11px] text-slateMid">
+                Captured details
+              </div>
             </div>
+          </Link>
 
-            {latestBriefing && (
-              <div className="pt-3 border-t border-ocean/20">
-                <div className="flex items-center gap-4 mb-2">
-                  {latestBriefing.urgentCount > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-coral rounded-full" />
-                      <div className="font-sans text-xs font-semibold text-coral">
-                        {latestBriefing.urgentCount} Urgent
-                      </div>
-                    </div>
-                  )}
-                  {latestBriefing.importantCount > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-amber rounded-full" />
-                      <div className="font-sans text-xs font-semibold text-amber">
-                        {latestBriefing.importantCount} Important
-                      </div>
-                    </div>
-                  )}
-                  <div className="font-sans text-xs text-slateMid">
-                    {latestBriefing.signalCount} signals analyzed
-                  </div>
-                </div>
+          {/* Documents */}
+          <Link href="/documents" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-10 h-10 bg-sand rounded-xl flex items-center justify-center text-lg mb-3">
+                📄
               </div>
-            )}
-          </div>
-        </Link>
-
-        {/* Information Hub Card */}
-        <Link href="/profile" className="block mb-6">
-          <div className="w-full bg-sage/20 border-2 border-sage rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-sage rounded-xl flex items-center justify-center text-white font-serif text-lg font-semibold">
-                  👤
-                </div>
-                <div>
-                  <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-sage mb-0.5">
-                    Information Hub
-                  </div>
-                  <div className="font-sans text-sm text-slate font-medium">
-                    View all captured information
-                  </div>
-                </div>
+              <div className="font-sans text-xs font-semibold text-slate mb-0.5">
+                Documents
               </div>
-              <div className="text-sage text-lg">&rarr;</div>
+              <div className="font-sans text-[11px] text-slateMid">
+                Uploaded files
+              </div>
             </div>
-          </div>
-        </Link>
-
-        {/* Documents Card */}
-        <Link href="/documents" className="block mb-8">
-          <div className="w-full bg-white border-2 border-slate-200 rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg">
-                  📄
-                </div>
-                <div>
-                  <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slate-500 mb-0.5">
-                    Documents
-                  </div>
-                  <div className="font-sans text-sm text-slate font-medium">
-                    View uploaded documents
-                  </div>
-                </div>
-              </div>
-              <div className="text-slate-400 text-lg">&rarr;</div>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         {/* Recent Conversations */}
         <ConversationHistory />
 
         {/* Quick Actions */}
-        <div>
-          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
+        <div className="mt-2">
+          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
             Quick Actions
           </div>
-          <div className="space-y-4">
-            <Link href="/crisis?new=1">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+          <div className="space-y-2.5">
+            <Link href="/readiness">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-coral/20 rounded-lg flex items-center justify-center text-coral text-base">+</div>
-                  <div className="font-sans text-sm font-medium text-slate">
-                    {allProfiles.length === 1 ? "Add another parent's profile" : "Update situation or add crisis event"}
-                  </div>
+                  <div className="w-8 h-8 bg-ocean/15 rounded-lg flex items-center justify-center text-ocean text-sm">✓</div>
+                  <div className="font-sans text-sm text-slate">{readiness ? "Update readiness assessment" : "Check your readiness"}</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-            <Link href="/readiness">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+            <Link href="/crisis?new=1">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-ocean/20 rounded-lg flex items-center justify-center text-ocean text-base">✓</div>
-                  <div className="font-sans text-sm font-medium text-slate">Review readiness assessment</div>
+                  <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">+</div>
+                  <div className="font-sans text-sm text-slate">Report a new crisis event</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
             <Link href="/monitoring">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-sage/20 rounded-lg flex items-center justify-center text-sage text-base">🤖</div>
-                  <div className="font-sans text-sm font-medium text-slate">View agent activity</div>
+                  <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">🤖</div>
+                  <div className="font-sans text-sm text-slate">View agent activity</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
