@@ -76,12 +76,14 @@ export function getAllTasks(): TaskWithParent[] {
 }
 
 // Get tasks for active parent only
+// Also includes orphaned tasks (no parentId) so tasks created before
+// a parent profile exists are still visible.
 export function getTasks(): Task[] {
   const activeParentId = getActiveParentId();
   if (!activeParentId) return getAllTasks();
 
   const allTasks = getAllTasks();
-  return allTasks.filter((t) => t.parentId === activeParentId);
+  return allTasks.filter((t) => t.parentId === activeParentId || !t.parentId);
 }
 
 // Get tasks for a specific parent

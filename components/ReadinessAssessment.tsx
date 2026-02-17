@@ -143,6 +143,9 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
         a.questionId.startsWith(domainPrefixMap[domain])
       );
 
+      const domainAnswerCount = domainAnswers.length;
+      console.log(`📤 Sending ${domainAnswerCount} answers for ${domain} to API`);
+
       const response = await fetch("/api/generate-readiness-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -155,13 +158,20 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
         }),
       });
 
+      if (!response.ok) {
+        console.error(`❌ API returned ${response.status} for ${domain} task generation`);
+        const errorText = await response.text();
+        console.error(`❌ Response body:`, errorText);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.tasks && data.tasks.length > 0) {
         console.log(`✅ Generated ${data.tasks.length} tasks for ${domain}, adding to storage`);
         addTasks(data.tasks);
       } else {
-        console.log(`ℹ️ No tasks needed for ${domain} domain`);
+        console.log(`ℹ️ No tasks generated for ${domain} domain. Response:`, data);
       }
     } catch (error) {
       console.error(`❌ Error generating tasks for ${domain}:`, error);
