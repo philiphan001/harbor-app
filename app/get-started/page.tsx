@@ -29,11 +29,11 @@ export default function GetStartedPage() {
       </div>
 
       {/* Pathway Cards */}
-      <div className="flex-1 px-5 py-8 space-y-6">
+      <div className="flex-1" style={{ padding: "2rem 1.25rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         {/* Readiness Pathway */}
         <Link href="/readiness">
-          <div className="w-full bg-ocean text-white rounded-[16px] px-7 py-7 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-start gap-5">
+          <div className="w-full bg-ocean text-white cursor-pointer hover:scale-[1.01] transition-transform" style={{ borderRadius: "16px", padding: "1.75rem" }}>
+            <div className="flex items-start" style={{ gap: "1.25rem" }}>
               <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0 mt-0.5">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -42,16 +42,16 @@ export default function GetStartedPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-80 mb-2">
+                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-80" style={{ marginBottom: "0.5rem" }}>
                   I want to be prepared
                 </div>
-                <div className="font-serif text-[19px] font-medium leading-snug mb-3">
+                <div className="font-serif text-[19px] font-medium leading-snug" style={{ marginBottom: "0.75rem" }}>
                   Check My Care Readiness
                 </div>
                 <div className="font-sans text-[13px] opacity-80 leading-relaxed">
                   Find out how ready you are to handle a crisis. We&apos;ll assess your preparedness across medical, legal, financial, and housing domains and build your action plan.
                 </div>
-                <div className="font-sans text-[12px] font-semibold mt-4 opacity-90">
+                <div className="font-sans text-[12px] font-semibold opacity-90" style={{ marginTop: "1rem" }}>
                   Takes 10-15 minutes &rarr;
                 </div>
               </div>
@@ -61,25 +61,25 @@ export default function GetStartedPage() {
 
         {/* Crisis Pathway */}
         <Link href="/crisis">
-          <div className="w-full bg-coral text-white rounded-[16px] px-7 py-7 cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden">
+          <div className="w-full bg-coral text-white cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden" style={{ borderRadius: "16px", padding: "1.75rem" }}>
             <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-black/[0.08]" />
-            <div className="flex items-start gap-5">
+            <div className="flex items-start" style={{ gap: "1.25rem" }}>
               <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0 mt-0.5">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
                 </svg>
               </div>
               <div className="flex-1 relative">
-                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-2">
+                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85" style={{ marginBottom: "0.5rem" }}>
                   I need help now
                 </div>
-                <div className="font-serif text-[19px] font-medium leading-snug mb-3">
+                <div className="font-serif text-[19px] font-medium leading-snug" style={{ marginBottom: "0.75rem" }}>
                   My Parent Had a Crisis
                 </div>
                 <div className="font-sans text-[13px] opacity-80 leading-relaxed">
                   Get organized right now. Our AI will guide you through the chaos, help you figure out what to do first, and create a clear action plan.
                 </div>
-                <div className="font-sans text-[12px] font-semibold mt-4 opacity-90">
+                <div className="font-sans text-[12px] font-semibold opacity-90" style={{ marginTop: "1rem" }}>
                   Available 24/7 &rarr;
                 </div>
               </div>
