@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
 import { getTasks, hydrateTasksFromDb } from "@/lib/utils/taskStorage";
@@ -26,6 +27,7 @@ import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [allProfiles, setAllProfiles] = useState<ParentProfile[]>([]);
@@ -44,6 +46,12 @@ export default function DashboardPage() {
 
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
+
+    // New user with no profiles — redirect to onboarding
+    if (profiles.length === 0) {
+      router.replace("/crisis");
+      return;
+    }
 
     // Hydrate tasks from DB for active parent
     if (profile?.id) {
