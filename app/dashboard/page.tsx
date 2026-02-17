@@ -47,9 +47,9 @@ export default function DashboardPage() {
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
 
-    // New user with no profiles — redirect to onboarding
+    // New user with no profiles — show empty state (don't redirect)
     if (profiles.length === 0) {
-      router.replace("/crisis");
+      setIsLoading(false);
       return;
     }
 
@@ -146,6 +146,31 @@ export default function DashboardPage() {
       {/* Main Content */}
       {isLoading ? (
         <DashboardSkeleton />
+      ) : !parentProfile ? (
+        <div className="flex-1 px-5 py-10 flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-ocean/10 rounded-2xl flex items-center justify-center mb-5">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B6B7D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
+              <path d="M9 21V12h6v9" />
+            </svg>
+          </div>
+          <h2 className="font-serif text-xl font-semibold text-slate mb-2">Welcome to Harbor</h2>
+          <p className="font-sans text-sm text-slateMid mb-8 max-w-[280px]">
+            Let&apos;s get started by telling us about your parent&apos;s situation so we can help you navigate their care.
+          </p>
+          <Link
+            href="/crisis"
+            className="bg-ocean text-white font-sans text-sm font-semibold px-8 py-3 rounded-xl hover:bg-ocean/90 transition-colors mb-4"
+          >
+            Get Started
+          </Link>
+          <Link
+            href="/readiness"
+            className="font-sans text-sm text-ocean font-medium hover:underline"
+          >
+            Or take a readiness assessment
+          </Link>
+        </div>
       ) : (
       <div className="flex-1 px-5 py-6">
         {/* Readiness Score */}
