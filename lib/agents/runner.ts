@@ -10,6 +10,7 @@ import { fetchAllElderCareNews, type NewsItem } from "./newsFetcher";
 import { createAlertsBatch, alertExistsRecently, type CreateAlertInput } from "@/lib/db/alerts";
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
+import { sendAlertEmail } from "@/lib/email/send";
 
 const log = createLogger("AgentRunner");
 
@@ -19,6 +20,8 @@ export interface AgentRunResult {
   newAlerts: number;
   skippedDuplicates: number;
   error?: string;
+  /** The alerts that were actually created (for email notifications) */
+  createdAlerts?: CreateAlertInput[];
 }
 
 export interface RunAllResult {
@@ -36,12 +39,16 @@ export async function runAllAgents(): Promise<RunAllResult> {
   const results: AgentRunResult[] = [];
 
   try {
-    // Get all situations with their parent state
+    // Get all situations with their parent state and creator email
     const situations = await prisma.situation.findMany({
       select: {
         id: true,
         elderName: true,
         elderLocation: true,
+        createdBy: true,
+        creator: {
+          select: { email: true },
+        },
       },
     });
 
@@ -76,6 +83,27 @@ export async function runAllAgents(): Promise<RunAllResult> {
       // Convert news items to alerts
       const newsResult = await processNewsItems(situation.id, newsItems);
       results.push(newsResult);
+
+      // Send email notifications for urgent/actionable alerts (fire-and-forget)
+      const userEmail = situation.creator?.email;
+      if (userEmail) {
+        const allNewAlerts = [
+          ...(policyResult.createdAlerts || []),
+          ...(newsResult.createdAlerts || []),
+        ];
+        for (const alert of allNewAlerts) {
+          if (alert.severity === "urgent" || alert.severity === "actionable") {
+            sendAlertEmail(userEmail, {
+              elderName: situation.elderName || "Your parent",
+              alertTitle: alert.title,
+              alertMessage: alert.message,
+              severity: alert.severity,
+              sourceUrl: alert.sourceUrl,
+              domain: alert.domain,
+            }).catch(() => {}); // Fire and forget
+          }
+        }
+      }
     }
   } catch (error) {
     log.errorWithStack("Agent runner failed", error);
@@ -142,6 +170,7 @@ async function processPolicyDocuments(
   if (alertsToCreate.length > 0) {
     await createAlertsBatch(alertsToCreate);
     result.newAlerts = alertsToCreate.length;
+    result.createdAlerts = alertsToCreate;
   }
 
   return result;
@@ -189,6 +218,7 @@ async function processNewsItems(
   if (capped.length > 0) {
     await createAlertsBatch(capped);
     result.newAlerts = capped.length;
+    result.createdAlerts = capped;
   }
 
   return result;

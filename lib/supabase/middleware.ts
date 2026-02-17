@@ -36,10 +36,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public routes that don't require auth
-  const publicRoutes = ["/login", "/signup", "/auth/callback"];
-  const isPublicRoute = publicRoutes.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const publicRoutes = ["/", "/login", "/signup", "/auth/callback"];
+  const isPublicRoute =
+    request.nextUrl.pathname === "/" ||
+    publicRoutes.slice(1).some((route) =>
+      request.nextUrl.pathname.startsWith(route)
+    );
 
   // API routes handle their own auth (return 401, not redirect)
   const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
@@ -51,8 +53,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && isPublicRoute) {
+  // Redirect authenticated users away from auth pages (login/signup only, not landing)
+  const isAuthPage = ["/login", "/signup"].some((route) =>
+    request.nextUrl.pathname.startsWith(route)
+  );
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);

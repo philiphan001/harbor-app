@@ -7,6 +7,7 @@ import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
+import { sendBriefingEmail } from "@/lib/email/send";
 import { createLogger } from "@/lib/utils/logger";
 
 const log = createLogger("api/generate-briefing");
@@ -82,6 +83,18 @@ export async function POST(request: NextRequest) {
     const briefing = await generateWeeklyBriefing(context, relevantSignals);
 
     log.info("Briefing generated successfully");
+
+    // Send briefing email (fire-and-forget)
+    if (auth.user.email) {
+      sendBriefingEmail(auth.user.email, {
+        elderName: briefing.parentName,
+        weekOf: briefing.weekOf,
+        urgentCount: briefing.urgentCount,
+        importantCount: briefing.importantCount,
+        signalCount: briefing.signalCount,
+        content: briefing.content,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       success: true,
