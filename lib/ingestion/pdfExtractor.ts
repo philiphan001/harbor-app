@@ -2,7 +2,6 @@
 // Extracts text from PDFs and sends to Claude for structuring
 
 import Anthropic from "@anthropic-ai/sdk";
-import { PDFParse } from "pdf-parse";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG } from "@/lib/config/prompts";
 import { createLogger } from "@/lib/utils/logger";
@@ -43,7 +42,8 @@ export async function extractFromPdf(
   });
 
   try {
-    // Step 1: Parse PDF text
+    // Step 1: Parse PDF text (dynamic import to avoid bundling issues on Vercel)
+    const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
     const textResult = await parser.getText();
     const extractedText = textResult.text?.trim() || "";
