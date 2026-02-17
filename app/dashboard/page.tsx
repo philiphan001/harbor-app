@@ -23,6 +23,7 @@ import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
 import ConversationHistory from "@/components/dashboard/ConversationHistory";
 import UserNav from "@/components/auth/UserNav";
+import { DashboardSkeleton } from "@/components/Skeleton";
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -33,6 +34,7 @@ export default function DashboardPage() {
   const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
     // Hydrate localStorage from DB (no-op if localStorage already has data)
@@ -66,6 +68,7 @@ export default function DashboardPage() {
     const activity = getAgentActivity();
     const unhandled = activity.recentDetections.filter(d => !d.handled).length;
     setUnhandledDetections(unhandled);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -133,6 +136,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
+      {isLoading ? (
+        <DashboardSkeleton />
+      ) : (
       <div className="flex-1 px-5 py-6">
         {/* Readiness Score */}
         {readiness && <ReadinessCard readiness={readiness} />}
@@ -315,6 +321,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      )}
 
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   type ExtractionResult,
   type ExtractedData,
@@ -34,6 +34,7 @@ export default function ExtractionReview({
 }: ExtractionReviewProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [editedJson, setEditedJson] = useState(
     JSON.stringify(extraction.data, null, 2)
   );
@@ -46,8 +47,11 @@ export default function ExtractionReview({
         ? "text-amber-600"
         : "text-red-600";
 
+  const dismissError = useCallback(() => setErrorMsg(null), []);
+
   const handleConfirm = async () => {
     setIsConfirming(true);
+    setErrorMsg(null);
     try {
       let dataToConfirm = extraction.data;
 
@@ -55,7 +59,7 @@ export default function ExtractionReview({
         try {
           dataToConfirm = JSON.parse(editedJson);
         } catch {
-          alert("Invalid JSON. Please fix the formatting and try again.");
+          setErrorMsg("Invalid JSON. Please fix the formatting and try again.");
           setIsConfirming(false);
           return;
         }
@@ -78,8 +82,8 @@ export default function ExtractionReview({
       }
 
       onConfirm(dataToConfirm);
-    } catch (error) {
-      alert("Failed to save. Please try again.");
+    } catch {
+      setErrorMsg("Failed to save. Please try again.");
     } finally {
       setIsConfirming(false);
     }
@@ -135,6 +139,14 @@ export default function ExtractionReview({
           </div>
         )}
       </div>
+
+      {/* Error banner */}
+      {errorMsg && (
+        <div className="mx-4 mb-2 px-3 py-2 bg-coral/10 border border-coral/30 rounded-lg flex items-center justify-between">
+          <span className="font-sans text-sm text-coral">{errorMsg}</span>
+          <button onClick={dismissError} className="text-coral/60 hover:text-coral ml-2 text-lg leading-none">&times;</button>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="bg-gray-50 px-4 py-3 border-t flex gap-3">
