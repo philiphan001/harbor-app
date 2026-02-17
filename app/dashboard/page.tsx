@@ -350,7 +350,7 @@ export default function DashboardPage() {
             Quick Actions
           </div>
           <div className="space-y-4">
-            <Link href="/crisis">
+            <Link href="/crisis?new=1">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3.5 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-coral/20 rounded-lg flex items-center justify-center text-coral text-base">+</div>
