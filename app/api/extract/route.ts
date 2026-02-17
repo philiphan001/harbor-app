@@ -136,10 +136,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     log.errorWithStack("Extraction failed", error);
 
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    log.errorWithStack("Extraction error details", { message: errorMessage, stack: errorStack });
+
     return NextResponse.json(
       {
         error: "Failed to process document",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
       },
       { status: 500 }
     );

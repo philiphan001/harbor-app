@@ -170,7 +170,7 @@ export default function DocumentUpload({
         let errorMessage = `Extraction failed (${response.status})`;
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
+          errorMessage = errorData.details || errorData.error || errorMessage;
         } catch {
           // Non-JSON response
         }
