@@ -313,16 +313,16 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
 
         <ChatInterface
           mode="readiness"
-          initialMessage="I'll help you assess your readiness across 4 key areas:
+          initialMessage="I'll help you assess your readiness across 4 key areas. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
 
-1. **Medical Readiness** - Healthcare providers, medications, insurance, advance directives
-2. **Legal Readiness** - Powers of attorney, wills, estate planning
-3. **Financial Readiness** - Income, expenses, insurance, long-term care funding
-4. **Housing Readiness** - Current living situation and future planning
+1. **Medical** — Could you reach their doctor, list their meds, and navigate insurance at 2am?
+2. **Legal** — Do you have the authority and documents to make decisions?
+3. **Financial** — Could you pay their bills and fund their care?
+4. **Housing** — Is their living situation safe and sustainable?
 
-This usually takes 10-15 minutes. We'll go through each domain together, and I'll identify any gaps we should address.
+This takes about 10-15 minutes. For everything you already have in place, I'll capture the details in Harbor. For gaps, I'll build your action plan.
 
-First, let's start with your parent's basic information. What's their name and age?"
+First — what's your parent's name and age?"
           onComplete={handleChatComplete}
           currentAnswers={answers}
           onAnswersExtracted={handleAnswersExtracted}
