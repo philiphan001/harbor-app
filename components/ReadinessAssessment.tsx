@@ -91,15 +91,16 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     setMode("questionnaire");
   };
 
-  const handleAnswer = (questionId: string, selectedOption: string | null, isUncertain: boolean) => {
+  const handleAnswer = (questionId: string, selectedOption: string | null, isUncertain: boolean, capturedData?: Record<string, string>) => {
     setAnswers((prev) => {
       const existing = prev.find((a) => a.questionId === questionId);
+      const answer = { questionId, selectedOption, isUncertain, capturedData };
       if (existing) {
         return prev.map((a) =>
-          a.questionId === questionId ? { questionId, selectedOption, isUncertain } : a
+          a.questionId === questionId ? answer : a
         );
       }
-      return [...prev, { questionId, selectedOption, isUncertain }];
+      return [...prev, answer];
     });
   };
 
@@ -150,7 +151,8 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       );
 
       const domainAnswerCount = domainAnswers.length;
-      console.log(`📤 Sending ${domainAnswerCount} answers for ${domain} to API`);
+      const capturedCount = domainAnswers.filter(a => a.capturedData && Object.keys(a.capturedData).length > 0).length;
+      console.log(`📤 Sending ${domainAnswerCount} answers (${capturedCount} with captured data) for ${domain} to API`);
 
       const response = await fetch("/api/generate-readiness-tasks", {
         method: "POST",

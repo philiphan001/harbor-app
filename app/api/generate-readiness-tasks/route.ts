@@ -37,13 +37,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ tasks: [], count: 0 });
     }
 
-    // Build context for Claude
+    // Build context for Claude — include captured data
     const answerSummary = domainData.questions
       .map((q) => {
         const answer = answers.find((a) => a.questionId === q.id);
         if (!answer) return `Q: ${q.text}\nA: [Not answered]`;
         if (answer.isUncertain) return `Q: ${q.text}\nA: I don't know / Not certain`;
-        return `Q: ${q.text}\nA: ${answer.selectedOption}`;
+
+        let line = `Q: ${q.text}\nA: ${answer.selectedOption}`;
+
+        // Include captured data if present
+        if (answer.capturedData && Object.keys(answer.capturedData).length > 0) {
+          const dataEntries = Object.entries(answer.capturedData)
+            .map(([key, val]) => `  ${key}: ${val}`)
+            .join("\n");
+          line += `\n[Data already captured in Harbor:\n${dataEntries}]`;
+        }
+
+        return line;
       })
       .join("\n\n");
 
@@ -58,7 +69,7 @@ Domain: ${domainData.title}
 User's answers:
 ${answerSummary}
 
-Generate actionable tasks for any gaps, uncertainties, or areas of concern. Return only the JSON array.`;
+Generate actionable tasks based on these answers. For questions where the user already captured data in Harbor, you can reduce the priority of data-capture tasks (they're partially done). Focus gap tasks on things that are missing, uncertain, or incomplete. Return only the JSON array.`;
 
     // Call Claude to generate tasks
     const response = await anthropic.messages.create({
