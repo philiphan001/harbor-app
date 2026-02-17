@@ -166,9 +166,15 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/readiness"
-            className="font-sans text-sm text-ocean font-medium hover:underline"
+            className="font-sans text-sm text-ocean font-medium hover:underline mb-3"
           >
             Or take a readiness assessment
+          </Link>
+          <Link
+            href="/documents"
+            className="font-sans text-sm text-slate-400 font-medium hover:underline"
+          >
+            View uploaded documents
           </Link>
         </div>
       ) : (
@@ -292,7 +298,7 @@ export default function DashboardPage() {
         </Link>
 
         {/* Information Hub Card */}
-        <Link href="/profile" className="block mb-8">
+        <Link href="/profile" className="block mb-6">
           <div className="w-full bg-sage/20 border-2 border-sage rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -309,6 +315,28 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="text-sage text-lg">&rarr;</div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Documents Card */}
+        <Link href="/documents" className="block mb-8">
+          <div className="w-full bg-white border-2 border-slate-200 rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-lg">
+                  📄
+                </div>
+                <div>
+                  <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slate-500 mb-0.5">
+                    Documents
+                  </div>
+                  <div className="font-sans text-sm text-slate font-medium">
+                    View uploaded documents
+                  </div>
+                </div>
+              </div>
+              <div className="text-slate-400 text-lg">&rarr;</div>
             </div>
           </div>
         </Link>
