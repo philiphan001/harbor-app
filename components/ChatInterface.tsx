@@ -179,11 +179,11 @@ export default function ChatInterface({
         }
       }
 
-      // PARALLEL EXTRACTION: Make 2-3 API calls simultaneously
-      console.log(`🚀 Starting parallel requests (conversation + task extraction${mode === "readiness" ? " + answer extraction" : ""})`);
+      // PARALLEL EXTRACTION: Stream conversation + background task extraction
+      console.log(`🚀 Starting parallel requests (streaming conversation + task extraction${mode === "readiness" ? " + answer extraction" : ""})`);
 
-      // Request 1: Main conversation (NO TOOLS - fast response)
-      const conversationPromise = fetch("/api/chat", {
+      // Request 1: Streaming conversation response
+      const streamPromise = fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -216,22 +216,69 @@ export default function ChatInterface({
           })
         : null;
 
-      // Wait for conversation response (show immediately to user)
-      console.log("⏳ Waiting for conversation response...");
-      const conversationResponse = await conversationPromise;
-      const conversationData = await conversationResponse.json();
+      // --- Stream the conversation response token by token ---
+      const streamResponse = await streamPromise;
 
+      // Create the assistant message placeholder immediately
+      const assistantMsgId = `msg-${Date.now() + 1}`;
       const assistantMessage: Message = {
-        id: `msg-${Date.now() + 1}`,
+        id: assistantMsgId,
         role: "assistant",
-        content: conversationData.message,
+        content: "",
         timestamp: new Date(),
-        metadata: conversationData.metadata,
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false); // User sees response now!
-      console.log("✅ Conversation response displayed");
+      setIsLoading(false); // Hide bouncing dots, show streaming text
+
+      // Read the SSE stream
+      let fullText = "";
+      const reader = streamResponse.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Parse SSE events from buffer
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.type === "delta") {
+                fullText += event.text;
+                // Update the message in-place with accumulated text
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId ? { ...m, content: fullText } : m
+                  )
+                );
+              } else if (event.type === "done") {
+                // Stream complete — update metadata
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, metadata: { model: event.model, usage: event.usage } }
+                      : m
+                  )
+                );
+              } else if (event.type === "error") {
+                console.error("Stream error:", event.message);
+              }
+            } catch {
+              // Skip malformed SSE lines
+            }
+          }
+        }
+      }
+
+      console.log("✅ Streaming response complete");
 
       // --- Persist user + assistant messages (fire-and-forget) ---
       if (convId) {
@@ -239,16 +286,9 @@ export default function ChatInterface({
           { role: "user", content: userMessage.content },
           {
             role: "assistant",
-            content: assistantMessage.content,
-            metadata: assistantMessage.metadata as Record<string, unknown> | undefined,
+            content: fullText,
           },
         ]);
-      }
-
-      // Save parent profile information if captured (from conversation)
-      if (conversationData.parentProfile) {
-        console.log("👤 Saving parent profile:", conversationData.parentProfile);
-        saveParentProfile(conversationData.parentProfile);
       }
 
       // Wait for task extraction (happens in background, doesn't block UI)
@@ -301,10 +341,8 @@ export default function ChatInterface({
         setIsExtractingAnswers(false);
       }
 
-      // Check if intake is complete
-      if (conversationData.complete && onComplete) {
-        onComplete(conversationData.extractedData);
-      }
+      // Note: Completion detection is handled by the conversation flow itself
+      // The streaming endpoint doesn't return structured completion signals
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
@@ -339,7 +377,7 @@ export default function ChatInterface({
   const parentProfile = getParentProfile();
 
   return (
-    <div className="flex flex-col h-screen max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+    <div className="flex flex-col h-[calc(100vh-72px)] max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Task Detail Modal */}
       {selectedTask && (
         <TaskDetail
@@ -410,7 +448,7 @@ export default function ChatInterface({
                   message.role === "user" ? "text-white/60" : "text-slateLight"
                 }`}
               >
-                {message.timestamp.toLocaleTimeString([], {
+                {new Date(message.timestamp).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
