@@ -158,16 +158,10 @@ export default function DashboardPage() {
             Let&apos;s find out how ready you are to handle a crisis with your aging parent — and build your care command center.
           </p>
           <Link
-            href="/readiness"
+            href="/get-started"
             className="bg-ocean text-white font-sans text-sm font-semibold px-8 py-3 rounded-xl hover:bg-ocean/90 transition-colors mb-4"
           >
-            Check Your Readiness
-          </Link>
-          <Link
-            href="/crisis"
-            className="font-sans text-sm text-ocean font-medium hover:underline mb-3"
-          >
-            Or report a crisis now
+            Get Started
           </Link>
           <Link
             href="/documents"

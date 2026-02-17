@@ -41,36 +41,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Primary CTAs */}
+      {/* Primary CTA */}
       <div className="px-5 pt-8">
-        <Link href="/crisis">
-          <div className="w-full bg-coral text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden">
-            <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-black/[0.08]" />
-            <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-1.5">
-              Need help now?
+        <Link href="/get-started">
+          <div className="w-full bg-ocean text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform text-center">
+            <div className="font-serif text-[20px] font-semibold mb-1.5">
+              Get Started
             </div>
-            <div className="font-serif text-[19px] font-medium leading-snug">
-              My parent just had a health crisis
-            </div>
-            <div className="font-sans text-[13px] opacity-80 mt-1.5">
-              Start AI-guided intake now — available 24/7 →
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Secondary CTA */}
-      <div className="px-5 pt-3">
-        <Link href="/readiness">
-          <div className="w-full bg-ocean text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-1.5">
-              Get prepared
-            </div>
-            <div className="font-serif text-[19px] font-medium leading-snug">
-              Check your Care Readiness Score
-            </div>
-            <div className="font-sans text-[13px] opacity-80 mt-1.5">
-              10-minute assessment — know where you stand →
+            <div className="font-sans text-[13px] opacity-80">
+              Free readiness assessment or crisis support &rarr;
             </div>
           </div>
         </Link>
