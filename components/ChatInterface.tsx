@@ -293,17 +293,25 @@ export default function ChatInterface({
 
       // Wait for task extraction (happens in background, doesn't block UI)
       console.log("⏳ Waiting for task extraction...");
-      const taskResponse = await taskExtractionPromise;
-      const taskData = await taskResponse.json();
+      try {
+        const taskResponse = await taskExtractionPromise;
+        if (!taskResponse.ok) {
+          console.warn(`Task extraction failed: ${taskResponse.status} ${taskResponse.statusText}`);
+        } else {
+          const taskData = await taskResponse.json();
 
-      // Add extracted tasks
-      if (taskData.tasks && taskData.tasks.length > 0) {
-        console.log("💾 Saving extracted tasks to localStorage:", taskData.tasks);
-        setTasks((prev) => [...prev, ...taskData.tasks]);
-        addTasks(taskData.tasks);
-        console.log("✅ Task extraction complete");
-      } else {
-        console.log("ℹ️ No new tasks extracted this turn");
+          // Add extracted tasks
+          if (taskData.tasks && taskData.tasks.length > 0) {
+            console.log("💾 Saving extracted tasks:", taskData.tasks.length);
+            setTasks((prev) => [...prev, ...taskData.tasks]);
+            addTasks(taskData.tasks);
+            console.log("✅ Task extraction complete");
+          } else {
+            console.log("ℹ️ No new tasks extracted this turn");
+          }
+        }
+      } catch (taskError) {
+        console.warn("Task extraction error:", taskError);
       }
 
       // Wait for answer extraction (readiness mode only)

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
-import { getSituationId } from "./profiles";
+import { getSituationId, ensureSituationForUser } from "./profiles";
 import type { Priority, ExtendedDomain } from "@/lib/constants/domains";
 
 const log = createLogger("db/tasks");
@@ -31,13 +31,29 @@ export interface TaskRecord {
 }
 
 /**
+ * Resolve situationId from parentId, using auth-aware lookup when available.
+ */
+async function resolveSituationId(
+  parentId: string,
+  authUserId?: string
+): Promise<string | null> {
+  if (authUserId) {
+    // Auth-aware: ensures a situation exists (creates default if needed)
+    return ensureSituationForUser(authUserId);
+  }
+  // Legacy: lookup by parentId email
+  return getSituationId(parentId);
+}
+
+/**
  * Save tasks for a parent (bulk upsert by title).
  */
 export async function saveTasks(
   parentId: string,
-  tasks: TaskInput[]
+  tasks: TaskInput[],
+  authUserId?: string
 ): Promise<TaskRecord[]> {
-  const situationId = await getSituationId(parentId);
+  const situationId = await resolveSituationId(parentId, authUserId);
   if (!situationId) {
     log.warn("No situation found for parent, skipping task save", { parentId });
     return [];
@@ -90,8 +106,8 @@ export async function saveTasks(
 /**
  * Get all tasks for a parent.
  */
-export async function getTasks(parentId: string): Promise<TaskRecord[]> {
-  const situationId = await getSituationId(parentId);
+export async function getTasks(parentId: string, authUserId?: string): Promise<TaskRecord[]> {
+  const situationId = await resolveSituationId(parentId, authUserId);
   if (!situationId) return [];
 
   const tasks = await prisma.task.findMany({

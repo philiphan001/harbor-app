@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tasks = await getTasks(parentId);
+    const tasks = await getTasks(parentId, auth.user.id);
     return NextResponse.json({ tasks });
   } catch (error) {
     log.errorWithStack("Failed to fetch tasks", error);
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const saved = await saveTasks(parentId, tasks);
+    const saved = await saveTasks(parentId, tasks, auth.user.id);
     return NextResponse.json({ tasks: saved });
   } catch (error) {
     log.errorWithStack("Failed to save tasks", error);

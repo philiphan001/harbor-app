@@ -13,7 +13,7 @@ import {
   hydrateProfilesFromDb,
   type ParentProfile
 } from "@/lib/utils/parentProfile";
-import { deleteTasksForParent, removeOrphanedTasks } from "@/lib/utils/taskStorage";
+import { deleteTasksForParent, assignOrphanedTasks } from "@/lib/utils/taskStorage";
 import { deleteTaskDataForParent } from "@/lib/utils/taskData";
 import { deleteBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
@@ -42,8 +42,6 @@ export default function DashboardPage() {
     // Hydrate localStorage from DB (no-op if localStorage already has data)
     await hydrateProfilesFromDb();
 
-    removeOrphanedTasks();
-
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
 
@@ -53,8 +51,9 @@ export default function DashboardPage() {
       return;
     }
 
-    // Hydrate tasks from DB for active parent
+    // Assign orphaned tasks (created before intake) to the active parent
     if (profile?.id) {
+      assignOrphanedTasks(profile.id);
       await hydrateTasksFromDb(profile.id);
     }
 
