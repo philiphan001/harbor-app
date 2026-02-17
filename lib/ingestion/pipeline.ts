@@ -22,24 +22,46 @@ function isHeicType(fileType: string): boolean {
 }
 
 /**
- * Convert HEIC/HEIF buffer to JPEG using sharp.
- * Returns the converted buffer and new file type.
+ * Convert HEIC/HEIF buffer to JPEG.
+ * Uses heic-convert (pure JS, works everywhere) as primary,
+ * falls back to sharp if available.
  */
 async function convertHeicToJpeg(
   buffer: Buffer
 ): Promise<{ buffer: Buffer; fileType: string }> {
+  // Approach 1: heic-convert (pure JavaScript — no native dependencies)
   try {
-    const sharp = (await import("sharp")).default;
-    const jpegBuffer = await sharp(buffer).jpeg({ quality: 92 }).toBuffer();
-    log.info("HEIC converted to JPEG", {
+    const convert = (await import("heic-convert")).default;
+    const outputBuffer = await convert({
+      buffer: buffer as unknown as ArrayBufferLike,
+      format: "JPEG",
+      quality: 0.92,
+    });
+    const jpegBuffer = Buffer.from(outputBuffer);
+    log.info("HEIC converted to JPEG via heic-convert", {
       originalSize: buffer.length,
       convertedSize: jpegBuffer.length,
     });
     return { buffer: jpegBuffer, fileType: "image/jpeg" };
-  } catch (error) {
-    log.errorWithStack("HEIC to JPEG conversion failed", error);
+  } catch (heicError) {
+    log.warn("heic-convert failed, trying sharp fallback", {
+      error: heicError instanceof Error ? heicError.message : String(heicError),
+    });
+  }
+
+  // Approach 2: sharp (native — may not have HEIC support on all platforms)
+  try {
+    const sharp = (await import("sharp")).default;
+    const jpegBuffer = await sharp(buffer).jpeg({ quality: 92 }).toBuffer();
+    log.info("HEIC converted to JPEG via sharp", {
+      originalSize: buffer.length,
+      convertedSize: jpegBuffer.length,
+    });
+    return { buffer: jpegBuffer, fileType: "image/jpeg" };
+  } catch (sharpError) {
+    log.errorWithStack("Both HEIC converters failed", sharpError);
     throw new Error(
-      "Unable to process HEIC image. Please convert to JPEG or PNG before uploading."
+      "Unable to process HEIC image. Please take a screenshot or use your camera app to save as JPEG."
     );
   }
 }

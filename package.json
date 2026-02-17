@@ -22,6 +22,7 @@
     "autoprefixer": "^10.4.24",
     "eslint": "^10.0.0",
     "eslint-config-next": "^16.1.6",
+    "heic-convert": "^2.1.0",
     "next": "^16.1.6",
     "pdf-parse": "^2.4.5",
     "pg": "^8.18.0",
@@ -36,6 +37,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/heic-convert": "^2.1.0",
     "@types/pdf-parse": "^1.1.5",
     "@types/pg": "^8.16.0",
     "jsdom": "^28.1.0",
