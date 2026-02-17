@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-const NAV_ITEMS = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ active: boolean }>;
+}
+
+const STATIC_NAV_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
     label: "Home",
@@ -14,11 +21,7 @@ const NAV_ITEMS = [
     label: "Tasks",
     icon: TasksIcon,
   },
-  {
-    href: "/crisis",
-    label: "Chat",
-    icon: ChatIcon,
-  },
+  // Chat is dynamic — inserted at runtime
   {
     href: "/upload",
     label: "Upload",
@@ -36,9 +39,51 @@ const HIDDEN_PATHS = ["/", "/login", "/signup"];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [chatHref, setChatHref] = useState("/crisis");
+
+  // Determine the right chat destination based on most recent conversation
+  useEffect(() => {
+    // If user is currently on a chat page, keep that as the target
+    if (pathname.startsWith("/crisis") || pathname.startsWith("/readiness")) {
+      return;
+    }
+
+    async function resolveChat() {
+      try {
+        const res = await fetch("/api/conversations");
+        if (!res.ok) return;
+        const data = await res.json();
+        const conversations = data.conversations || [];
+
+        // Find the most recent conversation with messages
+        const recent = conversations.find(
+          (c: { conversationType: string; messages: unknown[] }) =>
+            c.messages && c.messages.length > 0
+        );
+
+        if (recent) {
+          const base = recent.conversationType === "readiness" ? "/readiness" : "/crisis";
+          setChatHref(`${base}?conversationId=${recent.id}`);
+        }
+      } catch {
+        // Default to /crisis
+      }
+    }
+
+    resolveChat();
+  }, [pathname]);
 
   // Hide on landing, login, signup
   if (HIDDEN_PATHS.includes(pathname)) return null;
+
+  // Build nav items with dynamic chat href
+  const navItems: NavItem[] = [
+    STATIC_NAV_ITEMS[0], // Home
+    STATIC_NAV_ITEMS[1], // Tasks
+    { href: chatHref, label: "Chat", icon: ChatIcon },
+    STATIC_NAV_ITEMS[2], // Upload
+    STATIC_NAV_ITEMS[3], // Briefing
+  ];
 
   return (
     <nav
@@ -47,14 +92,17 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       <div className="max-w-[420px] mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        {navItems.map((item) => {
+          // For chat, highlight if on any chat-related page
+          const isChatItem = item.label === "Chat";
+          const isActive = isChatItem
+            ? pathname.startsWith("/crisis") || pathname.startsWith("/readiness")
+            : pathname === item.href ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[56px] ${
                 isActive
