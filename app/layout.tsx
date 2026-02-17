@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Source_Serif_4, DM_Sans } from "next/font/google";
 import "./globals.css";
+import BottomNav from "@/components/BottomNav";
+import LayoutShell from "@/components/LayoutShell";
 
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
@@ -20,6 +22,12 @@ export const metadata: Metadata = {
   description: "A steady hand when your family needs it most.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,7 +38,10 @@ export default function RootLayout({
       <body
         className={`${sourceSerif.variable} ${dmSans.variable} font-serif antialiased bg-warmWhite`}
       >
-        {children}
+        <LayoutShell>
+          {children}
+        </LayoutShell>
+        <BottomNav />
       </body>
     </html>
   );

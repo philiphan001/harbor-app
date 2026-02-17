@@ -316,20 +316,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-5 py-6 mt-auto border-t border-sandDark">
-        <div className="bg-sand rounded-xl p-4 flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-ocean text-white flex items-center justify-center font-serif text-sm font-semibold shrink-0">
-            H
-          </div>
-          <div>
-            <div className="font-serif text-xs font-medium text-slate mb-1">AI-powered care coordination</div>
-            <div className="font-sans text-[11px] text-slateMid leading-relaxed">
-              Your care plan updates automatically as your parent&apos;s situation evolves.
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
