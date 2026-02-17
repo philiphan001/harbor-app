@@ -62,11 +62,14 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
     });
   }
 
-  // Find existing situation for this user by elderName slug (parentId)
+  // Find existing situation for this user by elderName match or default placeholder
   const existingSituation = await prisma.situation.findFirst({
     where: {
       createdBy: user.id,
-      elderName: input.name,
+      OR: [
+        { elderName: input.name },
+        { elderName: "My Parent" }, // default from pre-intake uploads
+      ],
     },
     orderBy: { createdAt: "desc" },
   });
