@@ -13,6 +13,9 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Read returnTo param to redirect after login
+  const [returnTo, setReturnTo] = useState("/dashboard");
+
   // Show error from auth callback (e.g., email confirmation failed)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -20,14 +23,18 @@ export default function LoginPage() {
     if (callbackError === "auth_callback_failed") {
       setError("Email confirmation failed. Please try again.");
     }
+    const dest = params.get("returnTo");
+    if (dest) setReturnTo(dest);
   }, []);
 
   const handleGoogleLogin = async () => {
     setError(null);
+    // Pass returnTo through the OAuth callback via the `next` param
+    const callbackUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
       },
     });
     if (error) setError(error.message);
@@ -47,7 +54,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push(returnTo);
       router.refresh();
     }
   };

@@ -155,19 +155,19 @@ export default function DashboardPage() {
           </div>
           <h2 className="font-serif text-xl font-semibold text-slate mb-2">Welcome to Harbor</h2>
           <p className="font-sans text-sm text-slateMid mb-8 max-w-[280px]">
-            Let&apos;s get started by telling us about your parent&apos;s situation so we can help you navigate their care.
+            Let&apos;s find out how ready you are to handle a crisis with your aging parent — and build your care command center.
           </p>
           <Link
-            href="/crisis"
+            href="/readiness"
             className="bg-ocean text-white font-sans text-sm font-semibold px-8 py-3 rounded-xl hover:bg-ocean/90 transition-colors mb-4"
           >
-            Get Started
+            Check Your Readiness
           </Link>
           <Link
-            href="/readiness"
+            href="/crisis"
             className="font-sans text-sm text-ocean font-medium hover:underline mb-3"
           >
-            Or take a readiness assessment
+            Or report a crisis now
           </Link>
           <Link
             href="/documents"

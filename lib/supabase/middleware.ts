@@ -47,9 +47,11 @@ export async function updateSession(request: NextRequest) {
   const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
 
   // Redirect unauthenticated users to login (except public + API routes)
+  // Preserve the original destination as ?returnTo= so we can redirect after login
   if (!user && !isPublicRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("returnTo", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
@@ -59,7 +61,10 @@ export async function updateSession(request: NextRequest) {
   );
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    // Respect returnTo param if present
+    const returnTo = request.nextUrl.searchParams.get("returnTo");
+    url.pathname = returnTo || "/dashboard";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
