@@ -29,12 +29,12 @@ export default function GetStartedPage() {
       </div>
 
       {/* Pathway Cards */}
-      <div className="flex-1 px-5 py-8 space-y-4">
+      <div className="flex-1 px-5 py-8 space-y-6">
         {/* Readiness Pathway */}
         <Link href="/readiness">
-          <div className="w-full bg-ocean text-white rounded-[14px] px-6 py-6 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0">
+          <div className="w-full bg-ocean text-white rounded-[16px] px-7 py-7 cursor-pointer hover:scale-[1.01] transition-transform">
+            <div className="flex items-start gap-5">
+              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0 mt-0.5">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
                   <rect x="9" y="3" width="6" height="4" rx="1" />
@@ -42,16 +42,16 @@ export default function GetStartedPage() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-80 mb-1.5">
+                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-80 mb-2">
                   I want to be prepared
                 </div>
-                <div className="font-serif text-[19px] font-medium leading-snug mb-2">
+                <div className="font-serif text-[19px] font-medium leading-snug mb-3">
                   Check My Care Readiness
                 </div>
                 <div className="font-sans text-[13px] opacity-80 leading-relaxed">
                   Find out how ready you are to handle a crisis. We&apos;ll assess your preparedness across medical, legal, financial, and housing domains and build your action plan.
                 </div>
-                <div className="font-sans text-[12px] font-semibold mt-3 opacity-90">
+                <div className="font-sans text-[12px] font-semibold mt-4 opacity-90">
                   Takes 10-15 minutes &rarr;
                 </div>
               </div>
@@ -61,25 +61,25 @@ export default function GetStartedPage() {
 
         {/* Crisis Pathway */}
         <Link href="/crisis">
-          <div className="w-full bg-coral text-white rounded-[14px] px-6 py-6 cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden">
+          <div className="w-full bg-coral text-white rounded-[16px] px-7 py-7 cursor-pointer hover:scale-[1.01] transition-transform relative overflow-hidden">
             <div className="absolute top-0 right-0 bottom-0 w-20 bg-gradient-to-l from-black/[0.08]" />
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0">
+            <div className="flex items-start gap-5">
+              <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center text-2xl shrink-0 mt-0.5">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" />
                 </svg>
               </div>
               <div className="flex-1 relative">
-                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-1.5">
+                <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase opacity-85 mb-2">
                   I need help now
                 </div>
-                <div className="font-serif text-[19px] font-medium leading-snug mb-2">
+                <div className="font-serif text-[19px] font-medium leading-snug mb-3">
                   My Parent Had a Crisis
                 </div>
                 <div className="font-sans text-[13px] opacity-80 leading-relaxed">
                   Get organized right now. Our AI will guide you through the chaos, help you figure out what to do first, and create a clear action plan.
                 </div>
-                <div className="font-sans text-[12px] font-semibold mt-3 opacity-90">
+                <div className="font-sans text-[12px] font-semibold mt-4 opacity-90">
                   Available 24/7 &rarr;
                 </div>
               </div>
@@ -89,7 +89,7 @@ export default function GetStartedPage() {
 
         {/* Upload option */}
         <Link href="/upload">
-          <div className="w-full bg-white border-2 border-sandDark text-slate rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform">
+          <div className="w-full bg-white border-2 border-sandDark text-slate rounded-[16px] px-7 py-6 cursor-pointer hover:scale-[1.01] transition-transform">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-sand rounded-xl flex items-center justify-center shrink-0">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
