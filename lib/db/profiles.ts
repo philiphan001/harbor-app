@@ -290,3 +290,47 @@ export async function getSituationIdForAuthUser(
   // Fallback: try legacy flow
   return getSituationId(parentId);
 }
+
+/**
+ * Ensure a situation exists for the auth user, creating a default one if needed.
+ * This allows documents to be uploaded before the user completes intake.
+ * Returns the situationId (existing or newly created).
+ */
+export async function ensureSituationForUser(
+  authUserId: string,
+  authEmail?: string
+): Promise<string> {
+  // Check for existing situations
+  const existing = await prisma.situation.findFirst({
+    where: { createdBy: authUserId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) return existing.id;
+
+  // Ensure user record exists
+  await prisma.user.upsert({
+    where: { id: authUserId },
+    update: {},
+    create: {
+      id: authUserId,
+      email: authEmail ?? `${authUserId}@harbor.local`,
+      name: "Caregiver",
+    },
+  });
+
+  // Create a default situation
+  const situation = await prisma.situation.create({
+    data: {
+      elderName: "My Parent",
+      createdBy: authUserId,
+    },
+  });
+
+  log.info("Created default situation for pre-intake user", {
+    userId: authUserId,
+    situationId: situation.id,
+  });
+
+  return situation.id;
+}

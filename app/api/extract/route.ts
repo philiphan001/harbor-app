@@ -7,7 +7,7 @@ import { applyRateLimit } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
 import { processFile } from "@/lib/ingestion/pipeline";
 import { createDocument } from "@/lib/db/documents";
-import { getSituationIdForAuthUser } from "@/lib/db/profiles";
+import { ensureSituationForUser } from "@/lib/db/profiles";
 import { createClient } from "@/lib/supabase/server";
 import { type DocumentType } from "@/lib/ingestion/types";
 
@@ -87,36 +87,30 @@ export async function POST(request: NextRequest) {
     });
 
     // Persist document record to DB
-    const situationId = await getSituationIdForAuthUser(auth.user.id, parentId);
+    // ensureSituationForUser creates a default situation if the user hasn't done intake yet
+    const situationId = await ensureSituationForUser(auth.user.id, auth.user.email);
 
     let documentId: string | undefined;
 
-    if (situationId) {
-      try {
-        const doc = await createDocument({
-          situationId,
-          name: fileName,
-          fileType,
-          fileSizeBytes: fileSizeBytes || buffer.length,
-          documentType: result.documentType,
-          storagePath,
-          extractedData: result.data as unknown as Record<string, unknown>,
-          confidence: result.confidence,
-          extractionModel: "claude-sonnet-4-20250514",
-          uploadedBy: auth.user.id,
-        });
-
-        documentId = doc.id;
-        log.info("Document persisted", { documentId, storagePath });
-      } catch (dbError) {
-        // DB write failed — still return extraction to client
-        log.errorWithStack("Failed to persist document to DB", dbError);
-      }
-    } else {
-      log.warn("No situationId found — document not persisted", {
-        userId: auth.user.id,
-        parentId,
+    try {
+      const doc = await createDocument({
+        situationId,
+        name: fileName,
+        fileType,
+        fileSizeBytes: fileSizeBytes || buffer.length,
+        documentType: result.documentType,
+        storagePath,
+        extractedData: result.data as unknown as Record<string, unknown>,
+        confidence: result.confidence,
+        extractionModel: "claude-sonnet-4-20250514",
+        uploadedBy: auth.user.id,
       });
+
+      documentId = doc.id;
+      log.info("Document persisted", { documentId, storagePath });
+    } catch (dbError) {
+      // DB write failed — still return extraction to client
+      log.errorWithStack("Failed to persist document to DB", dbError);
     }
 
     return NextResponse.json({
