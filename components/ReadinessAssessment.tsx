@@ -7,10 +7,10 @@ import QuestionnaireForm from "./QuestionnaireForm";
 import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { addTasks } from "@/lib/utils/taskStorage";
-import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
-type AssessmentMode = "intro" | "chat" | "questionnaire";
+type AssessmentMode = "intro" | "parent-info" | "chat" | "questionnaire";
 
 interface ReadinessAssessmentProps {
   conversationId?: string;
@@ -55,7 +55,13 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
   };
 
   const handleStartQuestionnaire = () => {
-    setMode("questionnaire");
+    // Skip parent info if profile already exists
+    const existing = getParentProfile();
+    if (existing && existing.name && existing.age) {
+      setMode("questionnaire");
+    } else {
+      setMode("parent-info");
+    }
   };
 
   const handleSwitchToChat = () => {
@@ -282,6 +288,11 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     );
   }
 
+  // Parent info collection (before questionnaire)
+  if (mode === "parent-info") {
+    return <ParentInfoForm onComplete={() => setMode("questionnaire")} onBack={() => setMode("intro")} />;
+  }
+
   // Chat mode
   if (mode === "chat") {
     return (
@@ -361,6 +372,130 @@ First, let's start with your parent's basic information. What's their name and a
         isFirstDomain={currentDomain === "medical"}
         isLastDomain={currentDomain === "housing"}
       />
+    </div>
+  );
+}
+
+// --- Parent Info Form (pre-questionnaire) ---
+
+function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [state, setState] = useState("");
+
+  const canContinue = name.trim().length > 0 && age.trim().length > 0;
+
+  const handleSubmit = () => {
+    if (!canContinue) return;
+
+    saveParentProfile({
+      name: name.trim(),
+      age: parseInt(age, 10) || undefined,
+      state: state.trim() || undefined,
+    });
+
+    console.log("👤 Parent profile created from questionnaire:", name.trim(), age);
+    onComplete();
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+      {/* Header */}
+      <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-10 pb-8 overflow-hidden">
+        <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
+        <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
+
+        <div className="relative">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-sans mb-6 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+
+          <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mb-3 leading-tight">
+            First, tell us about your parent
+          </h1>
+          <p className="font-sans text-[14px] text-white/80 leading-relaxed">
+            This helps us personalize the assessment and your action plan.
+          </p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="flex-1 px-5 py-8">
+        <div className="space-y-5">
+          {/* Name */}
+          <div>
+            <label className="block font-sans text-sm font-semibold text-slate mb-2">
+              Parent&apos;s first name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Mary"
+              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
+              autoFocus
+            />
+          </div>
+
+          {/* Age */}
+          <div>
+            <label className="block font-sans text-sm font-semibold text-slate mb-2">
+              Age
+            </label>
+            <input
+              type="number"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="e.g. 82"
+              min="50"
+              max="120"
+              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
+            />
+          </div>
+
+          {/* State (optional) */}
+          <div>
+            <label className="block font-sans text-sm font-semibold text-slate mb-1">
+              State
+            </label>
+            <div className="font-sans text-xs text-slateMid mb-2">
+              Optional — helps with state-specific programs
+            </div>
+            <input
+              type="text"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              placeholder="e.g. California"
+              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Continue button */}
+        <button
+          onClick={handleSubmit}
+          disabled={!canContinue}
+          className={`w-full mt-8 rounded-xl px-6 py-4 font-sans text-base font-semibold transition-colors ${
+            canContinue
+              ? "bg-ocean text-white hover:bg-oceanMid"
+              : "bg-sandDark text-slateLight cursor-not-allowed"
+          }`}
+        >
+          Start Assessment
+        </button>
+
+        <div className="mt-4 text-center">
+          <div className="font-sans text-xs text-slateMid">
+            We never share your information. It stays in your account.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
