@@ -27,6 +27,7 @@
   - **Revenue model**: This is the premium/subscription tier. Free = assess your parent's crisis. Paid = maintain your own care vault long-term. Parent crisis is acquisition; self-prep is retention/monetization.
   - **Architecture**: Third onramp on `/get-started`. Same dashboard, task system, information hub. Difference is framing + no crisis mode + user=subject.
   - **Key advantage**: Decades-long retention vs. episodic parent care engagement
+  - **Upsell opportunity**: This is a natural upsell point — user is already engaged, emotionally primed by their parent's experience, and the value prop is immediately obvious. Could be the conversion trigger for a paid tier.
   - **Timing**: Nail parent-care PMF first. Seed with a CTA on dashboard after parent setup is complete. Build as v2.
 
 ## Lower Priority
