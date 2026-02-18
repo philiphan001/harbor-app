@@ -17,6 +17,18 @@
 - [ ] **Family sharing** — Invite family members to view/edit the care dashboard (shared Supabase access)
 - [ ] **Crisis mode quick-access card** — One-tap "I'm in the ER" that surfaces everything a provider needs (meds, conditions, insurance, proxy)
 
+## Future Segment: "Prepare for Your Future" (Self-Preparation)
+
+- [ ] **Third pathway: "Prepare My Own Harbor"** — Same 4 domains, but user IS the subject. Pronouns flip: "your doctor" not "your parent's doctor." No crisis mode — pure readiness + information vault.
+  - **Acquisition funnel**: Users who complete parent care naturally realize "my kids would have no idea where my stuff is either." The aha moment is organic — don't need to sell it.
+  - **Trigger points**:
+    - Crisis mode users: after stabilizing parent, surface "Don't put your kids through this — prepare your own Harbor"
+    - Readiness mode users: after completing parent assessment, the shift to self-preparation is obvious
+  - **Revenue model**: This is the premium/subscription tier. Free = assess your parent's crisis. Paid = maintain your own care vault long-term. Parent crisis is acquisition; self-prep is retention/monetization.
+  - **Architecture**: Third onramp on `/get-started`. Same dashboard, task system, information hub. Difference is framing + no crisis mode + user=subject.
+  - **Key advantage**: Decades-long retention vs. episodic parent care engagement
+  - **Timing**: Nail parent-care PMF first. Seed with a CTA on dashboard after parent setup is complete. Build as v2.
+
 ## Lower Priority
 
 - [ ] **Conversation export** — Download or share conversation transcripts
