@@ -3,21 +3,48 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
-import { getTasks, removeTask } from "@/lib/utils/taskStorage";
+import { getTasks, completeTask, getCompletedTasks } from "@/lib/utils/taskStorage";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import TaskDetail from "@/components/TaskDetail";
 import { DOMAIN_COLORS, DOMAIN_ICONS, type ExtendedDomain } from "@/lib/constants/domains";
 
+type CategoryKey = "high" | "medium" | "low";
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<CategoryKey, boolean>>({
+    high: true,
+    medium: false,
+    low: false,
+  });
+
+  const loadTasks = () => {
+    const storedTasks = getTasks();
+    const completed = getCompletedTasks();
+    setTasks(storedTasks);
+    setCompletedTasks(completed);
+    // Auto-expand first non-empty category
+    const hasHigh = storedTasks.some(t => t.priority === "high");
+    const hasMedium = storedTasks.some(t => t.priority === "medium");
+    const hasLow = storedTasks.some(t => t.priority === "low");
+    setExpandedCategories({
+      high: hasHigh,
+      medium: !hasHigh && hasMedium,
+      low: !hasHigh && !hasMedium && hasLow,
+    });
+  };
 
   useEffect(() => {
-    // Load tasks from localStorage
-    const storedTasks = getTasks();
-    setTasks(storedTasks);
+    loadTasks();
   }, []);
+
+  const toggleCategory = (key: CategoryKey) => {
+    setExpandedCategories(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -25,11 +52,9 @@ export default function TasksPage() {
 
   const handleMarkComplete = () => {
     if (selectedTask) {
-      // Remove from state
-      setTasks((prev) => prev.filter((t) => t.title !== selectedTask.title));
-      // Remove from localStorage
-      removeTask(selectedTask.title);
+      completeTask(selectedTask.title);
       setSelectedTask(null);
+      loadTasks();
     }
   };
 
@@ -161,92 +186,186 @@ export default function TasksPage() {
               </div>
             )}
 
-            {/* Urgent Tasks */}
+            {/* Collapsible Task Categories */}
             {highPriorityTasks.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-coral rounded-full" />
-                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                      🎯 Start Here — Next 24-48 Hours
-                    </div>
-                  </div>
-                  <div className="font-sans text-xs font-semibold text-coral">
-                    {highPriorityTasks.length}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {highPriorityTasks.map((task, index) => (
-                    <TaskCard
-                      key={index}
-                      task={task}
-                      domainColor={domainColors[task.domain]}
-                      onClick={() => handleTaskClick(task)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <TaskCategory
+                label="Start Here — Next 24-48 Hours"
+                icon="🎯"
+                dotColor="bg-coral"
+                countColor="text-coral"
+                tasks={highPriorityTasks}
+                isExpanded={expandedCategories.high}
+                onToggle={() => toggleCategory("high")}
+                domainColors={domainColors}
+                onTaskClick={handleTaskClick}
+              />
             )}
 
-            {/* Medium Priority Tasks */}
             {mediumPriorityTasks.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-amber rounded-full" />
-                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                      📋 Important — This Week When You Can
-                    </div>
-                  </div>
-                  <div className="font-sans text-xs font-semibold text-amber">
-                    {mediumPriorityTasks.length}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {mediumPriorityTasks.map((task, index) => (
-                    <TaskCard
-                      key={index}
-                      task={task}
-                      domainColor={domainColors[task.domain]}
-                      onClick={() => handleTaskClick(task)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <TaskCategory
+                label="Important — This Week When You Can"
+                icon="📋"
+                dotColor="bg-amber"
+                countColor="text-amber"
+                tasks={mediumPriorityTasks}
+                isExpanded={expandedCategories.medium}
+                onToggle={() => toggleCategory("medium")}
+                domainColors={domainColors}
+                onTaskClick={handleTaskClick}
+              />
             )}
 
-            {/* Low Priority Tasks */}
             {lowPriorityTasks.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-sage rounded-full" />
-                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
-                      📌 When Things Settle — Next 2-4 Weeks
-                    </div>
-                  </div>
-                  <div className="font-sans text-xs font-semibold text-sage">
-                    {lowPriorityTasks.length}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {lowPriorityTasks.map((task, index) => (
-                    <TaskCard
-                      key={index}
-                      task={task}
-                      domainColor={domainColors[task.domain]}
-                      onClick={() => handleTaskClick(task)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <TaskCategory
+                label="When Things Settle — Next 2-4 Weeks"
+                icon="📌"
+                dotColor="bg-sage"
+                countColor="text-sage"
+                tasks={lowPriorityTasks}
+                isExpanded={expandedCategories.low}
+                onToggle={() => toggleCategory("low")}
+                domainColors={domainColors}
+                onTaskClick={handleTaskClick}
+              />
             )}
           </>
+        )}
+
+        {/* Completed Tasks */}
+        {completedTasks.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowCompleted(!showCompleted)}
+              className="w-full flex items-center justify-between mb-3 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-sage rounded-full" />
+                <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
+                  Completed
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="font-sans text-xs font-semibold text-sage">
+                  {completedTasks.length}
+                </div>
+                <svg
+                  className={`w-4 h-4 text-slateMid transition-transform duration-200 ${showCompleted ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            {showCompleted ? (
+              <div className="space-y-2">
+                {completedTasks.map((task, index) => (
+                  <div
+                    key={index}
+                    className="bg-white/60 rounded-xl border border-sandDark px-4 py-3 opacity-70"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 bg-sage rounded-full flex items-center justify-center shrink-0">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-sans text-sm text-slateMid line-through">{task.title}</div>
+                        {task.completedAt && (
+                          <div className="font-sans text-[11px] text-slateLight">
+                            Completed {new Date(task.completedAt).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-sage/10 rounded-lg px-4 py-2.5 cursor-pointer" onClick={() => setShowCompleted(true)}>
+                <div className="font-sans text-xs text-slateMid">
+                  {completedTasks.length} completed — tap to view
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Bottom Padding */}
         <div className="h-8" />
       </div>
+    </div>
+  );
+}
+
+function TaskCategory({
+  label,
+  icon,
+  dotColor,
+  countColor,
+  tasks,
+  isExpanded,
+  onToggle,
+  domainColors,
+  onTaskClick,
+}: {
+  label: string;
+  icon: string;
+  dotColor: string;
+  countColor: string;
+  tasks: Task[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  domainColors: Record<string, string>;
+  onTaskClick: (task: Task) => void;
+}) {
+  return (
+    <div className="mb-5">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between mb-3 group cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide">
+            {icon} {label}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`font-sans text-xs font-semibold ${countColor}`}>
+            {tasks.length}
+          </div>
+          <svg
+            className={`w-4 h-4 text-slateMid transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="space-y-3">
+          {tasks.map((task, index) => (
+            <TaskCard
+              key={index}
+              task={task}
+              domainColor={domainColors[task.domain]}
+              onClick={() => onTaskClick(task)}
+            />
+          ))}
+        </div>
+      )}
+      {!isExpanded && (
+        <div className="bg-sand/40 rounded-lg px-4 py-2.5 cursor-pointer" onClick={onToggle}>
+          <div className="font-sans text-xs text-slateMid">
+            {tasks.length} {tasks.length === 1 ? "item" : "items"} — tap to expand
+          </div>
+        </div>
+      )}
     </div>
   );
 }

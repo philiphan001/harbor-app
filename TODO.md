@@ -2,6 +2,13 @@
 
 ## High Priority
 
+- [ ] **Task completion flow** — When marking a task as done, capture what was accomplished (e.g., "Added Dr. Chen's info" should update the Information Hub). Tasks should allow uploading documents/photos inline. Completing tasks should feed back into the care summary.
+- [ ] **Steady-state dashboard** — Dashboard should be the care command center from day one, not gated by progress. Evolves as it fills in:
+  - Care Summary Card: one-glance view (parent, PCP, insurance, meds, POA status)
+  - Domain status tiles: Medical/Legal/Financial/Housing with green/amber/red status, tappable for detail
+  - Freshness indicators: "Last updated 3 weeks ago" with nudges to review stale info
+  - Briefing feed: AI-generated personalized updates (Medicare changes, state-specific Medicaid rules, relevant news based on parent's conditions/state/insurance)
+  - Quick actions: "Share with ER", "Update medications", "Report a new event"
 - [ ] **Export / Share from Dashboard** — Quick way to email, print, or share information with providers. Use cases:
   - ER visit: email medication list + conditions + insurance info to admitting doctor
   - New specialist: print or share a care summary
@@ -10,7 +17,6 @@
 
 ## Medium Priority
 
-- [ ] **Task completion flow** — When marking a task as done, capture what was accomplished (e.g., "Added Dr. Chen's info" should update the Information Hub)
 - [ ] **Readiness score recalculation** — After completing tasks, readiness score should update automatically
 - [ ] **Push notifications / reminders** — Nudge users to complete urgent tasks or update stale information
 - [ ] **Document OCR / extraction** — When user uploads insurance card or medication list photo, auto-extract structured data

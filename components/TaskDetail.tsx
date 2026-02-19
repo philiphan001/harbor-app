@@ -4,8 +4,12 @@ import { useState, useEffect } from "react";
 import { Task } from "@/lib/ai/claude";
 import { saveTaskData } from "@/lib/utils/taskData";
 import { DOMAIN_COLORS, PRIORITY_LABELS } from "@/lib/constants/domains";
+import { getActiveParentId } from "@/lib/utils/parentProfile";
 import TaskChat from "@/components/task/TaskChat";
 import TaskForm from "@/components/task/TaskForm";
+import ExtractionReview from "@/components/ExtractionReview";
+import { saveExtractionAsTaskData } from "@/lib/utils/extractionToTaskData";
+import type { ExtractionResult, ExtractedData } from "@/lib/ingestion/types";
 import type { HealthcareProxyOption } from "@/lib/types/taskCapture";
 
 interface TaskDetailProps {
@@ -28,7 +32,10 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
     detailedOptions?: HealthcareProxyOption[];
   } | null>(null);
   const [showDataCapture, setShowDataCapture] = useState(false);
-  const [captureMode, setCaptureMode] = useState<"chat" | "form" | null>(null);
+  const [captureMode, setCaptureMode] = useState<"chat" | "form" | "upload" | null>(null);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "reviewing" | "done" | "error">("idle");
+  const [uploadResult, setUploadResult] = useState<string | null>(null);
+  const [uploadExtraction, setUploadExtraction] = useState<{ uploadId: string; fileName: string; extraction: ExtractionResult } | null>(null);
 
   const domainColors = DOMAIN_COLORS;
   const priorityLabels = PRIORITY_LABELS;
@@ -335,6 +342,16 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                 <span className="text-lg">✍️</span>
                 Type It In
               </button>
+              <button
+                onClick={() => {
+                  setShowDataCapture(true);
+                  setCaptureMode("upload");
+                }}
+                className="w-full bg-white hover:bg-sand border border-sandDark text-slate rounded-xl px-4 py-3 font-sans text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">📎</span>
+                Upload Photo / Document
+              </button>
             </div>
             <button
               onClick={onMarkComplete}
@@ -367,7 +384,11 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                 task={task}
                 onComplete={(data) => {
                   console.log("Captured data:", data);
-                  if (data?.notes) {
+                  if ("toolName" in data && data.toolName) {
+                    // Structured data from smart form
+                    saveTaskData(task.title, data.toolName, data.data);
+                  } else if ("notes" in data && data.notes) {
+                    // Plain notes fallback
                     saveTaskData(task.title, "manual_notes", data);
                   }
                   onMarkComplete();
@@ -377,6 +398,168 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                   setCaptureMode(null);
                 }}
               />
+            )}
+            {captureMode === "upload" && (
+              <div className="space-y-3">
+                <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-2">
+                  Upload Document or Photo
+                </div>
+
+                {uploadState === "idle" && (
+                  <>
+                    <label className="block w-full cursor-pointer">
+                      <div className="w-full border-2 border-dashed border-ocean/40 rounded-xl px-5 py-8 text-center hover:border-ocean transition-colors">
+                        <div className="text-3xl mb-2">📷</div>
+                        <div className="font-sans text-sm font-semibold text-ocean mb-1">
+                          Tap to choose a file
+                        </div>
+                        <div className="font-sans text-xs text-slateMid">
+                          Insurance card, medication list, legal document, etc.
+                        </div>
+                        <div className="font-sans text-[11px] text-slateLight mt-1">
+                          JPEG, PNG, WebP, HEIC, PDF — up to 10MB
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+
+                          const parentId = getActiveParentId();
+                          if (!parentId) {
+                            setUploadState("error");
+                            setUploadResult("No parent profile found. Please set up a profile first.");
+                            return;
+                          }
+
+                          setUploadState("uploading");
+                          try {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            formData.append("parentId", parentId);
+
+                            const response = await fetch("/api/upload", {
+                              method: "POST",
+                              body: formData,
+                            });
+
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                              setUploadState("error");
+                              setUploadResult(result.error || "Upload failed");
+                              return;
+                            }
+
+                            if (result.extraction?.data) {
+                              // Show review step before saving
+                              setUploadExtraction({
+                                uploadId: result.uploadId || "inline",
+                                fileName: file.name,
+                                extraction: result.extraction,
+                              });
+                              setUploadState("reviewing");
+                            } else {
+                              // No extraction data — save as generic note
+                              saveTaskData(task.title, "manual_notes", { notes: `Uploaded: ${file.name}` });
+                              setUploadState("done");
+                              setUploadResult(`${file.name} uploaded`);
+                              setTimeout(() => onMarkComplete(), 1500);
+                            }
+                          } catch (err) {
+                            console.error("Upload error:", err);
+                            setUploadState("error");
+                            setUploadResult("Upload failed. Please try again.");
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => {
+                        setShowDataCapture(false);
+                        setCaptureMode(null);
+                      }}
+                      className="w-full mt-2 text-slateMid hover:text-slate font-sans text-sm font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+
+                {uploadState === "uploading" && (
+                  <div className="text-center py-8">
+                    <div className="inline-block w-8 h-8 border-2 border-ocean border-t-transparent rounded-full animate-spin mb-3" />
+                    <div className="font-sans text-sm text-slate font-medium">
+                      Uploading and extracting data...
+                    </div>
+                    <div className="font-sans text-xs text-slateMid mt-1">
+                      This may take a moment
+                    </div>
+                  </div>
+                )}
+
+                {uploadState === "reviewing" && uploadExtraction && (
+                  <ExtractionReview
+                    uploadId={uploadExtraction.uploadId}
+                    fileName={uploadExtraction.fileName}
+                    extraction={uploadExtraction.extraction}
+                    parentId={getActiveParentId() || "default"}
+                    onConfirm={(confirmedData: ExtractedData) => {
+                      // Save raw extraction
+                      saveTaskData(
+                        task.title,
+                        `upload_${uploadExtraction.extraction.documentType}`,
+                        confirmedData
+                      );
+                      // Normalize into care-summary-compatible entries
+                      saveExtractionAsTaskData(confirmedData, uploadExtraction.fileName);
+
+                      setUploadState("done");
+                      setUploadResult(`${uploadExtraction.fileName} saved`);
+                      setUploadExtraction(null);
+                      setTimeout(() => onMarkComplete(), 1500);
+                    }}
+                    onReject={() => {
+                      setUploadState("idle");
+                      setUploadExtraction(null);
+                    }}
+                  />
+                )}
+
+                {uploadState === "done" && (
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-sage rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="font-sans text-sm font-semibold text-sage">
+                      {uploadResult}
+                    </div>
+                  </div>
+                )}
+
+                {uploadState === "error" && (
+                  <div className="text-center py-6">
+                    <div className="text-3xl mb-2">❌</div>
+                    <div className="font-sans text-sm text-coral font-medium mb-3">
+                      {uploadResult}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUploadState("idle");
+                        setUploadResult(null);
+                      }}
+                      className="font-sans text-sm text-ocean font-medium hover:underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

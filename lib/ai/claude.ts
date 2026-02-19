@@ -19,6 +19,7 @@ export interface Task {
   domain: ExtendedDomain;
   why: string;
   suggestedActions: string[];
+  completedAt?: string; // ISO timestamp when marked complete
 }
 
 // Parent profile information extraction

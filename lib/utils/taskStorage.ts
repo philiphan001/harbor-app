@@ -75,15 +75,34 @@ export function getAllTasks(): TaskWithParent[] {
   }
 }
 
-// Get tasks for active parent only
+// Get tasks for active parent only (pending by default)
 // Also includes orphaned tasks (no parentId) so tasks created before
 // a parent profile exists are still visible.
-export function getTasks(): Task[] {
+export function getTasks(includeCompleted = false): Task[] {
   const activeParentId = getActiveParentId();
-  if (!activeParentId) return getAllTasks();
+  let tasks: TaskWithParent[];
 
+  if (!activeParentId) {
+    tasks = getAllTasks();
+  } else {
+    tasks = getAllTasks().filter((t) => t.parentId === activeParentId || !t.parentId);
+  }
+
+  if (!includeCompleted) {
+    tasks = tasks.filter((t) => !t.completedAt);
+  }
+
+  return tasks;
+}
+
+// Get only completed tasks for active parent
+export function getCompletedTasks(): Task[] {
+  const activeParentId = getActiveParentId();
   const allTasks = getAllTasks();
-  return allTasks.filter((t) => t.parentId === activeParentId || !t.parentId);
+
+  return allTasks.filter(
+    (t) => t.completedAt && (t.parentId === activeParentId || !t.parentId)
+  );
 }
 
 // Get tasks for a specific parent
@@ -128,6 +147,22 @@ export function addTasks(newTasks: Task[]): void {
 
   // Write-through to Supabase
   if (activeParentId) syncTasksToDb(activeParentId, newTasks);
+}
+
+// Mark a task as completed (keeps it in storage with completedAt timestamp)
+export function completeTask(taskTitle: string): void {
+  const activeParentId = getActiveParentId();
+  const allTasks = getAllTasks();
+  const updated = allTasks.map((t) => {
+    if (t.title === taskTitle && (t.parentId === activeParentId || !t.parentId)) {
+      return { ...t, completedAt: new Date().toISOString() };
+    }
+    return t;
+  });
+  saveTasks(updated);
+
+  // Write-through to Supabase
+  if (activeParentId) syncTasksToDb(activeParentId, updated.filter((t) => t.parentId === activeParentId));
 }
 
 // Remove a task (from active parent's tasks)

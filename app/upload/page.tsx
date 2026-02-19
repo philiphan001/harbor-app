@@ -7,6 +7,7 @@ import ExtractionReview from "@/components/ExtractionReview";
 import { type ExtractionResult, type ExtractedData } from "@/lib/ingestion/types";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { saveTaskData } from "@/lib/utils/taskData";
+import { saveExtractionAsTaskData } from "@/lib/utils/extractionToTaskData";
 
 interface CompletedUpload {
   uploadId: string;
@@ -37,26 +38,17 @@ export default function UploadPage() {
   const handleConfirm = (confirmedData: ExtractedData) => {
     if (!currentUpload) return;
 
-    // Save to localStorage (same system as task data capture)
-    const domainMap: Record<string, string> = {
-      insurance_card: "financial",
-      medication: "medical",
-      doctor_card: "medical",
-      discharge_summary: "medical",
-      legal_document: "legal",
-      bill_statement: "financial",
-      lab_results: "medical",
-      other: "other",
-    };
-
-    const domain = domainMap[currentUpload.extraction.documentType] || "other";
+    // Save raw extraction under upload_ toolName (for documents list)
     const toolName = `upload_${currentUpload.extraction.documentType}`;
-
     saveTaskData(
       `Uploaded: ${currentUpload.fileName}`,
       toolName,
       confirmedData
     );
+
+    // Also normalize into care-summary-compatible task data entries
+    // (save_doctor_info, save_insurance_info, save_medication_list, etc.)
+    saveExtractionAsTaskData(confirmedData, currentUpload.fileName);
 
     setConfirmedUploads((prev) => [
       ...prev,

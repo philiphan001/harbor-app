@@ -1,5 +1,7 @@
 // PDF extraction pipeline
-// Extracts text from PDFs and sends to Claude for structuring
+// Extracts text from PDFs and sends to Claude for structuring.
+// For scanned PDFs (no selectable text), renders pages to images
+// and sends to Claude Vision for OCR + extraction.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicApiKey } from "@/lib/utils/env";
@@ -10,6 +12,7 @@ import {
   DOCUMENT_EXTRACTION_SYSTEM,
   getExtractionPrompt,
 } from "./prompts";
+import { extractFromMultipleImages } from "./imageExtractor";
 
 const log = createLogger("PdfExtractor");
 
@@ -20,13 +23,16 @@ const anthropic = new Anthropic({
 /** Maximum text length to send to Claude (avoid token limits) */
 const MAX_TEXT_LENGTH = 30_000;
 
+/** Maximum pages to render for scanned PDF OCR */
+const MAX_OCR_PAGES = 5;
+
 /**
  * Extract structured data from a PDF document.
  *
  * Strategy:
  * 1. Parse PDF to extract text
  * 2. If text is found, send to Claude for structuring
- * 3. If no text (scanned PDF), fall back to page-as-image extraction
+ * 3. If no text (scanned PDF), render pages to images and use Claude Vision
  *
  * @param pdfBuffer - Raw PDF file as a Buffer
  * @param documentType - Optional hint for document type
@@ -59,10 +65,74 @@ export async function extractFromPdf(
       return await structureTextWithClaude(extractedText, documentType, pageCount);
     }
 
-    // Step 3: Scanned PDF (no text) — this is a limitation for now.
-    // Full solution would convert pages to images and use Claude Vision.
-    // For MVP, return a helpful error.
-    log.warn("Scanned PDF detected (no extractable text)", { pages: pageCount });
+    // Step 3: Scanned PDF — render pages to images and use Claude Vision
+    log.info("Scanned PDF detected, rendering pages to images for OCR", { pages: pageCount });
+
+    return await extractScannedPdfViaVision(pdfBuffer, documentType);
+  } catch (error) {
+    log.errorWithStack("PDF extraction failed", error);
+    throw error;
+  }
+}
+
+/**
+ * Render scanned PDF pages to images and send to Claude Vision for extraction.
+ */
+async function extractScannedPdfViaVision(
+  pdfBuffer: Buffer,
+  documentType?: DocumentType
+): Promise<ExtractionResult> {
+  try {
+    // Dynamic import to avoid bundling issues
+    const { pdf } = await import("pdf-to-img");
+
+    const doc = await pdf(pdfBuffer, { scale: 2 }); // 2x scale for better OCR
+    const pagesToRender = Math.min(doc.length, MAX_OCR_PAGES);
+
+    log.info("Rendering PDF pages to images", {
+      totalPages: doc.length,
+      rendering: pagesToRender,
+    });
+
+    const images: Array<{ base64: string; mediaType: "image/png" }> = [];
+
+    let pageNum = 0;
+    for await (const pageBuffer of doc) {
+      if (pageNum >= pagesToRender) break;
+
+      images.push({
+        base64: pageBuffer.toString("base64"),
+        mediaType: "image/png",
+      });
+      pageNum++;
+    }
+
+    if (images.length === 0) {
+      log.warn("No pages rendered from scanned PDF");
+      return {
+        documentType: documentType || "other",
+        confidence: 0,
+        data: {
+          type: "other",
+          title: "Empty PDF",
+          summary: "Could not extract any content from this PDF.",
+          keyFacts: [],
+          actionItems: ["Try uploading individual pages as photos"],
+        },
+      };
+    }
+
+    log.info("Sending rendered PDF pages to Claude Vision", {
+      pageCount: images.length,
+    });
+
+    // Use the existing multi-image extraction pipeline
+    return await extractFromMultipleImages(images, documentType);
+  } catch (importError) {
+    // If pdf-to-img fails (e.g., on Vercel), fall back to helpful message
+    log.warn("PDF-to-image rendering failed, falling back to user guidance", {
+      error: importError instanceof Error ? importError.message : String(importError),
+    });
 
     return {
       documentType: documentType || "other",
@@ -71,8 +141,8 @@ export async function extractFromPdf(
         type: "other",
         title: "Scanned PDF",
         summary:
-          "This PDF appears to be a scanned document without selectable text. " +
-          "Please take a photo of the pages instead for better extraction.",
+          "This PDF appears to be a scanned document. " +
+          "For best results, please take a photo of each page and upload as images.",
         keyFacts: [],
         actionItems: [
           "Take a photo of each page and upload as images",
@@ -80,9 +150,6 @@ export async function extractFromPdf(
         ],
       },
     };
-  } catch (error) {
-    log.errorWithStack("PDF extraction failed", error);
-    throw error;
   }
 }
 
