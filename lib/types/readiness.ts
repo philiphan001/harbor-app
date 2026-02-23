@@ -335,6 +335,54 @@ const housingQuestions: Question[] = [
   },
 ];
 
+// Transportation Domain Questions
+const transportationQuestions: Question[] = [
+  {
+    id: "trans-1",
+    text: "Can your parent get to a doctor's appointment on their own?",
+    subtext: "Missed appointments are one of the top reasons health declines accelerate.",
+    options: ["Yes, they drive themselves", "Yes, with public transit or ride service", "Only if someone takes them", "No, they're homebound"],
+    allowUncertainty: true,
+  },
+  {
+    id: "trans-2",
+    text: "If your parent had a non-emergency medical appointment tomorrow, how would they get there?",
+    subtext: "Reliable transportation to medical care is a basic need that often breaks down gradually.",
+    options: ["They'd drive", "Family member would take them", "They'd use a ride service (Uber, Lyft, etc.)", "They'd use a medical transport service", "I'm not sure"],
+    allowUncertainty: true,
+  },
+  {
+    id: "trans-3",
+    text: "Is your parent still driving — and should they be?",
+    subtext: "This is one of the hardest conversations. But unsafe driving puts everyone at risk.",
+    options: ["Yes, driving safely", "Driving but I have concerns", "Voluntarily stopped driving", "License revoked / shouldn't drive", "Not applicable"],
+    allowUncertainty: true,
+  },
+  {
+    id: "trans-4",
+    text: "Does your parent have access to grocery delivery, pharmacy delivery, or errand help?",
+    subtext: "When someone can't drive, basic errands become a major challenge.",
+    options: ["Yes, reliable delivery/errand services", "Some services but not consistent", "No, they depend on others for errands"],
+    allowUncertainty: true,
+  },
+  {
+    id: "trans-5",
+    text: "Do you know about transportation assistance programs available in your parent's area?",
+    subtext: "Many communities offer free or subsidized rides for seniors — most families don't know about them.",
+    options: ["Yes, we use them", "I know they exist but haven't set them up", "No, I haven't looked into this"],
+    allowUncertainty: true,
+    followUp: {
+      triggerOptions: ["Yes, we use them"],
+      prompt: "Note the services you use so they're in your care record.",
+      fields: [
+        { key: "transportService", label: "Service name(s)", placeholder: "e.g. GoGoGrandparent, county senior shuttle, Medicaid transport" },
+        { key: "transportPhone", label: "Phone to schedule rides", placeholder: "e.g. (555) 123-4567", type: "tel" },
+      ],
+      skippable: true,
+    },
+  },
+];
+
 export const DOMAIN_QUESTIONS: DomainQuestions[] = [
   {
     domain: "medical",
@@ -359,6 +407,12 @@ export const DOMAIN_QUESTIONS: DomainQuestions[] = [
     title: "Housing Readiness",
     description: "Is your parent's living situation safe and sustainable? Let's evaluate and plan ahead.",
     questions: housingQuestions,
+  },
+  {
+    domain: "transportation",
+    title: "Transportation Readiness",
+    description: "Can your parent get where they need to go — doctors, groceries, pharmacy? Let's check.",
+    questions: transportationQuestions,
   },
 ];
 

@@ -11,6 +11,7 @@ export interface ReadinessBreakdown {
     legal: number;
     financial: number;
     housing: number;
+    transportation: number;
   };
   criticalGaps: string[];
   completedCount: number;
@@ -31,7 +32,7 @@ export function calculateReadinessScore(): ReadinessBreakdown {
   if (!profile) {
     return {
       overall: 0,
-      domains: { medical: 0, legal: 0, financial: 0, housing: 0 },
+      domains: { medical: 0, legal: 0, financial: 0, housing: 0, transportation: 0 },
       criticalGaps: ["No parent profile created"],
       completedCount: 0,
       pendingCount: 0,
@@ -106,15 +107,26 @@ export function calculateReadinessScore(): ReadinessBreakdown {
   if (hasTaskNoteFor("emergency contact") || hasCompletedTask("emergency contact")) housingScore += 25;
   else criticalGaps.push("Emergency contact besides you");
 
+  // Transportation domain (0-100)
+  let transportationScore = 0;
+
+  if (hasTaskNoteFor("transport") || hasTaskNoteFor("ride") || hasTaskNoteFor("driving") || hasCompletedTask("transport") || hasCompletedTask("ride") || hasCompletedTask("driving")) transportationScore += 35;
+
+  if (hasTaskNoteFor("delivery") || hasTaskNoteFor("grocery") || hasCompletedTask("delivery") || hasCompletedTask("grocery")) transportationScore += 30;
+
+  if (hasTaskNoteFor("senior shuttle") || hasTaskNoteFor("medical transport") || hasCompletedTask("senior shuttle") || hasCompletedTask("medical transport")) transportationScore += 35;
+  else if (!hasTaskNoteFor("transport") && !hasCompletedTask("transport")) criticalGaps.push("Transportation plan for appointments");
+
   // Cap domain scores at 100
   medicalScore = Math.min(medicalScore, 100);
   legalScore = Math.min(legalScore, 100);
   financialScore = Math.min(financialScore, 100);
   housingScore = Math.min(housingScore, 100);
+  transportationScore = Math.min(transportationScore, 100);
 
   // Calculate overall score (weighted average)
   const overall = Math.round(
-    (medicalScore * 0.3 + legalScore * 0.3 + financialScore * 0.25 + housingScore * 0.15)
+    (medicalScore * 0.25 + legalScore * 0.25 + financialScore * 0.2 + housingScore * 0.15 + transportationScore * 0.15)
   );
 
   // Determine status
@@ -131,6 +143,7 @@ export function calculateReadinessScore(): ReadinessBreakdown {
       legal: legalScore,
       financial: financialScore,
       housing: housingScore,
+      transportation: transportationScore,
     },
     criticalGaps: criticalGaps.slice(0, 5), // Top 5 gaps
     completedCount: completedTasks.length,

@@ -187,6 +187,7 @@ function getDomainInfo(domain: string): { icon: string; label: string; color: st
     legal: { icon: "⚖️", label: "Legal", color: "sage" },
     financial: { icon: "💰", label: "Financial", color: "ocean" },
     housing: { icon: "🏠", label: "Housing", color: "amber" },
+    transportation: { icon: "🚗", label: "Transportation", color: "purple-500" },
   };
   return map[domain] || { icon: "📋", label: domain, color: "ocean" };
 }

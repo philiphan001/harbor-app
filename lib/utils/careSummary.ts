@@ -32,7 +32,7 @@ export interface CareSummaryData {
 }
 
 export interface DomainStatus {
-  domain: "medical" | "legal" | "financial" | "housing";
+  domain: "medical" | "legal" | "financial" | "housing" | "transportation";
   label: string;
   icon: string;
   status: "good" | "partial" | "missing";
@@ -203,6 +203,22 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
     status: (profile?.livingArrangement || housingNotes.length > 0) ? (housingNotes.length >= 1 && profile?.livingArrangement ? "good" : "partial") : "missing",
     summary: profile?.livingArrangement ? "Living situation known" : housingNotes.length > 0 ? "Some info captured" : "Not started",
     items: housingItems,
+  });
+
+  // Transportation
+  const transportNotes = taskData.filter(d =>
+    (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
+    (d.taskTitle.toLowerCase().includes("transport") || d.taskTitle.toLowerCase().includes("ride") || d.taskTitle.toLowerCase().includes("driving") || d.taskTitle.toLowerCase().includes("delivery"))
+  );
+  const transportItems = transportNotes.map(d => d.taskTitle);
+
+  statuses.push({
+    domain: "transportation",
+    label: "Transportation",
+    icon: "🚗",
+    status: transportNotes.length >= 2 ? "good" : transportNotes.length >= 1 ? "partial" : "missing",
+    summary: transportNotes.length >= 2 ? "Transport plan captured" : transportNotes.length >= 1 ? "Some info captured" : "Not started",
+    items: transportItems,
   });
 
   return statuses;

@@ -33,7 +33,7 @@ export default function DomainProgress({ currentDomain, completedDomains }: Doma
           Care Readiness Assessment
         </div>
         <div className="font-sans text-xs font-medium text-slate">
-          {completedCount}/4 domains
+          {completedCount}/{DOMAINS.length} domains
         </div>
       </div>
 

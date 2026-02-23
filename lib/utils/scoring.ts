@@ -200,6 +200,41 @@ function scoreAnswer(domain: Domain, questionId: string, selectedOption: string)
     }
   }
 
+  // Transportation domain scoring
+  if (domain === "transportation") {
+    if (questionId === "trans-1") {
+      if (selectedOption.includes("drive themselves")) return 10;
+      if (selectedOption.includes("public transit") || selectedOption.includes("ride service")) return 8;
+      if (selectedOption.includes("someone takes them")) return 4;
+      if (selectedOption.includes("homebound")) return 0;
+      return 5;
+    }
+    if (questionId === "trans-2") {
+      if (selectedOption.includes("drive")) return 10;
+      if (selectedOption.includes("Family member")) return 7;
+      if (selectedOption.includes("ride service")) return 7;
+      if (selectedOption.includes("medical transport")) return 8;
+      return 0;
+    }
+    if (questionId === "trans-3") {
+      if (selectedOption.includes("driving safely")) return 10;
+      if (selectedOption.includes("Voluntarily stopped")) return 7;
+      if (selectedOption.includes("concerns")) return 3;
+      if (selectedOption.includes("Not applicable")) return 7;
+      return 0;
+    }
+    if (questionId === "trans-4") {
+      if (selectedOption.includes("reliable")) return 10;
+      if (selectedOption.includes("not consistent")) return 5;
+      return 0;
+    }
+    if (questionId === "trans-5") {
+      if (selectedOption.includes("we use them")) return 10;
+      if (selectedOption.includes("haven't set them up")) return 4;
+      return 0;
+    }
+  }
+
   return 5; // Default middle score
 }
 
