@@ -393,7 +393,7 @@ TASK GENERATION RULES:
    - Create a MEDIUM priority task to find out
 
 4. PRIORITIZE REALISTICALLY:
-   - HIGH: Urgent legal/medical needs, safety concerns, things that could cause harm if missing in a crisis
+   - HIGH: Urgent legal/medical needs, insurance information (health insurance, Medicare, LTC), safety concerns, things that could cause harm if missing in a crisis
    - MEDIUM: Important gaps, uncertain items, key documents to locate
    - LOW: Data capture for info user has but hasn't recorded in Harbor yet
 
