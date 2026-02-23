@@ -3,16 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getParentProfile, getActiveParentId, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
-import { getAllTaskData, hydrateTaskDataFromDb, TaskData } from "@/lib/utils/taskData";
-import { getTasks, getCompletedTasks } from "@/lib/utils/taskStorage";
-import type { Task } from "@/lib/ai/claude";
-import { PRIORITY_COLORS, PRIORITY_LABELS, type ExtendedDomain } from "@/lib/constants/domains";
+import { getAllTaskData, hydrateTaskDataFromDb, saveTaskData, removeTaskData, TaskData } from "@/lib/utils/taskData";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
+
+const DOMAIN_STYLES: Record<string, { label: string; color: string }> = {
+  medical: { label: "Medical", color: "#D4725C" },
+  legal: { label: "Legal", color: "#6B8F71" },
+  financial: { label: "Financial", color: "#1B6B7D" },
+  other: { label: "Other", color: "#4A6274" },
+};
 
 export default function ProfilePage() {
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [taskData, setTaskData] = useState<TaskData[]>([]);
-  const [domainTasks, setDomainTasks] = useState<Record<string, Task[]>>({});
   const [editingLocation, setEditingLocation] = useState(false);
   const [cityInput, setCityInput] = useState("");
   const [zipInput, setZipInput] = useState("");
@@ -23,16 +26,6 @@ export default function ProfilePage() {
     setCityInput(profile?.city || "");
     setZipInput(profile?.zip || "");
     setTaskData(getAllTaskData());
-
-    // Group tasks (pending + completed) by domain
-    const allTasks = [...getTasks(), ...getCompletedTasks()];
-    const grouped = allTasks.reduce((acc, task) => {
-      const domain = mapTaskDomainToCoreDomain(task.domain);
-      if (!acc[domain]) acc[domain] = [];
-      acc[domain].push(task);
-      return acc;
-    }, {} as Record<string, Task[]>);
-    setDomainTasks(grouped);
 
     // Hydrate from DB if available (merges into localStorage, then re-read)
     const parentId = getActiveParentId();
@@ -51,13 +44,20 @@ export default function ProfilePage() {
     setEditingLocation(false);
   }, [cityInput, zipInput]);
 
-  // Group data by domain
-  const groupedData = taskData.reduce((acc, item) => {
-    const domain = getDomainFromToolName(item.toolName);
-    if (!acc[domain]) acc[domain] = [];
-    acc[domain].push(item);
-    return acc;
-  }, {} as Record<string, TaskData[]>);
+  const handleSave = useCallback((taskTitle: string, toolName: string, updatedData: TaskDataPayload) => {
+    saveTaskData(taskTitle, toolName, updatedData);
+    setTaskData(getAllTaskData());
+  }, []);
+
+  const handleDelete = useCallback((taskTitle: string) => {
+    removeTaskData(taskTitle);
+    setTaskData(getAllTaskData());
+  }, []);
+
+  // Sort chronologically, newest first
+  const sortedData = [...taskData].sort(
+    (a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime()
+  );
 
   return (
     <div className="min-h-screen bg-warmWhite">
@@ -71,7 +71,7 @@ export default function ProfilePage() {
             href="/dashboard"
             className="font-sans text-sm text-white/80 hover:text-white inline-block mb-4"
           >
-            ← Dashboard
+            &larr; Dashboard
           </Link>
 
           <div className="flex items-center gap-3 mb-2">
@@ -82,7 +82,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h1 className="font-serif text-3xl font-semibold text-white">
-                {parentProfile?.name || "Parent"}'s Profile
+                {parentProfile?.name || "Parent"}&apos;s Profile
               </h1>
               {parentProfile?.age && (
                 <p className="font-sans text-sm text-white/80">
@@ -142,8 +142,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
-        {taskData.length === 0 && Object.keys(domainTasks).length === 0 ? (
-          // Empty state — no captured data and no tasks
+        {sortedData.length === 0 ? (
           <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
             <div className="text-5xl mb-4">📋</div>
             <div className="font-serif text-xl font-semibold text-slate mb-2">
@@ -160,223 +159,51 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          <>
-            {/* Medical */}
-            <DomainSection
-              title="Medical"
-              icon="♥"
-              color="#D4725C"
-              capturedData={groupedData.medical}
-              tasks={[...(domainTasks.medical || []), ...(domainTasks.caregiving || [])]}
-            />
-
-            {/* Legal */}
-            <DomainSection
-              title="Legal"
-              icon="◉"
-              color="#6B8F71"
-              capturedData={groupedData.legal}
-              tasks={domainTasks.legal}
-            />
-
-            {/* Financial */}
-            <DomainSection
-              title="Financial"
-              icon="◈"
-              color="#1B6B7D"
-              capturedData={groupedData.financial}
-              tasks={domainTasks.financial}
-            />
-
-            {/* Housing */}
-            <DomainSection
-              title="Housing"
-              icon="⌂"
-              color="#C4943A"
-              capturedData={groupedData.housing}
-              tasks={domainTasks.housing}
-            />
-
-            {/* Transportation */}
-            <DomainSection
-              title="Transportation"
-              icon="✈"
-              color="#7B68A8"
-              capturedData={groupedData.transportation}
-              tasks={domainTasks.transportation}
-            />
-
-            {/* Social */}
-            <DomainSection
-              title="Social"
-              icon="♦"
-              color="#5B8FA8"
-              capturedData={groupedData.social}
-              tasks={[...(domainTasks.social || []), ...(domainTasks.family || [])]}
-            />
-
-            {/* General / Other */}
-            <DomainSection
-              title="Other"
-              icon="●"
-              color="#4A6274"
-              capturedData={groupedData.other}
-              tasks={domainTasks.general}
-            />
-          </>
+          <div className="space-y-3">
+            {sortedData.map((item, index) => (
+              <DataCard
+                key={`${item.taskTitle}-${index}`}
+                data={item}
+                onSave={handleSave}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function mapTaskDomainToCoreDomain(domain: ExtendedDomain): string {
-  if (domain === "family") return "social";
-  if (domain === "caregiving") return "medical";
-  return domain;
-}
-
-function DomainSection({
-  title,
-  icon,
-  color,
-  capturedData,
-  tasks,
+function DataCard({
+  data,
+  onSave,
+  onDelete,
 }: {
-  title: string;
-  icon: string;
-  color: string;
-  capturedData?: TaskData[];
-  tasks?: Task[];
+  data: TaskData;
+  onSave: (taskTitle: string, toolName: string, updatedData: TaskDataPayload) => void;
+  onDelete: (taskTitle: string) => void;
 }) {
-  const hasCaptured = capturedData && capturedData.length > 0;
-  const hasTasks = tasks && tasks.length > 0;
-
-  // Skip domains with nothing to show
-  if (!hasCaptured && !hasTasks) return null;
-
-  const pendingTasks = tasks?.filter(t => !t.completedAt) || [];
-  const completedTasks = tasks?.filter(t => t.completedAt) || [];
-
-  return (
-    <div style={{ marginBottom: "1.5rem" }}>
-      <div className="flex items-center gap-2 mb-3">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
-          style={{
-            backgroundColor: `${color}15`,
-            color: color,
-          }}
-        >
-          {icon}
-        </div>
-        <div className="font-sans text-lg font-semibold text-slate">{title}</div>
-      </div>
-
-      {/* Captured data */}
-      {hasCaptured && (
-        <div className="space-y-3">
-          {capturedData.map((item, index) => (
-            <DataCard key={index} data={item} color={color} />
-          ))}
-        </div>
-      )}
-
-      {/* Tasks */}
-      {hasTasks && (
-        <div style={{ marginTop: hasCaptured ? "0.75rem" : "0" }}>
-          {pendingTasks.length > 0 && (
-            <div>
-              <div className="font-sans text-[11px] font-semibold tracking-[1px] uppercase text-slateMid" style={{ marginBottom: "0.5rem" }}>
-                Pending ({pendingTasks.length})
-              </div>
-              <div className="space-y-2">
-                {pendingTasks.map((task, i) => (
-                  <TaskCard key={`p-${i}`} task={task} color={color} />
-                ))}
-              </div>
-            </div>
-          )}
-          {completedTasks.length > 0 && (
-            <div style={{ marginTop: pendingTasks.length > 0 ? "0.75rem" : "0" }}>
-              <div className="font-sans text-[11px] font-semibold tracking-[1px] uppercase text-slateMid" style={{ marginBottom: "0.5rem" }}>
-                Completed ({completedTasks.length})
-              </div>
-              <div className="space-y-2">
-                {completedTasks.map((task, i) => (
-                  <TaskCard key={`c-${i}`} task={task} color={color} completed />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TaskCard({ task, color, completed = false }: { task: Task; color: string; completed?: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<TaskDataPayload>(data.data);
 
-  return (
-    <div
-      className="bg-white rounded-xl border border-sandDark overflow-hidden"
-      style={{ opacity: completed ? 0.7 : 1 }}
-    >
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 text-left hover:bg-sand/30 transition-colors"
-      >
-        <div className="flex items-start gap-3">
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ backgroundColor: completed ? "#6B8F71" : PRIORITY_COLORS[task.priority], marginTop: "0.4rem" }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className={`font-sans text-sm font-medium text-slate ${completed ? "line-through" : ""}`}>
-              {task.title}
-            </div>
-            <div className="font-sans text-[11px] text-slateMid">
-              {completed ? "Completed" : PRIORITY_LABELS[task.priority]}
-            </div>
-          </div>
-          <div
-            className="text-xs text-slateMid transition-transform flex-shrink-0"
-            style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
-          >
-            ▼
-          </div>
-        </div>
-      </button>
+  const domain = getDomainFromToolName(data.toolName);
+  const style = DOMAIN_STYLES[domain] || DOMAIN_STYLES.other;
 
-      {isExpanded && (
-        <div className="px-4 pb-3 border-t border-sand">
-          <div className="mt-2 font-sans text-sm text-slateMid leading-relaxed">
-            {task.why}
-          </div>
-          {task.suggestedActions.length > 0 && (
-            <div style={{ marginTop: "0.5rem" }}>
-              <div className="font-sans text-[11px] font-semibold text-slateMid uppercase tracking-wide" style={{ marginBottom: "0.25rem" }}>
-                Suggested actions
-              </div>
-              <ul className="space-y-1">
-                {task.suggestedActions.map((action, i) => (
-                  <li key={i} className="font-sans text-sm text-slate flex items-start gap-2">
-                    <span className="text-slateMid">·</span>
-                    <span>{action}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+  const handleSave = () => {
+    onSave(data.taskTitle, data.toolName, editData);
+    setIsEditing(false);
+  };
 
-function DataCard({ data, color }: { data: TaskData; color: string }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const handleCancel = () => {
+    setEditData(data.data);
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    onDelete(data.taskTitle);
+  };
 
   return (
     <div className="bg-white rounded-xl border border-sandDark overflow-hidden">
@@ -386,8 +213,16 @@ function DataCard({ data, color }: { data: TaskData; color: string }) {
       >
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="font-sans text-base font-semibold text-slate mb-1">
-              {data.taskTitle}
+            <div className="flex items-center gap-2 mb-1">
+              <div className="font-sans text-base font-semibold text-slate">
+                {data.taskTitle}
+              </div>
+              <span
+                className="font-sans text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: `${style.color}15`, color: style.color }}
+              >
+                {style.label}
+              </span>
             </div>
             <div className="font-sans text-xs text-slateMid">
               Added {new Date(data.capturedAt).toLocaleDateString()}
@@ -406,11 +241,214 @@ function DataCard({ data, color }: { data: TaskData; color: string }) {
 
       {isExpanded && (
         <div className="px-4 pb-4 border-t border-sand">
-          <div className="mt-3 space-y-3">
-            {renderDataFields(data.toolName, data.data, color)}
-          </div>
+          {isEditing ? (
+            <div className="mt-3 space-y-3">
+              {renderEditFields(data.toolName, editData, setEditData)}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={handleSave}
+                  className="bg-ocean text-white rounded-lg px-4 py-2 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="bg-sand text-slateMid rounded-lg px-4 py-2 font-sans text-sm font-semibold hover:bg-sandDark transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {renderDataFields(data.toolName, data.data, style.color)}
+              <div className="flex gap-2 pt-2 border-t border-sand">
+                <button
+                  onClick={() => {
+                    setEditData(data.data);
+                    setIsEditing(true);
+                  }}
+                  className="font-sans text-sm font-semibold text-ocean hover:text-oceanMid transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="font-sans text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function EditInput({
+  label,
+  value,
+  onChange,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <div>
+      <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-1 block">
+        {label}
+      </label>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
+        />
+      )}
+    </div>
+  );
+}
+
+function renderEditFields(
+  toolName: string,
+  data: TaskDataPayload,
+  setData: (data: TaskDataPayload) => void
+) {
+  const update = (field: string, value: string) => {
+    setData({ ...data, [field]: value });
+  };
+
+  if (toolName === "save_doctor_info") {
+    const doc = data as DoctorInfo;
+    return (
+      <>
+        <EditInput label="Doctor Name" value={doc.name || ""} onChange={(v) => update("name", v)} />
+        <EditInput label="Phone" value={doc.phone || ""} onChange={(v) => update("phone", v)} />
+        <EditInput label="Address" value={doc.address || ""} onChange={(v) => update("address", v)} />
+        <EditInput label="Specialty" value={doc.specialty || ""} onChange={(v) => update("specialty", v)} />
+      </>
+    );
+  }
+
+  if (toolName === "save_medication_list") {
+    const medList = data as MedicationList;
+    const meds = medList.medications || [];
+
+    const updateMed = (index: number, field: keyof MedicationEntry, value: string) => {
+      const updated = meds.map((m, i) => (i === index ? { ...m, [field]: value } : m));
+      setData({ ...data, medications: updated });
+    };
+
+    const addMed = () => {
+      setData({ ...data, medications: [...meds, { name: "", dosage: "", frequency: "", purpose: "" }] });
+    };
+
+    const removeMed = (index: number) => {
+      setData({ ...data, medications: meds.filter((_, i) => i !== index) });
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="font-sans text-sm font-semibold text-slateMid uppercase tracking-wide">
+          Medications
+        </div>
+        {meds.map((med: MedicationEntry, i: number) => (
+          <div key={i} className="p-3 rounded-lg bg-sand/40 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-xs font-semibold text-slateMid">
+                Medication {i + 1}
+              </span>
+              <button
+                onClick={() => removeMed(i)}
+                className="font-sans text-xs text-red-500 hover:text-red-600"
+              >
+                Remove
+              </button>
+            </div>
+            <EditInput label="Name" value={med.name || ""} onChange={(v) => updateMed(i, "name", v)} />
+            <EditInput label="Dosage" value={med.dosage || ""} onChange={(v) => updateMed(i, "dosage", v)} />
+            <EditInput label="Frequency" value={med.frequency || ""} onChange={(v) => updateMed(i, "frequency", v)} />
+            <EditInput label="Purpose" value={med.purpose || ""} onChange={(v) => updateMed(i, "purpose", v)} />
+          </div>
+        ))}
+        <button
+          onClick={addMed}
+          className="font-sans text-sm font-semibold text-ocean hover:text-oceanMid transition-colors"
+        >
+          + Add Medication
+        </button>
+      </div>
+    );
+  }
+
+  if (toolName === "save_insurance_info") {
+    const ins = data as InsuranceInfo;
+    return (
+      <>
+        <EditInput label="Provider" value={ins.provider || ""} onChange={(v) => update("provider", v)} />
+        <EditInput label="Policy Number" value={ins.policyNumber || ""} onChange={(v) => update("policyNumber", v)} />
+        <EditInput label="Group Number" value={ins.groupNumber || ""} onChange={(v) => update("groupNumber", v)} />
+        <EditInput label="Phone" value={ins.phone || ""} onChange={(v) => update("phone", v)} />
+      </>
+    );
+  }
+
+  if (toolName === "save_legal_document_info") {
+    const legal = data as LegalDocumentInfo;
+    return (
+      <>
+        <EditInput label="Document Type" value={legal.documentType || ""} onChange={(v) => update("documentType", v)} />
+        <EditInput label="Status" value={legal.status || ""} onChange={(v) => update("status", v)} />
+        <EditInput label="Agent/Proxy" value={legal.agent || ""} onChange={(v) => update("agent", v)} />
+        <EditInput label="Location" value={legal.location || ""} onChange={(v) => update("location", v)} />
+        <EditInput label="Date Completed" value={legal.dateCompleted || ""} onChange={(v) => update("dateCompleted", v)} />
+      </>
+    );
+  }
+
+  if (toolName === "save_task_notes" || toolName === "manual_notes") {
+    const notes = data as { notes: string };
+    return (
+      <EditInput
+        label="Notes"
+        value={notes.notes || ""}
+        onChange={(v) => setData({ ...data, notes: v })}
+        multiline
+      />
+    );
+  }
+
+  // Fallback: JSON textarea
+  return (
+    <div>
+      <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-1 block">
+        Data (JSON)
+      </label>
+      <textarea
+        value={JSON.stringify(data, null, 2)}
+        onChange={(e) => {
+          try {
+            setData(JSON.parse(e.target.value));
+          } catch {
+            // ignore invalid JSON while typing
+          }
+        }}
+        rows={8}
+        className="w-full border border-sandDark rounded-lg px-3 py-2 font-mono text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
+      />
     </div>
   );
 }
