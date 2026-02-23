@@ -7,6 +7,7 @@ export interface TaskWithParent extends Task {
 }
 
 const TASKS_KEY = "harbor_tasks";
+const TASKS_CLEARED_KEY = "harbor_tasks_cleared";
 
 // --- Write-through to Supabase (fire-and-forget) ---
 
@@ -36,6 +37,12 @@ function deleteAllTasksFromDb(parentId: string): void {
  */
 export async function hydrateTasksFromDb(parentId: string, force = false): Promise<boolean> {
   if (typeof window === "undefined") return false;
+
+  // Don't hydrate if tasks were intentionally cleared for this parent
+  try {
+    const cleared: string[] = JSON.parse(localStorage.getItem(TASKS_CLEARED_KEY) || "[]");
+    if (cleared.includes(parentId)) return false;
+  } catch {}
 
   if (!force) {
     const existing = getTasksForParent(parentId);
@@ -122,9 +129,22 @@ export function saveTasks(tasks: TaskWithParent[]): void {
   }
 }
 
+function clearClearedFlag(parentId: string): void {
+  try {
+    const cleared: string[] = JSON.parse(localStorage.getItem(TASKS_CLEARED_KEY) || "[]");
+    const updated = cleared.filter((id) => id !== parentId);
+    if (updated.length === 0) {
+      localStorage.removeItem(TASKS_CLEARED_KEY);
+    } else {
+      localStorage.setItem(TASKS_CLEARED_KEY, JSON.stringify(updated));
+    }
+  } catch {}
+}
+
 // Add a single task (associates with active parent)
 export function addTask(task: Task): void {
   const activeParentId = getActiveParentId();
+  if (activeParentId) clearClearedFlag(activeParentId);
   const allTasks = getAllTasks();
   const taskWithParent: TaskWithParent = {
     ...task,
@@ -137,6 +157,10 @@ export function addTask(task: Task): void {
 // Add multiple tasks (associates with active parent, deduplicates by title)
 export function addTasks(newTasks: Task[]): void {
   const activeParentId = getActiveParentId();
+
+  // Clear the "tasks cleared" flag since we're adding new tasks
+  if (activeParentId) clearClearedFlag(activeParentId);
+
   const allTasks = getAllTasks();
 
   // Build a set of existing titles for this parent to deduplicate
@@ -209,6 +233,14 @@ export function clearTasksForActiveParent(): void {
   const allTasks = getAllTasks();
   const filtered = allTasks.filter((t) => t.parentId !== activeParentId);
   saveTasks(filtered);
+
+  // Mark this parent's tasks as intentionally cleared so hydration
+  // doesn't restore them from the DB before the delete completes
+  try {
+    const cleared = JSON.parse(localStorage.getItem(TASKS_CLEARED_KEY) || "[]");
+    if (!cleared.includes(activeParentId)) cleared.push(activeParentId);
+    localStorage.setItem(TASKS_CLEARED_KEY, JSON.stringify(cleared));
+  } catch {}
 
   // Write-through to Supabase
   deleteAllTasksFromDb(activeParentId);

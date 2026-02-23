@@ -42,10 +42,10 @@ export default function ProfilePage() {
 
         <div className="relative max-w-[420px] mx-auto">
           <Link
-            href="/"
+            href="/dashboard"
             className="font-sans text-sm text-white/80 hover:text-white inline-block mb-4"
           >
-            ← Home
+            ← Dashboard
           </Link>
 
           <div className="flex items-center gap-3 mb-2">

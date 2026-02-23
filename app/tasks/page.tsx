@@ -96,8 +96,8 @@ export default function TasksPage() {
         <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-white/5" />
 
         <div className="relative max-w-[420px] mx-auto">
-          <Link href="/" className="font-sans text-sm text-white/80 hover:text-white inline-block mb-4">
-            ← Home
+          <Link href="/dashboard" className="font-sans text-sm text-white/80 hover:text-white inline-block mb-4">
+            ← Dashboard
           </Link>
 
           <div className="flex items-start justify-between">
