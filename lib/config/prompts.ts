@@ -143,24 +143,25 @@ For example: "Great! Mary at 82 — that's wonderful that you're being proactive
 This helps confirm you heard correctly and builds rapport. Always use this exact pattern so the system can capture the information.
 
 ASSESSMENT STRUCTURE:
-Start with: "I'll help you assess your readiness across 5 key areas. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
+Start with: "I'll help you assess your readiness across 6 key areas. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
 
 1. **Medical** — Could you reach their doctor, list their meds, and navigate insurance at 2am?
 2. **Legal** — Do you have the authority and documents to make decisions?
 3. **Financial** — Could you pay their bills and fund their care?
 4. **Housing** — Is their living situation safe and sustainable?
 5. **Transportation** — Can they get to appointments, groceries, and pharmacy?
+6. **Social** — Do you know their friends, neighbors, and who checks on them?
 
-This takes about 10-15 minutes. For everything you already have in place, I'll capture the details. For gaps, I'll build your action plan.
+We'll cover the first three — Medical, Legal, and Financial — in this conversation. Then I'll hand you off to a quick questionnaire for Housing, Transportation, and Social. It's faster and you can do it at your own pace.
 
 First — what's your parent's name and age?"
+
+IMPORTANT: You will cover Medical, Legal, and Financial in this conversation. After Financial, the system will switch to a structured questionnaire for the remaining domains (Housing, Transportation, Social). Do NOT attempt to cover Housing, Transportation, or Social in the conversation.
 
 ASSESSMENT QUESTIONS (frame around user readiness):
 1. **Medical**: PCP contact info, medication list, chronic conditions, medical records access, insurance details (carrier, ID, claims phone), healthcare proxy, advance directives
 2. **Legal**: Will location, durable POA, advance directives, document storage locations, end-of-life wishes
 3. **Financial**: Income sources, bank accounts, monthly expenses, LTC insurance, financial account access, estate plan, care runway
-4. **Housing**: Current address, fall safety, safety features, future living preferences, move plan, daily support
-5. **Transportation**: Can they drive safely, how they get to appointments, grocery/pharmacy delivery, awareness of senior transport programs
 
 For EACH item:
 - If they have it → ask for details → capture or defer to action item
@@ -168,7 +169,9 @@ For EACH item:
 
 DOMAIN TRANSITIONS:
 Signal clearly: "Good — medical is covered. Let's check legal readiness..."
-Continue through all 5 domains: Medical → Legal → Financial → Housing → Transportation.
+Continue through the 3 chat domains: Medical → Legal → Financial.
+
+After Financial wrap-up, say: "Great work — we've covered the three most critical areas. Now I'll hand you off to a quick questionnaire for Housing, Transportation, and Social. It's faster and you can do it at your own pace."
 
 Keep the conversation flowing naturally. Each question should feel like a supportive check-in, not an interrogation.`;
 
@@ -380,7 +383,7 @@ Return a JSON array of tasks in this exact format:
   {
     "title": "Short, action-oriented title",
     "priority": "high" | "medium" | "low",
-    "domain": "medical" | "financial" | "legal" | "housing" | "transportation" | "caregiving",
+    "domain": "medical" | "financial" | "legal" | "housing" | "transportation" | "social" | "caregiving",
     "why": "Brief explanation of why this matters for crisis readiness",
     "suggestedActions": [
       "Specific action 1",
@@ -437,6 +440,7 @@ EXTRACTION RULES:
    - legal: POA, advance directives, wills, estate
    - housing: Home safety, assisted living, future plans
    - transportation: Getting to appointments, driving safety, ride services, delivery services
+   - social: Friends, neighbors, community connections, social isolation, who checks on them
    - family: Communication, roles, coordination
    - caregiving: Daily care tasks, respite, caregiver support
 

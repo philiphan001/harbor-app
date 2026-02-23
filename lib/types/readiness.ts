@@ -383,6 +383,63 @@ const transportationQuestions: Question[] = [
   },
 ];
 
+// Social Domain Questions
+const socialQuestions: Question[] = [
+  {
+    id: "social-1",
+    text: "Do you know who your parent talks to regularly — friends, neighbors, community?",
+    subtext: "Social isolation is one of the strongest predictors of decline in seniors.",
+    options: ["Yes, I know their social circle", "I know some people but not all", "No, I don't really know"],
+    allowUncertainty: true,
+  },
+  {
+    id: "social-2",
+    text: "Could you reach your parent's closest friends or neighbors in an emergency?",
+    subtext: "In a crisis, these people can check on your parent faster than you can get there.",
+    options: ["Yes, I have their contact info", "I know who they are but don't have contact info", "No"],
+    allowUncertainty: true,
+    followUp: {
+      triggerOptions: ["Yes, I have their contact info"],
+      prompt: "Capture their key contacts so you can reach them in a crisis.",
+      fields: [
+        { key: "friendName", label: "Friend/neighbor name", placeholder: "e.g. Betty next door, Jim from church" },
+        { key: "friendPhone", label: "Phone number", placeholder: "e.g. (555) 987-6543", type: "tel" },
+      ],
+      skippable: true,
+    },
+  },
+  {
+    id: "social-3",
+    text: "Does your parent participate in any regular social activities?",
+    subtext: "Church, senior center, card games, volunteer work — routine social contact matters.",
+    options: ["Yes, regularly", "Occasionally", "No, they're mostly at home"],
+    allowUncertainty: true,
+  },
+  {
+    id: "social-4",
+    text: "Has your parent's social circle shrunk noticeably in recent years?",
+    subtext: "Losing friends and connections is common with aging but accelerates decline.",
+    options: ["No, it's stable", "Somewhat — a few people have dropped off", "Yes, significantly"],
+    allowUncertainty: true,
+  },
+  {
+    id: "social-5",
+    text: "Is there someone who checks on your parent regularly (besides you)?",
+    subtext: "A neighbor, friend, or aide who sees them routinely can catch problems early.",
+    options: ["Yes, someone checks regularly", "Occasionally but not reliably", "No, just me"],
+    allowUncertainty: true,
+    followUp: {
+      triggerOptions: ["Yes, someone checks regularly"],
+      prompt: "Note who checks on them — this person is a key part of the care network.",
+      fields: [
+        { key: "checkerName", label: "Who checks on them?", placeholder: "e.g. Neighbor Betty, aide Maria" },
+        { key: "checkerFrequency", label: "How often?", placeholder: "e.g. Daily, every other day, weekly" },
+      ],
+      skippable: true,
+    },
+  },
+];
+
 export const DOMAIN_QUESTIONS: DomainQuestions[] = [
   {
     domain: "medical",
@@ -413,6 +470,12 @@ export const DOMAIN_QUESTIONS: DomainQuestions[] = [
     title: "Transportation Readiness",
     description: "Can your parent get where they need to go — doctors, groceries, pharmacy? Let's check.",
     questions: transportationQuestions,
+  },
+  {
+    domain: "social",
+    title: "Social Readiness",
+    description: "Do you know your parent's social circle — friends, neighbors, and who checks on them? Social isolation is a critical risk factor.",
+    questions: socialQuestions,
   },
 ];
 

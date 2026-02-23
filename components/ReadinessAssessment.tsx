@@ -12,6 +12,9 @@ import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
 type AssessmentMode = "intro" | "parent-info" | "chat" | "questionnaire";
 
+const CHAT_DOMAINS: Domain[] = ["medical", "legal", "financial"];
+const QUESTIONNAIRE_DOMAINS: Domain[] = ["housing", "transportation", "social"];
+
 interface ReadinessAssessmentProps {
   conversationId?: string;
 }
@@ -50,6 +53,38 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     return { completed, firstIncomplete };
   }, []);
 
+  // Auto-switch from chat to questionnaire when chat domains are complete
+  useEffect(() => {
+    if (mode !== "chat") return;
+    if (answers.length === 0) return;
+
+    const chatDomainsComplete = CHAT_DOMAINS.every(domain => {
+      const domainQuestions = DOMAIN_QUESTIONS.find(d => d.domain === domain);
+      if (!domainQuestions) return false;
+      return domainQuestions.questions.every(q => {
+        const answer = answers.find(a => a.questionId === q.id);
+        return answer && (answer.selectedOption !== null || answer.isUncertain);
+      });
+    });
+
+    if (chatDomainsComplete) {
+      // Mark chat domains as completed
+      setCompletedDomains(prev => {
+        const merged = new Set([...prev, ...CHAT_DOMAINS]);
+        return [...merged];
+      });
+      // Generate tasks for completed chat domains
+      for (const domain of CHAT_DOMAINS) {
+        if (!completedDomains.includes(domain)) {
+          generateTasksForDomain(domain);
+        }
+      }
+      // Switch to questionnaire starting at housing
+      setCurrentDomain("housing");
+      setMode("questionnaire");
+    }
+  }, [answers, mode]);
+
   const handleStartChat = () => {
     setMode("chat");
   };
@@ -83,7 +118,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     if (firstIncomplete) {
       // Find the first domain with ZERO answers (skip domains that have partial progress)
       const firstUntouched = domains.find((d) => {
-        const prefix = { medical: "med-", legal: "legal-", financial: "fin-", housing: "house-", transportation: "trans-" }[d];
+        const prefix = { medical: "med-", legal: "legal-", financial: "fin-", housing: "house-", transportation: "trans-", social: "social-" }[d];
         return !answers.some((a) => a.questionId.startsWith(prefix));
       });
       setCurrentDomain(firstUntouched || firstIncomplete);
@@ -145,6 +180,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
         financial: "fin-",
         housing: "house-",
         transportation: "trans-",
+        social: "social-",
       };
 
       const domainAnswers = answers.filter((a) =>
@@ -222,7 +258,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
               How Prepared Are You?
             </h1>
             <p className="font-sans text-sm text-white/90 leading-relaxed">
-              Most families discover gaps they didn't know about. Let's assess your readiness across 5 key areas and create a personalized action plan.
+              Most families discover gaps they didn't know about. Let's assess your readiness across 6 key areas and create a personalized action plan.
             </p>
           </div>
         </div>
@@ -241,6 +277,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
                 { icon: "💰", title: "Financial Readiness", desc: "Income, expenses, long-term care funding" },
                 { icon: "🏠", title: "Housing Readiness", desc: "Living situation and future planning" },
                 { icon: "🚗", title: "Transportation Readiness", desc: "Getting to appointments, errands, and daily life" },
+                { icon: "👥", title: "Social Readiness", desc: "Friends, neighbors, and social connections" },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="text-2xl">{item.icon}</div>
@@ -315,15 +352,16 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
 
         <ChatInterface
           mode="readiness"
-          initialMessage="I'll help you assess your readiness across 5 key areas. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
+          initialMessage="I'll help you assess your readiness across 6 key areas. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
 
 1. **Medical** — Could you reach their doctor, list their meds, and navigate insurance at 2am?
 2. **Legal** — Do you have the authority and documents to make decisions?
 3. **Financial** — Could you pay their bills and fund their care?
 4. **Housing** — Is their living situation safe and sustainable?
 5. **Transportation** — Can they get to appointments, groceries, and pharmacy?
+6. **Social** — Do you know their friends, neighbors, and who checks on them?
 
-This takes about 10-15 minutes. For everything you already have in place, I'll capture the details in Harbor. For gaps, I'll build your action plan.
+We'll cover the first three in conversation, then switch to a quick form for the rest. For everything you already have in place, I'll capture the details in Harbor. For gaps, I'll build your action plan.
 
 First — what's your parent's name and age?"
           onComplete={handleChatComplete}
@@ -375,7 +413,7 @@ First — what's your parent's name and age?"
         onSwitchToChat={handleSwitchToChat}
         onDomainSelect={handleDomainSelect}
         isFirstDomain={currentDomain === "medical"}
-        isLastDomain={currentDomain === "transportation"}
+        isLastDomain={currentDomain === "social"}
       />
     </div>
   );

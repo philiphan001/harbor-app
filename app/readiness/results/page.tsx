@@ -103,6 +103,8 @@ export default function ReadinessResultsPage() {
                         ? "bg-sage h-2 rounded-full transition-all"
                         : domainInfo.color === "ocean"
                         ? "bg-ocean h-2 rounded-full transition-all"
+                        : domainInfo.color === "teal-500"
+                        ? "bg-teal-500 h-2 rounded-full transition-all"
                         : "bg-amber h-2 rounded-full transition-all"
                     }
                     style={{ width: `${score}%` }}
@@ -188,6 +190,7 @@ function getDomainInfo(domain: string): { icon: string; label: string; color: st
     financial: { icon: "💰", label: "Financial", color: "ocean" },
     housing: { icon: "🏠", label: "Housing", color: "amber" },
     transportation: { icon: "🚗", label: "Transportation", color: "purple-500" },
+    social: { icon: "👥", label: "Social", color: "teal-500" },
   };
   return map[domain] || { icon: "📋", label: domain, color: "ocean" };
 }

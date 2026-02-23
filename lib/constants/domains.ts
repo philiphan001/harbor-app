@@ -6,7 +6,7 @@
 // --- Domain Types ---
 
 /** Core assessment domains (used in readiness intake) */
-export type Domain = "medical" | "legal" | "financial" | "housing" | "transportation";
+export type Domain = "medical" | "legal" | "financial" | "housing" | "transportation" | "social";
 
 /** Extended domains (used in tasks, signals, agents) */
 export type ExtendedDomain =
@@ -16,7 +16,7 @@ export type ExtendedDomain =
   | "general";
 
 /** Ordered list of core domains (assessment order) */
-export const DOMAINS: Domain[] = ["medical", "legal", "financial", "housing", "transportation"];
+export const DOMAINS: Domain[] = ["medical", "legal", "financial", "housing", "transportation", "social"];
 
 /** Domain display labels */
 export const DOMAIN_LABELS: Record<Domain, string> = {
@@ -25,6 +25,7 @@ export const DOMAIN_LABELS: Record<Domain, string> = {
   financial: "Financial",
   housing: "Housing",
   transportation: "Transportation",
+  social: "Social",
 };
 
 /** Extended domain labels (includes family/caregiving/general) */
@@ -34,6 +35,7 @@ export const EXTENDED_DOMAIN_LABELS: Record<ExtendedDomain, string> = {
   financial: "Financial",
   housing: "Housing",
   transportation: "Transportation",
+  social: "Social",
   family: "Family",
   caregiving: "Caregiving",
   general: "General",
@@ -48,6 +50,7 @@ export const DOMAIN_COLORS: Record<ExtendedDomain, string> = {
   financial: "#1B6B7D", // ocean
   housing: "#C4943A",   // amber
   transportation: "#7B68A8", // purple
+  social: "#5B8FA8",    // teal-blue
   family: "#4A6274",    // slateMid
   caregiving: "#2A8FA4", // oceanMid
   general: "#7F9BAC",   // slateLight
@@ -60,6 +63,7 @@ export const DOMAIN_BG_CLASSES: Record<Domain, { solid: string; faded: string }>
   financial: { solid: "bg-ocean", faded: "bg-ocean/40" },
   housing: { solid: "bg-amber", faded: "bg-amber/40" },
   transportation: { solid: "bg-purple-500", faded: "bg-purple-500/40" },
+  social: { solid: "bg-teal-500", faded: "bg-teal-500/40" },
 };
 
 // --- Domain Icons ---
@@ -71,6 +75,7 @@ export const DOMAIN_ICONS: Record<ExtendedDomain, string> = {
   legal: "\u25C9",      // ◉
   housing: "\u2302",    // ⌂
   transportation: "\u2708", // ✈ (transport)
+  social: "\u2666",     // ♦
   family: "\u25CE",     // ◎
   caregiving: "\u2726", // ✦
   general: "\u25CF",    // ●

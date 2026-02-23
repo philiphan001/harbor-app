@@ -235,6 +235,35 @@ function scoreAnswer(domain: Domain, questionId: string, selectedOption: string)
     }
   }
 
+  // Social domain scoring
+  if (domain === "social") {
+    if (questionId === "social-1") {
+      if (selectedOption.includes("I know their social circle")) return 10;
+      if (selectedOption.includes("some people")) return 4;
+      return 0;
+    }
+    if (questionId === "social-2") {
+      if (selectedOption.includes("I have their contact info")) return 10;
+      if (selectedOption.includes("don't have contact info")) return 4;
+      return 0;
+    }
+    if (questionId === "social-3") {
+      if (selectedOption.includes("regularly")) return 10;
+      if (selectedOption.includes("Occasionally")) return 5;
+      return 0;
+    }
+    if (questionId === "social-4") {
+      if (selectedOption.includes("stable")) return 10;
+      if (selectedOption.includes("Somewhat")) return 5;
+      return 0;
+    }
+    if (questionId === "social-5") {
+      if (selectedOption.includes("checks regularly")) return 10;
+      if (selectedOption.includes("Occasionally")) return 4;
+      return 0;
+    }
+  }
+
   return 5; // Default middle score
 }
 

@@ -32,7 +32,7 @@ export interface CareSummaryData {
 }
 
 export interface DomainStatus {
-  domain: "medical" | "legal" | "financial" | "housing" | "transportation";
+  domain: "medical" | "legal" | "financial" | "housing" | "transportation" | "social";
   label: string;
   icon: string;
   status: "good" | "partial" | "missing";
@@ -219,6 +219,22 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
     status: transportNotes.length >= 2 ? "good" : transportNotes.length >= 1 ? "partial" : "missing",
     summary: transportNotes.length >= 2 ? "Transport plan captured" : transportNotes.length >= 1 ? "Some info captured" : "Not started",
     items: transportItems,
+  });
+
+  // Social
+  const socialNotes = taskData.filter(d =>
+    (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
+    (d.taskTitle.toLowerCase().includes("social") || d.taskTitle.toLowerCase().includes("friend") || d.taskTitle.toLowerCase().includes("neighbor") || d.taskTitle.toLowerCase().includes("community"))
+  );
+  const socialItems = socialNotes.map(d => d.taskTitle);
+
+  statuses.push({
+    domain: "social",
+    label: "Social",
+    icon: "👥",
+    status: socialNotes.length >= 2 ? "good" : socialNotes.length >= 1 ? "partial" : "missing",
+    summary: socialNotes.length >= 2 ? "Social network captured" : socialNotes.length >= 1 ? "Some info captured" : "Not started",
+    items: socialItems,
   });
 
   return statuses;
