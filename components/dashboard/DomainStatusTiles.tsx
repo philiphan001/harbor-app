@@ -23,7 +23,7 @@ export default function DomainStatusTiles({ statuses }: DomainStatusTilesProps) 
         {statuses.map((status) => {
           const colors = STATUS_COLORS[status.status];
           return (
-            <Link key={status.domain} href="/profile" className="block">
+            <Link key={status.domain} href={`/profile?domain=${status.domain}`} className="block">
               <div
                 className={`${colors.bg} border ${colors.border} rounded-[12px] px-3.5 py-3 cursor-pointer hover:scale-[1.01] transition-transform h-full`}
               >

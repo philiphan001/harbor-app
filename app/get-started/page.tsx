@@ -87,29 +87,6 @@ export default function GetStartedPage() {
           </div>
         </Link>
 
-        {/* Upload option */}
-        <Link href="/upload">
-          <div className="w-full bg-white border-2 border-sandDark text-slate rounded-[16px] px-7 py-6 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-sand rounded-xl flex items-center justify-center shrink-0">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <div className="font-sans text-sm font-semibold text-slate">
-                  Just upload a document
-                </div>
-                <div className="font-sans text-xs text-slateMid">
-                  Insurance card, medication list, legal documents
-                </div>
-              </div>
-              <div className="text-slateLight text-sm">&rarr;</div>
-            </div>
-          </div>
-        </Link>
       </div>
 
       {/* Bottom note */}

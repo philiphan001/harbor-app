@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getParentProfile, getActiveParentId, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllTaskData, hydrateTaskDataFromDb, saveTaskData, removeTaskData, TaskData } from "@/lib/utils/taskData";
@@ -10,10 +11,23 @@ const DOMAIN_STYLES: Record<string, { label: string; color: string }> = {
   medical: { label: "Medical", color: "#D4725C" },
   legal: { label: "Legal", color: "#6B8F71" },
   financial: { label: "Financial", color: "#1B6B7D" },
+  housing: { label: "Housing", color: "#C4943A" },
+  transportation: { label: "Transportation", color: "#7B68A8" },
+  social: { label: "Social", color: "#5B8FA8" },
   other: { label: "Other", color: "#4A6274" },
 };
 
 export default function ProfilePage() {
+  return (
+    <Suspense>
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
+  const searchParams = useSearchParams();
+  const domainFilter = searchParams.get("domain");
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [taskData, setTaskData] = useState<TaskData[]>([]);
   const [editingLocation, setEditingLocation] = useState(false);
@@ -54,8 +68,11 @@ export default function ProfilePage() {
     setTaskData(getAllTaskData());
   }, []);
 
-  // Sort chronologically, newest first
-  const sortedData = [...taskData].sort(
+  // Filter by domain if query param present, then sort newest first
+  const filteredData = domainFilter
+    ? taskData.filter((item) => getDomainFromToolName(item.toolName, item.taskTitle) === domainFilter)
+    : taskData;
+  const sortedData = [...filteredData].sort(
     (a, b) => new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime()
   );
 
@@ -142,7 +159,40 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
-        {sortedData.length === 0 ? (
+        {/* Domain filter pills */}
+        {taskData.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
+            <Link
+              href="/profile"
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
+                !domainFilter
+                  ? "bg-ocean text-white"
+                  : "bg-sand text-slateMid hover:bg-sandDark"
+              }`}
+            >
+              All
+            </Link>
+            {Object.entries(DOMAIN_STYLES)
+              .filter(([key]) => key !== "other" || taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === "other"))
+              .filter(([key]) => taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === key))
+              .map(([key, style]) => (
+                <Link
+                  key={key}
+                  href={`/profile?domain=${key}`}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
+                    domainFilter === key
+                      ? "text-white"
+                      : "bg-sand text-slateMid hover:bg-sandDark"
+                  }`}
+                  style={domainFilter === key ? { backgroundColor: style.color } : undefined}
+                >
+                  {style.label}
+                </Link>
+              ))}
+          </div>
+        )}
+
+        {sortedData.length === 0 && !domainFilter ? (
           <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
             <div className="text-5xl mb-4">📋</div>
             <div className="font-serif text-xl font-semibold text-slate mb-2">
@@ -155,6 +205,20 @@ export default function ProfilePage() {
             <Link href="/tasks">
               <button className="bg-ocean text-white rounded-xl px-6 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors">
                 View Tasks
+              </button>
+            </Link>
+          </div>
+        ) : sortedData.length === 0 && domainFilter ? (
+          <div className="bg-white rounded-xl border border-sandDark px-6 py-8 text-center">
+            <div className="font-serif text-lg font-semibold text-slate mb-2">
+              No {DOMAIN_STYLES[domainFilter]?.label || domainFilter} information yet
+            </div>
+            <div className="font-sans text-sm text-slateMid leading-relaxed mb-4">
+              Complete tasks or add information through the readiness assessment to populate this section.
+            </div>
+            <Link href="/profile">
+              <button className="font-sans text-sm font-semibold text-ocean hover:text-oceanMid transition-colors">
+                View all information
               </button>
             </Link>
           </div>
@@ -188,7 +252,7 @@ function DataCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<TaskDataPayload>(data.data);
 
-  const domain = getDomainFromToolName(data.toolName);
+  const domain = getDomainFromToolName(data.toolName, data.taskTitle);
   const style = DOMAIN_STYLES[domain] || DOMAIN_STYLES.other;
 
   const handleSave = () => {
@@ -555,12 +619,16 @@ function DataField({
   );
 }
 
-function getDomainFromToolName(toolName: string): string {
+function getDomainFromToolName(toolName: string, taskTitle?: string): string {
   if (
     toolName.includes("doctor") ||
     toolName.includes("medication") ||
     toolName.includes("insurance")
   ) {
+    // LTC insurance is financial
+    if (taskTitle && (taskTitle.toLowerCase().includes("long-term care") || taskTitle.toLowerCase().includes("ltc"))) {
+      return "financial";
+    }
     return "medical";
   }
   if (toolName.includes("legal") || toolName.includes("document")) {
@@ -569,5 +637,17 @@ function getDomainFromToolName(toolName: string): string {
   if (toolName.includes("financial")) {
     return "financial";
   }
+
+  // For generic notes, infer domain from task title
+  if (taskTitle) {
+    const t = taskTitle.toLowerCase();
+    if (t.includes("health") || t.includes("condition") || t.includes("portal") || t.includes("pharmacy")) return "medical";
+    if (t.includes("poa") || t.includes("will") || t.includes("proxy") || t.includes("attorney") || t.includes("directive") || t.includes("legal")) return "legal";
+    if (t.includes("bank") || t.includes("income") || t.includes("financial") || t.includes("estate plan")) return "financial";
+    if (t.includes("housing") || t.includes("home") || t.includes("address") || t.includes("living") || t.includes("emergency contact")) return "housing";
+    if (t.includes("transport") || t.includes("ride") || t.includes("driving") || t.includes("delivery")) return "transportation";
+    if (t.includes("social") || t.includes("friend") || t.includes("neighbor") || t.includes("community") || t.includes("check-in")) return "social";
+  }
+
   return "other";
 }
