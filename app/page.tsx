@@ -63,41 +63,39 @@ export default function Home() {
 
         <div className="space-y-4">
           <ValueProp
-            icon="🎯"
-            title="24/7 AI Crisis Intake"
-            description="Get organized in minutes, not days. Our AI guides you through the chaos to create an actionable plan."
+            icon="📋"
+            title="Readiness Assessment"
+            description="Find out where you stand in 5 minutes. We score your preparedness across medical, legal, financial, and housing — and show you exactly what's missing."
           />
           <ValueProp
             icon="📊"
             title="Personalized Care Roadmap"
-            description="See exactly what needs to happen across medical, financial, legal, and housing domains."
+            description="Get a step-by-step action plan tailored to your parent's situation. Every task is prioritized so you know what to tackle first."
           />
           <ValueProp
             icon="🔔"
             title="Proactive Monitoring"
-            description="We track deadlines, insurance changes, and care needs so nothing falls through the cracks."
+            description="Harbor tracks deadlines, insurance changes, and emerging care needs so nothing falls through the cracks — even when life gets busy."
           />
           <ValueProp
-            icon="👥"
-            title="Family Coordination"
-            description="Keep everyone on the same page with shared updates and clear role assignments."
+            icon="🚨"
+            title="Crisis Support When It Hits"
+            description="If an emergency happens, our AI helps you triage the situation, organize what you know, and build an action plan in minutes."
           />
         </div>
       </div>
 
       {/* Trust Bar */}
       <div className="px-5 py-7 mt-auto border-t border-sandDark">
-        <div className="bg-sand rounded-xl p-5 flex gap-4">
-          <div className="w-9 h-9 rounded-full bg-ocean text-white flex items-center justify-center font-serif text-base font-semibold shrink-0">
-            H
+        <div className="bg-sand rounded-xl p-5">
+          <div className="font-serif text-[15px] font-semibold text-slate mb-2 leading-snug">
+            Most families aren&apos;t ready for what&apos;s coming.
           </div>
-          <div>
-            <div className="font-serif text-sm font-medium text-slate mb-1">
-              Built for real families in crisis
-            </div>
-            <div className="font-sans text-[12.5px] text-slateMid leading-relaxed">
-              Harbor models your complete situation across all domains and provides guidance tailored to your parent's unique circumstances.
-            </div>
+          <div className="font-sans text-[12.5px] text-slateMid leading-relaxed mb-3">
+            A parent falls. A diagnosis lands. Suddenly you need medical records, legal documents, insurance details, and a plan &mdash; and none of it is in one place. 80% of adult children say they feel unprepared when a caregiving crisis hits.
+          </div>
+          <div className="font-sans text-[12.5px] text-slate leading-relaxed font-medium">
+            Harbor helps you get organized before the emergency &mdash; and guides you through it when it arrives.
           </div>
         </div>
       </div>

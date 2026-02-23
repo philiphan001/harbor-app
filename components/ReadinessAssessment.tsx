@@ -7,6 +7,7 @@ import QuestionnaireForm from "./QuestionnaireForm";
 import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { addTasks } from "@/lib/utils/taskStorage";
+import { saveTaskData } from "@/lib/utils/taskData";
 import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
@@ -137,6 +138,11 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       }
       return [...prev, answer];
     });
+
+    // Persist captured data to taskData so it appears on profile / domain status
+    if (capturedData && Object.keys(capturedData).length > 0) {
+      persistCapturedData(questionId, capturedData);
+    }
   };
 
   const handleAnswersExtracted = (extractedAnswers: Answer[]) => {
@@ -419,12 +425,154 @@ First — what's your parent's name and age?"
   );
 }
 
+// --- Persist questionnaire follow-up data to taskData ---
+
+function persistCapturedData(questionId: string, data: Record<string, string>) {
+  const profile = getParentProfile();
+  const parentName = profile?.name || "Parent";
+
+  switch (questionId) {
+    case "med-1":
+      saveTaskData(`Doctor: ${data.pcpName || "Primary Care"}`, "save_doctor_info", {
+        name: data.pcpName || "",
+        phone: data.pcpPhone || "",
+        address: data.pcpPractice || "",
+      });
+      break;
+
+    case "med-2":
+      if (data.medications) {
+        const meds = data.medications.split("\n").filter(Boolean).map((line) => {
+          const parts = line.trim().split(/\s+/);
+          const name = parts[0] || line.trim();
+          const dosage = parts.slice(1).join(" ");
+          return { name, dosage, frequency: "", purpose: "" };
+        });
+        saveTaskData("Medications", "save_medication_list", { medications: meds });
+      }
+      break;
+
+    case "med-3":
+      if (data.conditions) {
+        saveTaskData(`${parentName}'s Health Conditions`, "save_task_notes", { notes: data.conditions });
+      }
+      break;
+
+    case "med-4":
+      if (data.portalName) {
+        saveTaskData("Patient Portal Access", "save_task_notes", { notes: data.portalName });
+      }
+      break;
+
+    case "med-5":
+      saveTaskData(`Insurance: ${data.insuranceCarrier || "Health Insurance"}`, "save_insurance_info", {
+        provider: data.insuranceCarrier || "",
+        policyNumber: data.insuranceId || "",
+        phone: data.insurancePhone || "",
+      });
+      break;
+
+    case "med-6":
+      saveTaskData("Healthcare Proxy", "save_legal_document_info", {
+        documentType: "Healthcare Proxy",
+        status: "Active",
+        agent: data.proxyName || "",
+        location: data.proxyLocation || "",
+      });
+      break;
+
+    case "legal-1":
+      saveTaskData("Will", "save_legal_document_info", {
+        documentType: "Will",
+        status: "Active",
+        agent: data.willAttorney || "",
+        location: data.willLocation || "",
+      });
+      break;
+
+    case "legal-2":
+      saveTaskData("Power of Attorney", "save_legal_document_info", {
+        documentType: "Durable Power of Attorney",
+        status: "Active",
+        agent: data.poaAgent || "",
+        location: data.poaLocation || "",
+      });
+      break;
+
+    case "legal-3":
+      saveTaskData("Advance Directives", "save_legal_document_info", {
+        documentType: "Advance Directives",
+        status: "Active",
+        location: data.directivesLocation || "",
+      });
+      if (data.directivesNotes) {
+        saveTaskData("Advance Directive Preferences", "save_task_notes", { notes: data.directivesNotes });
+      }
+      break;
+
+    case "legal-4":
+      if (data.docsLocation) {
+        saveTaskData("Important Documents Location", "save_task_notes", { notes: data.docsLocation });
+      }
+      break;
+
+    case "fin-1":
+      if (data.incomeSource || data.bankInfo) {
+        const notes = [data.incomeSource && `Income: ${data.incomeSource}`, data.bankInfo && `Accounts: ${data.bankInfo}`].filter(Boolean).join("\n");
+        saveTaskData(`${parentName}'s Financial Overview`, "save_task_notes", { notes });
+      }
+      break;
+
+    case "fin-3":
+      saveTaskData(`Insurance: ${data.ltcCarrier || "Long-Term Care"}`, "save_insurance_info", {
+        provider: data.ltcCarrier || "",
+        policyNumber: data.ltcPolicy || "",
+        phone: data.ltcPhone || "",
+      });
+      break;
+
+    case "fin-5":
+      if (data.estateAttorney) {
+        saveTaskData("Estate Plan", "save_task_notes", { notes: `Attorney: ${data.estateAttorney}` });
+      }
+      break;
+
+    case "house-1":
+      if (data.address) {
+        saveTaskData(`${parentName}'s Address`, "save_task_notes", { notes: data.address });
+      }
+      break;
+
+    case "trans-5":
+      if (data.transportService || data.transportPhone) {
+        const notes = [data.transportService, data.transportPhone && `Phone: ${data.transportPhone}`].filter(Boolean).join("\n");
+        saveTaskData("Transportation Services", "save_task_notes", { notes });
+      }
+      break;
+
+    case "social-2":
+      if (data.friendName || data.friendPhone) {
+        const notes = [data.friendName, data.friendPhone && `Phone: ${data.friendPhone}`].filter(Boolean).join("\n");
+        saveTaskData("Emergency Contact (Friend/Neighbor)", "save_task_notes", { notes });
+      }
+      break;
+
+    case "social-5":
+      if (data.checkerName || data.checkerFrequency) {
+        const notes = [data.checkerName, data.checkerFrequency && `Frequency: ${data.checkerFrequency}`].filter(Boolean).join("\n");
+        saveTaskData("Regular Check-in Contact", "save_task_notes", { notes });
+      }
+      break;
+  }
+}
+
 // --- Parent Info Form (pre-questionnaire) ---
 
 function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
 
   const canContinue = name.trim().length > 0 && age.trim().length > 0;
 
@@ -435,6 +583,7 @@ function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack
       name: name.trim(),
       age: parseInt(age, 10) || undefined,
       state: state.trim() || undefined,
+      zip: zip.trim() || undefined,
     });
 
     console.log("👤 Parent profile created from questionnaire:", name.trim(), age);
@@ -502,19 +651,37 @@ function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack
             />
           </div>
 
-          {/* State (optional) */}
+          {/* State */}
           <div>
             <label className="block font-sans text-sm font-semibold text-slate mb-1">
               State
             </label>
             <div className="font-sans text-xs text-slateMid mb-2">
-              Optional — helps with state-specific programs
+              Used for state-specific programs like Medicaid, PACE, and pharmaceutical assistance
             </div>
             <input
               type="text"
               value={state}
               onChange={(e) => setState(e.target.value)}
               placeholder="e.g. California"
+              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
+            />
+          </div>
+
+          {/* ZIP Code */}
+          <div>
+            <label className="block font-sans text-sm font-semibold text-slate mb-1">
+              ZIP Code
+            </label>
+            <div className="font-sans text-xs text-slateMid mb-2">
+              Used for local housing costs, transportation options, and nearby services
+            </div>
+            <input
+              type="text"
+              value={zip}
+              onChange={(e) => setZip(e.target.value)}
+              placeholder="e.g. 33601"
+              maxLength={10}
               className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
             />
           </div>

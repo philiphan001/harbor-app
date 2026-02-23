@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
 import { getTasks, hydrateTasksFromDb } from "@/lib/utils/taskStorage";
@@ -28,6 +29,7 @@ import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [allProfiles, setAllProfiles] = useState<ParentProfile[]>([]);
@@ -46,9 +48,9 @@ export default function DashboardPage() {
     const profile = getParentProfile();
     const profiles = getAllParentProfiles();
 
-    // New user with no profiles — show empty state (don't redirect)
+    // New user with no profiles — send straight to onboarding
     if (profiles.length === 0) {
-      setIsLoading(false);
+      router.push("/get-started");
       return;
     }
 
@@ -148,33 +150,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      {isLoading ? (
+      {isLoading || !parentProfile ? (
         <DashboardSkeleton />
-      ) : !parentProfile ? (
-        <div className="flex-1 px-5 py-10 flex flex-col items-center text-center">
-          <div className="w-16 h-16 bg-ocean/10 rounded-2xl flex items-center justify-center mb-5">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B6B7D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />
-              <path d="M9 21V12h6v9" />
-            </svg>
-          </div>
-          <h2 className="font-serif text-xl font-semibold text-slate mb-2">Welcome to Harbor</h2>
-          <p className="font-sans text-sm text-slateMid mb-8 max-w-[280px]">
-            Let&apos;s find out how ready you are to handle a crisis with your aging parent — and build your care command center.
-          </p>
-          <Link
-            href="/get-started"
-            className="bg-ocean text-white font-sans text-sm font-semibold px-8 py-3 rounded-xl hover:bg-ocean/90 transition-colors mb-4"
-          >
-            Get Started
-          </Link>
-          <Link
-            href="/documents"
-            className="font-sans text-sm text-slate-400 font-medium hover:underline"
-          >
-            View uploaded documents
-          </Link>
-        </div>
       ) : (
       <div className="flex-1 px-5 py-6">
         {/* Alerts Banner */}
@@ -245,21 +222,7 @@ export default function DashboardPage() {
         </Link>
 
         {/* Readiness Score */}
-        {readiness && readiness.overall > 0 && <ReadinessCard readiness={readiness} />}
-
-        {/* No assessment prompt */}
-        {(!readiness || readiness.overall === 0) && tasks.length === 0 && (
-          <Link href="/readiness" className="block mb-5">
-            <div className="w-full bg-ocean/5 border-2 border-dashed border-ocean/40 rounded-[14px] px-5 py-5 cursor-pointer hover:border-ocean transition-colors text-center">
-              <div className="font-serif text-lg font-semibold text-ocean mb-1">
-                Check Your Crisis Readiness
-              </div>
-              <div className="font-sans text-xs text-slateMid">
-                Find out how prepared you are to handle an emergency with {parentProfile?.name || "your parent"} &rarr;
-              </div>
-            </div>
-          </Link>
-        )}
+        {readiness && <ReadinessCard readiness={readiness} />}
 
         {/* Domain Status Tiles */}
         {domainStatuses.length > 0 && <DomainStatusTiles statuses={domainStatuses} />}

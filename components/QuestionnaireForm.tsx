@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DOMAIN_QUESTIONS, Answer, Question } from "@/lib/types/readiness";
 import { DOMAINS, DOMAIN_LABELS, type Domain } from "@/lib/constants/domains";
 
@@ -29,6 +29,12 @@ export default function QuestionnaireForm({
   isFirstDomain,
   isLastDomain,
 }: QuestionnaireFormProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentDomain]);
+
   const domainData = DOMAIN_QUESTIONS.find((d) => d.domain === currentDomain);
 
   if (!domainData) return null;
@@ -64,7 +70,7 @@ export default function QuestionnaireForm({
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-6">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
       {/* Domain Tabs */}
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
         {domains.map((domain) => {
