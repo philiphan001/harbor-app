@@ -34,6 +34,16 @@ export default function MonitoringPage() {
           localData.recentDetections = [...dbDetections, ...localOnly]
             .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
             .slice(0, 50);
+
+          // Derive lastRun for each agent from the most recent detection
+          for (const agent of localData.agents) {
+            const latestDetection = localData.recentDetections.find(
+              (d) => d.agentType === agent.type
+            );
+            if (latestDetection && (!agent.lastRun || latestDetection.detectedAt > agent.lastRun)) {
+              agent.lastRun = latestDetection.detectedAt;
+            }
+          }
         }
       }
     } catch {
