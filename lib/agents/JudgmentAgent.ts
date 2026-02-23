@@ -1,3 +1,5 @@
+// @deprecated - Use /lib/ai/judgmentAgent.ts (functional version) for new code.
+// This class-based version is only used by the demo briefing route.
 // Judgment Agent - uses Claude to score signal relevance and filter noise
 
 import Anthropic from "@anthropic-ai/sdk";

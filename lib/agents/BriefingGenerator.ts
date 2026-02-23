@@ -1,3 +1,5 @@
+// @deprecated - Use /lib/ai/briefingAgent.ts (functional version) for new code.
+// This class-based version is only used by the demo briefing route.
 // Weekly Briefing Generator - synthesizes signals into readable summaries
 
 import Anthropic from "@anthropic-ai/sdk";
