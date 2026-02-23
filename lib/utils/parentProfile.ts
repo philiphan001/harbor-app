@@ -7,6 +7,8 @@ export interface ParentProfile {
   name: string;
   age?: number;
   state?: string; // Two-letter state code (e.g., "FL")
+  city?: string;
+  zip?: string;
   livingArrangement?: string;
   healthStatus?: string;
   lastUpdated: string;
@@ -26,6 +28,8 @@ function syncProfileToDb(profile: ParentProfile): void {
       name: profile.name,
       age: profile.age,
       state: profile.state,
+      city: profile.city,
+      zip: profile.zip,
       livingArrangement: profile.livingArrangement,
       healthStatus: profile.healthStatus,
     }),
@@ -62,11 +66,13 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
     if (!profiles || profiles.length === 0) return false;
 
     const localProfiles: ParentProfile[] = profiles.map(
-      (p: { parentId: string; name: string; age?: number; state?: string; livingArrangement?: string; healthStatus?: string; lastUpdated: string }) => ({
+      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; lastUpdated: string }) => ({
         id: p.parentId,
         name: p.name,
         age: p.age,
         state: p.state,
+        city: p.city,
+        zip: p.zip,
         livingArrangement: p.livingArrangement,
         healthStatus: p.healthStatus,
         lastUpdated: p.lastUpdated,
@@ -183,6 +189,8 @@ export function saveParentProfile(profile: Partial<ParentProfile> & { name: stri
         name: profile.name,
         age: profile.age,
         state: profile.state,
+        city: profile.city,
+        zip: profile.zip,
         livingArrangement: profile.livingArrangement,
         healthStatus: profile.healthStatus,
         lastUpdated: new Date().toISOString()

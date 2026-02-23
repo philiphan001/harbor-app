@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { parentId, name, age, state, livingArrangement, healthStatus } = body;
+    const { parentId, name, age, state, city, zip, livingArrangement, healthStatus } = body;
 
     if (!parentId || !name) {
       return NextResponse.json(
@@ -56,6 +56,8 @@ export async function POST(request: NextRequest) {
       name,
       age,
       state,
+      city,
+      zip,
       livingArrangement,
       healthStatus,
       authUserId: auth.user.id,

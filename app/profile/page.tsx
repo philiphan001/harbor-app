@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getParentProfile, getActiveParentId, type ParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, getActiveParentId, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllTaskData, hydrateTaskDataFromDb, TaskData } from "@/lib/utils/taskData";
 import { getTasks, getCompletedTasks } from "@/lib/utils/taskStorage";
 import type { Task } from "@/lib/ai/claude";
@@ -13,9 +13,15 @@ export default function ProfilePage() {
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [taskData, setTaskData] = useState<TaskData[]>([]);
   const [domainTasks, setDomainTasks] = useState<Record<string, Task[]>>({});
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [zipInput, setZipInput] = useState("");
 
   useEffect(() => {
-    setParentProfile(getParentProfile());
+    const profile = getParentProfile();
+    setParentProfile(profile);
+    setCityInput(profile?.city || "");
+    setZipInput(profile?.zip || "");
     setTaskData(getAllTaskData());
 
     // Group tasks (pending + completed) by domain
@@ -38,6 +44,12 @@ export default function ProfilePage() {
       });
     }
   }, []);
+
+  const saveLocation = useCallback(() => {
+    updateParentProfile({ city: cityInput.trim() || undefined, zip: zipInput.trim() || undefined });
+    setParentProfile(getParentProfile());
+    setEditingLocation(false);
+  }, [cityInput, zipInput]);
 
   // Group data by domain
   const groupedData = taskData.reduce((acc, item) => {
@@ -75,15 +87,57 @@ export default function ProfilePage() {
               {parentProfile?.age && (
                 <p className="font-sans text-sm text-white/80">
                   Age {parentProfile.age}
-                  {parentProfile.state && ` • ${parentProfile.state}`}
+                  {parentProfile.city && ` • ${parentProfile.city}`}
+                  {parentProfile.state && `${parentProfile.city ? ", " : " • "}${parentProfile.state}`}
+                  {parentProfile.zip && ` ${parentProfile.zip}`}
                 </p>
               )}
             </div>
           </div>
 
-          <p className="font-serif text-base text-white/80 leading-relaxed italic">
-            All important information in one place
-          </p>
+          {editingLocation ? (
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="text"
+                placeholder="City"
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+                className="bg-white/20 text-white placeholder-white/50 rounded-lg px-3 py-1.5 font-sans text-sm w-28 focus:outline-none focus:ring-1 focus:ring-white/40"
+              />
+              <input
+                type="text"
+                placeholder="ZIP"
+                value={zipInput}
+                onChange={(e) => setZipInput(e.target.value)}
+                className="bg-white/20 text-white placeholder-white/50 rounded-lg px-3 py-1.5 font-sans text-sm w-20 focus:outline-none focus:ring-1 focus:ring-white/40"
+                maxLength={10}
+              />
+              <button
+                onClick={saveLocation}
+                className="bg-white/20 hover:bg-white/30 text-white rounded-lg px-3 py-1.5 font-sans text-sm font-semibold transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingLocation(false)}
+                className="text-white/60 hover:text-white font-sans text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="font-serif text-base text-white/80 leading-relaxed italic">
+                All important information in one place
+              </p>
+              <button
+                onClick={() => setEditingLocation(true)}
+                className="text-white/50 hover:text-white text-xs font-sans transition-colors whitespace-nowrap"
+              >
+                Edit location
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

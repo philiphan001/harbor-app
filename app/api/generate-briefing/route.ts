@@ -1,12 +1,13 @@
 // API endpoint to generate weekly briefing
 
 import { NextRequest, NextResponse } from "next/server";
-import { generateWeeklyBriefing } from "@/lib/ai/briefingAgent";
+import { generateWeeklyBriefing, generateBriefingForSituation } from "@/lib/ai/briefingAgent";
 import { scoreMultipleSignals } from "@/lib/ai/judgmentAgent";
 import { createEmptySituationContext } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
+import { getSituationIdForAuthUser } from "@/lib/db/profiles";
 import { sendBriefingEmail } from "@/lib/email/send";
 import { createLogger } from "@/lib/utils/logger";
 
@@ -34,14 +35,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // DB fallback: when no detections in request body, generate from DB
     if (!detections || detections.length === 0) {
-      return NextResponse.json(
-        {
-          error: "No detections found",
-          message: "Generate some mock agent data first by visiting /monitoring",
-        },
-        { status: 400 }
-      );
+      const situationId = await getSituationIdForAuthUser(auth.user.id, parentId);
+      if (!situationId) {
+        return NextResponse.json(
+          { error: "No situation found for this profile" },
+          { status: 404 }
+        );
+      }
+
+      log.info("No localStorage detections, falling back to DB pipeline", { situationId });
+
+      const briefing = await generateBriefingForSituation(situationId);
+      if (!briefing) {
+        return NextResponse.json(
+          {
+            error: "No relevant signals",
+            message: "No recent alerts found in the database. Run agents first via /monitoring.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Send briefing email (fire-and-forget)
+      if (auth.user.email) {
+        sendBriefingEmail(auth.user.email, {
+          elderName: briefing.parentName,
+          weekOf: briefing.weekOf,
+          urgentCount: briefing.urgentCount,
+          importantCount: briefing.importantCount,
+          signalCount: briefing.signalCount,
+          content: briefing.content,
+        }).catch(() => {});
+      }
+
+      return NextResponse.json({ success: true, briefing });
     }
 
     // Build situation context from the provided profile

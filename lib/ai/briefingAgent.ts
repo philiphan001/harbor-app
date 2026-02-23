@@ -1,12 +1,14 @@
 // Briefing Agent - Generates weekly care summaries from scored signals
 
 import Anthropic from "@anthropic-ai/sdk";
-import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
-import { ScoredSignal } from "./judgmentAgent";
+import { SituationContext, getSituationSummary, type SituationSummaryExtras } from "@/lib/types/situationContext";
+import { ScoredSignal, scoreMultipleSignals } from "./judgmentAgent";
 import { getMonday } from "@/lib/utils/dateUtils";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { AI_CONFIG, BRIEFING_PROMPT } from "@/lib/config/prompts";
 import { createLogger } from "@/lib/utils/logger";
+import { buildSituationContextFromDb } from "@/lib/db/domainData";
+import { getRecentAlertsForBriefing, alertsToDetections } from "@/lib/db/alerts";
 
 const log = createLogger("BriefingAgent");
 
@@ -26,9 +28,50 @@ export interface WeeklyBriefing {
   importantCount: number;
 }
 
+/**
+ * End-to-end briefing generation from a situationId.
+ * Builds rich context from DB, fetches recent alerts, scores them, and generates the briefing.
+ */
+export async function generateBriefingForSituation(
+  situationId: string
+): Promise<WeeklyBriefing | null> {
+  // 1. Build rich context from DB
+  const result = await buildSituationContextFromDb(situationId);
+  if (!result) {
+    log.warn("No context found for situation, skipping briefing", { situationId });
+    return null;
+  }
+
+  const { context, extras } = result;
+
+  // 2. Get recent alerts and convert to detections
+  const alerts = await getRecentAlertsForBriefing(situationId, 7, 30);
+  if (alerts.length === 0) {
+    log.info("No recent alerts for situation, skipping briefing", { situationId });
+    return null;
+  }
+
+  const detections = alertsToDetections(alerts);
+
+  // 3. Score all signals
+  const scoredSignals = await scoreMultipleSignals(detections, context);
+
+  // 4. Filter to relevant signals (score >= 50)
+  const relevantSignals = scoredSignals.filter((s) => s.relevanceScore >= 50);
+
+  if (relevantSignals.length === 0) {
+    log.info("No relevant signals after scoring, skipping briefing", { situationId });
+    return null;
+  }
+
+  // 5. Generate briefing with enriched summary
+  return generateWeeklyBriefing(context, relevantSignals, extras);
+}
+
 export async function generateWeeklyBriefing(
   context: SituationContext,
-  scoredSignals: ScoredSignal[]
+  scoredSignals: ScoredSignal[],
+  extras?: SituationSummaryExtras
 ): Promise<WeeklyBriefing> {
   try {
     // Filter and organize signals by score
@@ -78,7 +121,7 @@ export async function generateWeeklyBriefing(
       )
       .join("\n");
 
-    const situationSummary = getSituationSummary(context);
+    const situationSummary = getSituationSummary(context, extras);
 
     const prompt = `${situationSummary}
 

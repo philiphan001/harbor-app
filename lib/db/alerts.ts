@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
+import type { AgentDetection } from "@/lib/types/agents";
 
 const log = createLogger("db/alerts");
 
@@ -161,6 +162,70 @@ export async function alertExistsRecently(
     log.errorWithStack("Failed to check alert existence", error);
     return false;
   }
+}
+
+/**
+ * Get recent alerts for briefing generation.
+ */
+export async function getRecentAlertsForBriefing(
+  situationId: string,
+  days = 7,
+  limit = 30
+): Promise<AlertRecord[]> {
+  try {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const alerts = await prisma.alert.findMany({
+      where: {
+        situationId,
+        createdAt: { gte: since },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+
+    return alerts.map(parseAlertRecord);
+  } catch (error) {
+    log.errorWithStack("Failed to get recent alerts for briefing", error);
+    return [];
+  }
+}
+
+/**
+ * Convert AlertRecords to AgentDetection format for the briefing pipeline.
+ */
+export function alertsToDetections(alerts: AlertRecord[]): AgentDetection[] {
+  return alerts.map((alert) => {
+    // Map severity to relevanceScore
+    const severityToScore: Record<string, "high" | "medium" | "low"> = {
+      urgent: "high",
+      actionable: "medium",
+      informational: "low",
+    };
+
+    // Map domain string to valid AgentDetection domain
+    const validDomains = ["medical", "financial", "legal", "housing", "caregiving"] as const;
+    type ValidDomain = typeof validDomains[number];
+    const domain: ValidDomain = validDomains.includes(alert.domain as ValidDomain)
+      ? (alert.domain as ValidDomain)
+      : "medical";
+
+    return {
+      id: alert.id,
+      agentType: (alert.agentType ?? "news_monitor") as AgentDetection["agentType"],
+      runId: `alert-${alert.id}`,
+      detectedAt: alert.createdAt.toISOString(),
+      title: alert.title,
+      description: alert.message,
+      relevanceScore: severityToScore[alert.severity] ?? "low",
+      domain,
+      actionable: alert.severity === "urgent" || alert.severity === "actionable",
+      handled: alert.acknowledged,
+      sourceUrl: alert.sourceUrl,
+      dataSource: alert.dataSource,
+    };
+  });
 }
 
 // Parse extra fields from recommendedAction JSON

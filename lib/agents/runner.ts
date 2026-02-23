@@ -65,7 +65,7 @@ export async function runAllAgents(): Promise<RunAllResult> {
 
     // Process each situation
     for (const situation of situations) {
-      const state = extractState(situation.elderLocation);
+      const { state } = extractLocation(situation.elderLocation);
 
       // Fetch state-specific documents if we know the state
       let stateDocs: PolicyDocument[] = [];
@@ -226,11 +226,14 @@ async function processNewsItems(
 
 // --- Helpers ---
 
-function extractState(elderLocation: unknown): string | null {
-  if (!elderLocation || typeof elderLocation !== "object") return null;
+function extractLocation(elderLocation: unknown): { state: string | null; city: string | null; zip: string | null } {
+  if (!elderLocation || typeof elderLocation !== "object") return { state: null, city: null, zip: null };
   const loc = elderLocation as Record<string, unknown>;
-  if (typeof loc.state === "string") return loc.state;
-  return null;
+  return {
+    state: typeof loc.state === "string" ? loc.state : null,
+    city: typeof loc.city === "string" ? loc.city : null,
+    zip: typeof loc.zip === "string" ? loc.zip : null,
+  };
 }
 
 function getSeverityForDocType(

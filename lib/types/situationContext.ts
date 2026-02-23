@@ -19,6 +19,8 @@ export interface ParentProfile {
   age: number;
   dateOfBirth?: string;
   state: string;
+  city?: string;
+  zip?: string;
   livingArrangement?: "independent" | "with_family" | "assisted_living" | "nursing_home" | "other";
   phoneNumber?: string;
   email?: string;
@@ -276,11 +278,20 @@ export function createEmptySituationContext(parentId: string, name: string, age:
   };
 }
 
-export function getSituationSummary(context: SituationContext): string {
+export interface SituationSummaryExtras {
+  readinessScore?: number;
+  pendingTaskCount?: number;
+  overdueTasks?: string[];
+}
+
+export function getSituationSummary(
+  context: SituationContext,
+  extras?: SituationSummaryExtras
+): string {
   const { profile, medical, financial, legal, housing, caregiving } = context;
 
-  return `
-PARENT: ${profile.name}, age ${profile.age}, ${profile.state}
+  let summary = `
+PARENT: ${profile.name}, age ${profile.age}, ${profile.city ? `${profile.city}, ` : ""}${profile.state}
 LIVING: ${housing.currentType}${housing.facilityName ? ` (${housing.facilityName})` : ""}
 
 MEDICAL:
@@ -306,6 +317,19 @@ LEGAL:
 CAREGIVING:
 - Current Support: ${caregiving.currentSupport.length} services
 - Burnout Risk: ${caregiving.burnoutRisk}
-- Gaps: ${caregiving.gaps.length}
-  `.trim();
+- Gaps: ${caregiving.gaps.length}`;
+
+  if (extras) {
+    if (extras.readinessScore != null) {
+      summary += `\n\nREADINESS: ${extras.readinessScore}/100`;
+    }
+    if (extras.pendingTaskCount != null) {
+      summary += `\nPENDING TASKS: ${extras.pendingTaskCount}`;
+    }
+    if (extras.overdueTasks && extras.overdueTasks.length > 0) {
+      summary += `\nOVERDUE: ${extras.overdueTasks.join("; ")}`;
+    }
+  }
+
+  return summary.trim();
 }

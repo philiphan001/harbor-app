@@ -10,6 +10,8 @@ export interface ProfileInput {
   name: string;
   age?: number;
   state?: string;
+  city?: string;
+  zip?: string;
   livingArrangement?: string;
   healthStatus?: string;
   authUserId?: string; // Supabase auth user ID (when authenticated)
@@ -23,6 +25,8 @@ export interface ProfileRecord {
   name: string;
   age?: number;
   state?: string;
+  city?: string;
+  zip?: string;
   livingArrangement?: string;
   healthStatus?: string;
   lastUpdated: string;
@@ -75,7 +79,7 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
   });
 
   const elderLocation = input.state
-    ? { state: input.state }
+    ? { state: input.state, city: input.city, zip: input.zip }
     : undefined;
 
   let situation;
@@ -105,13 +109,17 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
 
   log.info("Profile upserted", { userId: user.id, situationId: situation.id });
 
+  const loc = situation.elderLocation as { state?: string; city?: string; zip?: string } | null;
+
   return {
     userId: user.id,
     situationId: situation.id,
     parentId: input.parentId,
     name: input.name,
     age: situation.elderAge ?? undefined,
-    state: (situation.elderLocation as { state?: string })?.state,
+    state: loc?.state,
+    city: loc?.city,
+    zip: loc?.zip,
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
@@ -138,13 +146,17 @@ export async function getProfile(parentId: string): Promise<ProfileRecord | null
 
   const situation = user.situations[0];
 
+  const loc = situation.elderLocation as { state?: string; city?: string; zip?: string } | null;
+
   return {
     userId: user.id,
     situationId: situation.id,
     parentId,
     name: situation.elderName,
     age: situation.elderAge ?? undefined,
-    state: (situation.elderLocation as { state?: string })?.state,
+    state: loc?.state,
+    city: loc?.city,
+    zip: loc?.zip,
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
@@ -166,17 +178,22 @@ export async function getProfilesForAuthUser(authUserId: string): Promise<Profil
 
   if (!user || user.situations.length === 0) return [];
 
-  return user.situations.map((situation) => ({
-    userId: user.id,
-    situationId: situation.id,
-    parentId: situation.elderName.toLowerCase().replace(/\s+/g, "-"),
-    name: situation.elderName,
-    age: situation.elderAge ?? undefined,
-    state: (situation.elderLocation as { state?: string })?.state,
-    livingArrangement: situation.currentLivingSituation ?? undefined,
-    healthStatus: situation.cognitiveStatus ?? undefined,
-    lastUpdated: situation.updatedAt.toISOString(),
-  }));
+  return user.situations.map((situation) => {
+    const loc = situation.elderLocation as { state?: string; city?: string; zip?: string } | null;
+    return {
+      userId: user.id,
+      situationId: situation.id,
+      parentId: situation.elderName.toLowerCase().replace(/\s+/g, "-"),
+      name: situation.elderName,
+      age: situation.elderAge ?? undefined,
+      state: loc?.state,
+      city: loc?.city,
+      zip: loc?.zip,
+      livingArrangement: situation.currentLivingSituation ?? undefined,
+      healthStatus: situation.cognitiveStatus ?? undefined,
+      lastUpdated: situation.updatedAt.toISOString(),
+    };
+  });
 }
 
 /**
@@ -200,13 +217,16 @@ export async function getAllProfiles(): Promise<ProfileRecord[]> {
     .map((u) => {
       const situation = u.situations[0];
       const parentId = u.email.replace("@harbor.local", "");
+      const loc = situation.elderLocation as { state?: string; city?: string; zip?: string } | null;
       return {
         userId: u.id,
         situationId: situation.id,
         parentId,
         name: situation.elderName,
         age: situation.elderAge ?? undefined,
-        state: (situation.elderLocation as { state?: string })?.state,
+        state: loc?.state,
+        city: loc?.city,
+        zip: loc?.zip,
         livingArrangement: situation.currentLivingSituation ?? undefined,
         healthStatus: situation.cognitiveStatus ?? undefined,
         lastUpdated: situation.updatedAt.toISOString(),

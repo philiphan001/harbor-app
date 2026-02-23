@@ -4,6 +4,11 @@
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
 import { getSituationId } from "./profiles";
+import {
+  type SituationContext,
+  type SituationSummaryExtras,
+  createEmptySituationContext,
+} from "@/lib/types/situationContext";
 
 const log = createLogger("db/domainData");
 
@@ -262,6 +267,219 @@ export interface SituationDomainData {
     exists: boolean;
     holder?: string | null;
   }>;
+}
+
+/**
+ * Build a full SituationContext from the database for a given situationId.
+ * Used by the briefing pipeline to replace the hollow createEmptySituationContext.
+ */
+export interface SituationContextWithExtras {
+  context: SituationContext;
+  extras: SituationSummaryExtras;
+}
+
+export async function buildSituationContextFromDb(
+  situationId: string
+): Promise<SituationContextWithExtras | null> {
+  const situation = await prisma.situation.findUnique({
+    where: { id: situationId },
+  });
+
+  if (!situation) {
+    log.warn("Situation not found", { situationId });
+    return null;
+  }
+
+  const loc = situation.elderLocation as { state?: string; city?: string; zip?: string } | null;
+
+  const context = createEmptySituationContext(
+    situation.elderName.toLowerCase().replace(/\s+/g, "-"),
+    situation.elderName,
+    situation.elderAge ?? 75,
+    loc?.state ?? "Unknown"
+  );
+
+  // Set city/zip
+  if (loc?.city) context.profile.city = loc.city;
+  if (loc?.zip) context.profile.zip = loc.zip;
+
+  // Set living arrangement
+  if (situation.currentLivingSituation) {
+    const validTypes = ["independent", "with_family", "assisted_living", "nursing_home", "other"] as const;
+    const matched = validTypes.find((t) => t === situation.currentLivingSituation);
+    if (matched) context.profile.livingArrangement = matched;
+  }
+
+  // Query domain data in parallel
+  const [providers, medications, conditions, financialProfile, legalDocuments, housing, pendingTasks, readinessHistory] =
+    await Promise.all([
+      prisma.provider.findMany({ where: { situationId } }),
+      prisma.medication.findMany({ where: { situationId } }),
+      prisma.medicalCondition.findMany({ where: { situationId } }),
+      prisma.financialProfile.findUnique({ where: { situationId } }),
+      prisma.legalDocument.findMany({ where: { situationId } }),
+      prisma.housingAssessment.findUnique({ where: { situationId } }),
+      prisma.task.findMany({
+        where: { situationId, status: { in: ["pending", "in_progress"] } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.readinessHistory.findMany({
+        where: { situationId },
+        orderBy: { recordedAt: "desc" },
+        take: 1,
+      }),
+    ]);
+
+  // --- Medical ---
+  if (providers.length > 0) {
+    const first = providers[0];
+    const contact = first.contactInfo as { phone?: string; address?: string } | null;
+    context.medical.primaryDoctor = {
+      name: first.name,
+      phone: contact?.phone ?? "",
+      address: contact?.address,
+      specialty: first.specialty ?? undefined,
+    };
+    context.medical.specialists = providers.slice(1).map((p) => {
+      const c = p.contactInfo as { phone?: string; address?: string } | null;
+      return {
+        name: p.name,
+        phone: c?.phone ?? "",
+        address: c?.address,
+        specialty: p.specialty ?? undefined,
+      };
+    });
+  }
+
+  context.medical.medications = medications.map((m) => ({
+    name: m.name,
+    dosage: m.dosage ?? "",
+    frequency: "",
+    purpose: m.purpose ?? undefined,
+    prescribingDoctor: m.prescriber ?? undefined,
+  }));
+
+  context.medical.conditions = conditions.map((c) => c.name);
+
+  // Insurance from financial profile
+  if (financialProfile?.insurancePolicies) {
+    const policies = financialProfile.insurancePolicies as Array<{
+      provider?: string;
+      policyNumber?: string;
+      groupNumber?: string;
+      phone?: string;
+    }>;
+    if (policies.length > 0) {
+      const p = policies[0];
+      context.medical.insurance = {
+        provider: p.provider ?? "",
+        policyNumber: p.policyNumber ?? "",
+        groupNumber: p.groupNumber,
+        phone: p.phone,
+        coverageType: "medicare",
+      };
+    }
+  }
+
+  // --- Financial ---
+  if (financialProfile) {
+    const income = financialProfile.incomeSources as Array<{ monthlyAmount?: number }> | null;
+    if (income && income.length > 0) {
+      context.financial.monthlyIncome = income.reduce(
+        (sum, s) => sum + (s.monthlyAmount ?? 0),
+        0
+      );
+    }
+    const assets = financialProfile.assets as { savings?: number; investments?: number; retirement?: number; homeEquity?: number; other?: number } | null;
+    if (assets) {
+      context.financial.assets =
+        (assets.savings ?? 0) + (assets.investments ?? 0) + (assets.retirement ?? 0) + (assets.other ?? 0);
+    }
+    if (financialProfile.projectedRunwayMonths != null) {
+      context.financial.spendDownProjection = {
+        monthsRemaining: financialProfile.projectedRunwayMonths,
+        projectedMedicaidDate: financialProfile.medicaidEligibleDate?.toISOString() ?? "",
+        currentBurnRate: financialProfile.projectedMonthlyGap ? Number(financialProfile.projectedMonthlyGap) : 0,
+        assumptions: "",
+      };
+    }
+  }
+
+  // --- Legal ---
+  for (const doc of legalDocuments) {
+    const mapped = {
+      documentType: doc.documentType,
+      status: (doc.status === "uploaded" || doc.status === "verified" ? "completed" : doc.status === "needs_update" ? "in_progress" : "not_started") as "completed" | "in_progress" | "not_started",
+      agent: doc.holder ?? undefined,
+      dateCompleted: doc.dateExecuted?.toISOString(),
+      notes: doc.notes ?? undefined,
+    };
+
+    switch (doc.documentType) {
+      case "healthcare_proxy":
+        context.legal.healthcareProxy = mapped;
+        break;
+      case "poa":
+        context.legal.powerOfAttorney = mapped;
+        break;
+      case "will":
+        context.legal.will = mapped;
+        break;
+      case "dnr":
+        context.legal.advanceDirective = mapped;
+        break;
+      default:
+        context.legal.other.push(mapped);
+    }
+  }
+
+  // --- Housing ---
+  if (housing) {
+    const validTypes = ["independent", "with_family", "assisted_living", "nursing_home", "continuing_care"] as const;
+    const hType = validTypes.find((t) => t === housing.homeType);
+    if (hType) context.housing.currentType = hType;
+
+    const safetyItems = housing.safetyItems as Record<string, boolean> | null;
+    if (safetyItems) {
+      context.housing.safetyIssues = Object.entries(safetyItems)
+        .filter(([, v]) => v === false)
+        .map(([k]) => k);
+    }
+    if (housing.modificationItems.length > 0) {
+      context.housing.modifications = housing.modificationItems;
+    }
+    context.housing.accessibilityNeeds = housing.riskLevel === "high" || housing.riskLevel === "critical"
+      ? ["High risk - assessment needed"]
+      : [];
+  }
+
+  // --- Caregiving gaps from pending tasks ---
+  if (pendingTasks.length > 0) {
+    context.caregiving.gaps = pendingTasks
+      .filter((t) => t.priority === "high" || t.priority === "urgent")
+      .map((t) => t.title);
+  }
+
+  context.lastUpdated = situation.updatedAt.toISOString();
+
+  // Build extras for enriched summary
+  const extras: SituationSummaryExtras = {};
+
+  if (readinessHistory.length > 0) {
+    extras.readinessScore = readinessHistory[0].score;
+  }
+
+  extras.pendingTaskCount = pendingTasks.length;
+
+  const overdue = pendingTasks.filter(
+    (t) => t.dueDate && t.dueDate < new Date()
+  );
+  if (overdue.length > 0) {
+    extras.overdueTasks = overdue.map((t) => t.title);
+  }
+
+  return { context, extras };
 }
 
 export async function getDomainData(parentId: string): Promise<SituationDomainData | null> {
