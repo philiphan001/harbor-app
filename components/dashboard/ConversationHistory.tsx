@@ -68,7 +68,7 @@ export default function ConversationHistory() {
       <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
         Recent Conversations
       </div>
-      <div className="space-y-2">
+      <div className="flex flex-col gap-3">
         {conversations.slice(0, 5).map((conv) => {
           const lastMessage = conv.messages[0];
           const preview = lastMessage
@@ -81,7 +81,7 @@ export default function ConversationHistory() {
               : `/crisis?conversationId=${conv.id}`;
 
           return (
-            <Link key={conv.id} href={resumeUrl}>
+            <Link key={conv.id} href={resumeUrl} className="block">
               <div className="w-full bg-white border border-sandDark rounded-xl px-4 py-3 cursor-pointer hover:border-ocean/40 transition-colors">
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-sans text-xs font-semibold text-ocean">

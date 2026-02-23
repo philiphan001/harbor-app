@@ -352,8 +352,8 @@ export default function DashboardPage() {
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
             Quick Actions
           </div>
-          <div className="space-y-2.5">
-            <Link href="/crisis?new=1">
+          <div className="flex flex-col gap-3">
+            <Link href="/crisis?new=1" className="block">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🚨</div>
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-            <Link href="/readiness">
+            <Link href="/readiness" className="block">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-ocean/15 rounded-lg flex items-center justify-center text-ocean text-sm">✓</div>
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-            <Link href="/monitoring">
+            <Link href="/monitoring" className="block">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">🤖</div>
