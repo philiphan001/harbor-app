@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
 import { getTasks, hydrateTasksFromDb } from "@/lib/utils/taskStorage";
@@ -19,25 +18,22 @@ import { deleteBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
 import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
-import { buildCareSummary, buildDomainStatuses, type CareSummaryData, type DomainStatus } from "@/lib/utils/careSummary";
+import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
-import CareSummaryCard from "@/components/dashboard/CareSummaryCard";
 import DomainStatusTiles from "@/components/dashboard/DomainStatusTiles";
 import ConversationHistory from "@/components/dashboard/ConversationHistory";
 import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [allProfiles, setAllProfiles] = useState<ParentProfile[]>([]);
   const [showParentSwitcher, setShowParentSwitcher] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
-  const [careSummary, setCareSummary] = useState<CareSummaryData | null>(null);
   const [domainStatuses, setDomainStatuses] = useState<DomainStatus[]>([]);
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
@@ -65,7 +61,6 @@ export default function DashboardPage() {
     const storedTasks = getTasks();
     const readinessScore = calculateReadinessScore();
 
-    const summary = buildCareSummary();
     const taskData = getAllTaskData();
     const domains = buildDomainStatuses(taskData);
 
@@ -73,7 +68,6 @@ export default function DashboardPage() {
     setParentProfile(profile);
     setAllProfiles(profiles);
     setReadiness(readinessScore);
-    setCareSummary(summary);
     setDomainStatuses(domains);
 
     if (profile?.id) {
@@ -202,8 +196,53 @@ export default function DashboardPage() {
           </Link>
         )}
 
-        {/* Care Summary Card — always visible, evolves as data fills in */}
-        {careSummary && <CareSummaryCard summary={careSummary} />}
+        {/* Weekly Briefing — promoted to top as the reason to come back */}
+        <Link href="/briefing" className="block mb-5">
+          <div className="bg-white border-2 border-ocean rounded-[14px] overflow-hidden cursor-pointer hover:scale-[1.01] transition-transform">
+            <div className="px-5 py-3 bg-ocean/5 border-b border-sandDark flex items-center justify-between">
+              <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean">
+                This Week&apos;s Briefing
+              </div>
+              <div className="text-ocean text-sm">&rarr;</div>
+            </div>
+            <div className="px-5 py-4">
+              {latestBriefing ? (
+                <div>
+                  <div className="flex items-center gap-4 mb-2">
+                    {latestBriefing.urgentCount > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-coral rounded-full" />
+                        <span className="font-sans text-sm text-coral font-semibold">{latestBriefing.urgentCount} urgent</span>
+                      </div>
+                    )}
+                    {latestBriefing.importantCount > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-amber rounded-full" />
+                        <span className="font-sans text-sm text-slateMid">{latestBriefing.importantCount} important</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 bg-ocean rounded-full" />
+                      <span className="font-sans text-sm text-slateMid">{latestBriefing.signalCount} signals</span>
+                    </div>
+                  </div>
+                  <div className="font-sans text-xs text-slateMid">
+                    Tap to read your personalized care update
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="font-sans text-sm text-slate mb-1">
+                    Your weekly care update will appear here
+                  </div>
+                  <div className="font-sans text-xs text-slateMid">
+                    Briefings are generated based on your parent&apos;s situation and any new developments
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Link>
 
         {/* Readiness Score */}
         {readiness && readiness.overall > 0 && <ReadinessCard readiness={readiness} />}
@@ -225,75 +264,35 @@ export default function DashboardPage() {
         {/* Domain Status Tiles */}
         {domainStatuses.length > 0 && <DomainStatusTiles statuses={domainStatuses} />}
 
-        {/* --- Action Items + Briefing --- */}
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-          Action Items &amp; Briefing
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
-          {/* Tasks Card */}
-          <Link href="/tasks" className="block">
-            <div className="bg-white border-2 border-ocean rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold mb-3">
-                {tasks.length}
-              </div>
-              <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-1">
-                Action Items
-              </div>
-              {tasks.length > 0 ? (
-                <div className="font-sans text-[11px] text-slateMid leading-relaxed">
-                  {urgentTasks.length > 0 && <span className="text-coral font-semibold">{urgentTasks.length} urgent</span>}
-                  {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
-                  {otherTasks.length > 0 && `${otherTasks.length} more`}
+        {/* Action Items */}
+        <Link href="/tasks" className="block mb-5">
+          <div className="bg-white border-2 border-ocean rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold">
+                  {tasks.length}
                 </div>
-              ) : (
-                <div className="font-sans text-[11px] text-sage">All caught up</div>
-              )}
+                <div>
+                  <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-0.5">
+                    Action Items
+                  </div>
+                  {tasks.length > 0 ? (
+                    <div className="font-sans text-[11px] text-slateMid leading-relaxed">
+                      {urgentTasks.length > 0 && <span className="text-coral font-semibold">{urgentTasks.length} urgent</span>}
+                      {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
+                      {otherTasks.length > 0 && `${otherTasks.length} more`}
+                    </div>
+                  ) : (
+                    <div className="font-sans text-[11px] text-sage">All caught up</div>
+                  )}
+                </div>
+              </div>
+              <div className="text-ocean text-sm">&rarr;</div>
             </div>
-          </Link>
-
-          {/* Briefing Card */}
-          <Link href="/briefing" className="block">
-            <div className="bg-white border-2 border-ocean/50 rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-10 h-10 bg-ocean/80 rounded-xl flex items-center justify-center text-white text-lg mb-3">
-                📊
-              </div>
-              <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-1">
-                Briefing
-              </div>
-              {latestBriefing ? (
-                <div className="font-sans text-[11px] text-slateMid leading-relaxed">
-                  {latestBriefing.urgentCount > 0 && <span className="text-coral font-semibold">{latestBriefing.urgentCount} urgent</span>}
-                  {latestBriefing.urgentCount > 0 && " · "}
-                  {latestBriefing.signalCount} signals
-                </div>
-              ) : (
-                <div className="font-sans text-[11px] text-slateMid">This week&apos;s update</div>
-              )}
-            </div>
-          </Link>
-        </div>
-
-        {/* Urgent tasks preview */}
-        {urgentTasks.length > 0 && (
-          <div className="mb-5 bg-coral/5 border border-coral/20 rounded-xl px-4 py-3">
-            {urgentTasks.slice(0, 3).map((task, index) => (
-              <div key={index} className={`flex items-start gap-2 py-2 ${index > 0 ? "border-t border-coral/10" : ""}`}>
-                <div className="w-1.5 h-1.5 bg-coral rounded-full mt-1.5 shrink-0" />
-                <div className="font-sans text-sm text-slate leading-snug">{task.title}</div>
-              </div>
-            ))}
-            {urgentTasks.length > 3 && (
-              <Link href="/tasks" className="block pt-2 border-t border-coral/10">
-                <div className="font-sans text-xs text-coral font-medium">
-                  +{urgentTasks.length - 3} more urgent &rarr;
-                </div>
-              </Link>
-            )}
           </div>
-        )}
+        </Link>
 
-        {/* --- Care Hub: Documents + Info --- */}
+        {/* --- Care Hub --- */}
         <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
           Care Hub
         </div>
@@ -348,17 +347,17 @@ export default function DashboardPage() {
         {/* Recent Conversations */}
         <ConversationHistory />
 
-        {/* Quick Actions */}
+        {/* Quick Actions — only items not linked elsewhere */}
         <div className="mt-2">
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
             Quick Actions
           </div>
           <div className="space-y-2.5">
-            <Link href="/tasks">
+            <Link href="/crisis?new=1">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-ocean/15 rounded-lg flex items-center justify-center text-ocean text-sm">📋</div>
-                  <div className="font-sans text-sm text-slate">View all action items</div>
+                  <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🚨</div>
+                  <div className="font-sans text-sm text-slate">Report a new crisis event</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -372,29 +371,11 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-            <Link href="/crisis?new=1">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🚨</div>
-                  <div className="font-sans text-sm text-slate">Report a new crisis event</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
             <Link href="/monitoring">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">🤖</div>
                   <div className="font-sans text-sm text-slate">View agent activity</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
-            <Link href="/export">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-ocean/15 rounded-lg flex items-center justify-center text-ocean text-sm">📤</div>
-                  <div className="font-sans text-sm text-slate">Export &amp; share care summary</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
