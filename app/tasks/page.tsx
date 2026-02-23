@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
-import { getTasks, completeTask, getCompletedTasks } from "@/lib/utils/taskStorage";
+import { getTasks, completeTask, getCompletedTasks, clearTasksForActiveParent } from "@/lib/utils/taskStorage";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import TaskDetail from "@/components/TaskDetail";
 import { DOMAIN_COLORS, DOMAIN_ICONS, type ExtendedDomain } from "@/lib/constants/domains";
@@ -59,8 +59,7 @@ export default function TasksPage() {
   };
 
   const handleClearAll = () => {
-    // Clear all tasks
-    localStorage.removeItem("harbor_tasks");
+    clearTasksForActiveParent();
     setTasks([]);
     setShowClearConfirm(false);
   };
@@ -189,7 +188,7 @@ export default function TasksPage() {
             {/* Collapsible Task Categories */}
             {highPriorityTasks.length > 0 && (
               <TaskCategory
-                label="Start Here — Next 24-48 Hours"
+                label="High Priority"
                 icon="🎯"
                 dotColor="bg-coral"
                 countColor="text-coral"
@@ -203,7 +202,7 @@ export default function TasksPage() {
 
             {mediumPriorityTasks.length > 0 && (
               <TaskCategory
-                label="Important — This Week When You Can"
+                label="Medium Priority"
                 icon="📋"
                 dotColor="bg-amber"
                 countColor="text-amber"
@@ -217,7 +216,7 @@ export default function TasksPage() {
 
             {lowPriorityTasks.length > 0 && (
               <TaskCategory
-                label="When Things Settle — Next 2-4 Weeks"
+                label="Low Priority"
                 icon="📌"
                 dotColor="bg-sage"
                 countColor="text-sage"

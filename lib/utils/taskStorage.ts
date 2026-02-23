@@ -134,11 +134,25 @@ export function addTask(task: Task): void {
   saveTasks(allTasks);
 }
 
-// Add multiple tasks (associates with active parent)
+// Add multiple tasks (associates with active parent, deduplicates by title)
 export function addTasks(newTasks: Task[]): void {
   const activeParentId = getActiveParentId();
   const allTasks = getAllTasks();
-  const tasksWithParent: TaskWithParent[] = newTasks.map((task) => ({
+
+  // Build a set of existing titles for this parent to deduplicate
+  const existingTitles = new Set(
+    allTasks
+      .filter((t) => t.parentId === activeParentId || !t.parentId)
+      .map((t) => t.title.toLowerCase().trim())
+  );
+
+  const uniqueNewTasks = newTasks.filter(
+    (task) => !existingTitles.has(task.title.toLowerCase().trim())
+  );
+
+  if (uniqueNewTasks.length === 0) return;
+
+  const tasksWithParent: TaskWithParent[] = uniqueNewTasks.map((task) => ({
     ...task,
     parentId: activeParentId || undefined
   }));
@@ -146,7 +160,7 @@ export function addTasks(newTasks: Task[]): void {
   saveTasks(allTasks);
 
   // Write-through to Supabase
-  if (activeParentId) syncTasksToDb(activeParentId, newTasks);
+  if (activeParentId) syncTasksToDb(activeParentId, uniqueNewTasks);
 }
 
 // Mark a task as completed (keeps it in storage with completedAt timestamp)
