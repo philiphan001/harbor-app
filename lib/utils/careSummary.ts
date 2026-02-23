@@ -131,24 +131,69 @@ export function buildCareSummary(): CareSummaryData | null {
 export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
   const statuses: DomainStatus[] = [];
 
+  // Get tasks to factor into domain status
+  const allTasks = getTasks();
+  const completed = getCompletedTasks();
+  const tasksByDomain = (domain: string) => {
+    // Tasks use "family" and "caregiving" — map them to the dashboard domains
+    const domainAliases: Record<string, string[]> = {
+      social: ["social", "family"],
+      housing: ["housing"],
+      medical: ["medical", "caregiving"],
+      legal: ["legal"],
+      financial: ["financial"],
+      transportation: ["transportation"],
+    };
+    const aliases = domainAliases[domain] || [domain];
+    const pending = allTasks.filter(t => aliases.includes(t.domain));
+    const done = completed.filter(t => aliases.includes(t.domain));
+    return { pending: pending.length, completed: done.length, total: pending.length + done.length };
+  };
+
+  // Helper: determine status and summary combining captured data and tasks
+  function domainStatusFromSignals(
+    domain: string,
+    capturedCount: number,
+    capturedThreshold: number,
+    capturedLabel: string,
+    capturedItems: string[],
+  ): Pick<DomainStatus, "status" | "summary" | "items"> {
+    const tasks = tasksByDomain(domain);
+    const items = [...capturedItems];
+
+    if (tasks.total > 0) {
+      if (tasks.completed > 0) items.push(`${tasks.completed} task${tasks.completed !== 1 ? "s" : ""} done`);
+      if (tasks.pending > 0) items.push(`${tasks.pending} pending`);
+    }
+
+    // Has captured data at threshold → good
+    if (capturedCount >= capturedThreshold) {
+      return { status: "good", summary: capturedLabel, items };
+    }
+    // Has some captured data or has tasks → partial
+    if (capturedCount >= 1 || tasks.total > 0) {
+      const summary = tasks.total > 0 && capturedCount === 0
+        ? `${tasks.total} task${tasks.total !== 1 ? "s" : ""} tracked`
+        : capturedCount >= 1
+          ? `${capturedThreshold - capturedCount} items needed`
+          : "Not started";
+      return { status: "partial", summary, items };
+    }
+    return { status: "missing", summary: "Not started", items };
+  }
+
   // Medical
   const hasDoctorInfo = taskData.some(d => d.toolName === "save_doctor_info");
   const hasMeds = taskData.some(d => d.toolName === "save_medication_list");
   const hasInsurance = taskData.some(d => d.toolName === "save_insurance_info");
-  const medicalItems: string[] = [];
-  if (hasDoctorInfo) medicalItems.push("Primary doctor");
-  if (hasMeds) medicalItems.push("Medications");
-  if (hasInsurance) medicalItems.push("Insurance");
+  const medicalCapturedItems: string[] = [];
+  if (hasDoctorInfo) medicalCapturedItems.push("Primary doctor");
+  if (hasMeds) medicalCapturedItems.push("Medications");
+  if (hasInsurance) medicalCapturedItems.push("Insurance");
   const medicalCount = [hasDoctorInfo, hasMeds, hasInsurance].filter(Boolean).length;
+  const medical = domainStatusFromSignals("medical", medicalCount, 3, "Core info captured", medicalCapturedItems);
 
-  statuses.push({
-    domain: "medical",
-    label: "Medical",
-    icon: "🏥",
-    status: medicalCount >= 3 ? "good" : medicalCount >= 1 ? "partial" : "missing",
-    summary: medicalCount >= 3 ? "Core info captured" : medicalCount >= 1 ? `${3 - medicalCount} items needed` : "Not started",
-    items: medicalItems,
-  });
+  statuses.push({ domain: "medical", label: "Medical", icon: "🏥", ...medical });
 
   // Legal
   const hasLegal = taskData.some(d => d.toolName === "save_legal_document_info");
@@ -156,35 +201,22 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
     (d.taskTitle.toLowerCase().includes("poa") || d.taskTitle.toLowerCase().includes("will") || d.taskTitle.toLowerCase().includes("proxy") || d.taskTitle.toLowerCase().includes("attorney"))
   );
-  const legalItems: string[] = [];
-  if (hasLegal) legalItems.push("Legal documents");
-  if (legalNotes.length > 0) legalItems.push("Legal notes");
-  const legalCount = hasLegal ? 1 : 0;
+  const legalCapturedItems: string[] = [];
+  if (hasLegal) legalCapturedItems.push("Legal documents");
+  if (legalNotes.length > 0) legalCapturedItems.push("Legal notes");
+  const legalCapturedCount = (hasLegal ? 1 : 0) + (legalNotes.length > 0 ? 1 : 0);
+  const legal = domainStatusFromSignals("legal", legalCapturedCount, 1, "Documents recorded", legalCapturedItems);
 
-  statuses.push({
-    domain: "legal",
-    label: "Legal",
-    icon: "⚖️",
-    status: legalCount >= 1 || legalNotes.length > 0 ? (hasLegal ? "good" : "partial") : "missing",
-    summary: hasLegal ? "Documents recorded" : legalNotes.length > 0 ? "Notes captured" : "Not started",
-    items: legalItems,
-  });
+  statuses.push({ domain: "legal", label: "Legal", icon: "⚖️", ...legal });
 
   // Financial
   const financialNotes = taskData.filter(d =>
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
     (d.taskTitle.toLowerCase().includes("bank") || d.taskTitle.toLowerCase().includes("income") || d.taskTitle.toLowerCase().includes("financial") || d.taskTitle.toLowerCase().includes("bill"))
   );
-  const financialItems = financialNotes.map(d => d.taskTitle);
+  const financial = domainStatusFromSignals("financial", financialNotes.length, 2, "Key info captured", financialNotes.map(d => d.taskTitle));
 
-  statuses.push({
-    domain: "financial",
-    label: "Financial",
-    icon: "💰",
-    status: financialNotes.length >= 2 ? "good" : financialNotes.length >= 1 ? "partial" : "missing",
-    summary: financialNotes.length >= 2 ? "Key info captured" : financialNotes.length >= 1 ? "Some info captured" : "Not started",
-    items: financialItems,
-  });
+  statuses.push({ domain: "financial", label: "Financial", icon: "💰", ...financial });
 
   // Housing
   const profile = getParentProfile();
@@ -192,50 +224,31 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
     (d.taskTitle.toLowerCase().includes("housing") || d.taskTitle.toLowerCase().includes("home") || d.taskTitle.toLowerCase().includes("living") || d.taskTitle.toLowerCase().includes("emergency contact"))
   );
-  const housingItems: string[] = [];
-  if (profile?.livingArrangement) housingItems.push("Living arrangement");
-  housingItems.push(...housingNotes.map(d => d.taskTitle));
+  const housingCapturedItems: string[] = [];
+  if (profile?.livingArrangement) housingCapturedItems.push("Living arrangement");
+  housingCapturedItems.push(...housingNotes.map(d => d.taskTitle));
+  const housingCapturedCount = (profile?.livingArrangement ? 1 : 0) + housingNotes.length;
+  const housing = domainStatusFromSignals("housing", housingCapturedCount, 2, "Living situation known", housingCapturedItems);
 
-  statuses.push({
-    domain: "housing",
-    label: "Housing",
-    icon: "🏠",
-    status: (profile?.livingArrangement || housingNotes.length > 0) ? (housingNotes.length >= 1 && profile?.livingArrangement ? "good" : "partial") : "missing",
-    summary: profile?.livingArrangement ? "Living situation known" : housingNotes.length > 0 ? "Some info captured" : "Not started",
-    items: housingItems,
-  });
+  statuses.push({ domain: "housing", label: "Housing", icon: "🏠", ...housing });
 
   // Transportation
   const transportNotes = taskData.filter(d =>
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
     (d.taskTitle.toLowerCase().includes("transport") || d.taskTitle.toLowerCase().includes("ride") || d.taskTitle.toLowerCase().includes("driving") || d.taskTitle.toLowerCase().includes("delivery"))
   );
-  const transportItems = transportNotes.map(d => d.taskTitle);
+  const transport = domainStatusFromSignals("transportation", transportNotes.length, 2, "Transport plan captured", transportNotes.map(d => d.taskTitle));
 
-  statuses.push({
-    domain: "transportation",
-    label: "Transportation",
-    icon: "🚗",
-    status: transportNotes.length >= 2 ? "good" : transportNotes.length >= 1 ? "partial" : "missing",
-    summary: transportNotes.length >= 2 ? "Transport plan captured" : transportNotes.length >= 1 ? "Some info captured" : "Not started",
-    items: transportItems,
-  });
+  statuses.push({ domain: "transportation", label: "Transportation", icon: "🚗", ...transport });
 
   // Social
   const socialNotes = taskData.filter(d =>
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
     (d.taskTitle.toLowerCase().includes("social") || d.taskTitle.toLowerCase().includes("friend") || d.taskTitle.toLowerCase().includes("neighbor") || d.taskTitle.toLowerCase().includes("community"))
   );
-  const socialItems = socialNotes.map(d => d.taskTitle);
+  const social = domainStatusFromSignals("social", socialNotes.length, 2, "Social network captured", socialNotes.map(d => d.taskTitle));
 
-  statuses.push({
-    domain: "social",
-    label: "Social",
-    icon: "👥",
-    status: socialNotes.length >= 2 ? "good" : socialNotes.length >= 1 ? "partial" : "missing",
-    summary: socialNotes.length >= 2 ? "Social network captured" : socialNotes.length >= 1 ? "Some info captured" : "Not started",
-    items: socialItems,
-  });
+  statuses.push({ domain: "social", label: "Social", icon: "👥", ...social });
 
   return statuses;
 }
