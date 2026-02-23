@@ -4,15 +4,29 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile, getActiveParentId, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllTaskData, hydrateTaskDataFromDb, TaskData } from "@/lib/utils/taskData";
+import { getTasks, getCompletedTasks } from "@/lib/utils/taskStorage";
+import type { Task } from "@/lib/ai/claude";
+import { PRIORITY_COLORS, PRIORITY_LABELS, type ExtendedDomain } from "@/lib/constants/domains";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
 
 export default function ProfilePage() {
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [taskData, setTaskData] = useState<TaskData[]>([]);
+  const [domainTasks, setDomainTasks] = useState<Record<string, Task[]>>({});
 
   useEffect(() => {
     setParentProfile(getParentProfile());
     setTaskData(getAllTaskData());
+
+    // Group tasks (pending + completed) by domain
+    const allTasks = [...getTasks(), ...getCompletedTasks()];
+    const grouped = allTasks.reduce((acc, task) => {
+      const domain = mapTaskDomainToCoreDomain(task.domain);
+      if (!acc[domain]) acc[domain] = [];
+      acc[domain].push(task);
+      return acc;
+    }, {} as Record<string, Task[]>);
+    setDomainTasks(grouped);
 
     // Hydrate from DB if available (merges into localStorage, then re-read)
     const parentId = getActiveParentId();
@@ -74,15 +88,15 @@ export default function ProfilePage() {
       </div>
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
-        {taskData.length === 0 ? (
-          // Empty state
+        {taskData.length === 0 && Object.keys(domainTasks).length === 0 ? (
+          // Empty state — no captured data and no tasks
           <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
             <div className="text-5xl mb-4">📋</div>
             <div className="font-serif text-xl font-semibold text-slate mb-2">
               No information yet
             </div>
             <div className="font-sans text-sm text-slateMid leading-relaxed mb-6">
-              As you complete tasks and add information through "Tell Harbor,"
+              As you complete tasks and add information through &ldquo;Tell Harbor,&rdquo;
               everything will be organized here.
             </div>
             <Link href="/tasks">
@@ -93,45 +107,68 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
-            {/* Medical Information */}
-            {groupedData.medical && groupedData.medical.length > 0 && (
-              <Section
-                title="Medical Information"
-                icon="♥"
-                color="#D4725C"
-                items={groupedData.medical}
-              />
-            )}
+            {/* Medical */}
+            <DomainSection
+              title="Medical"
+              icon="♥"
+              color="#D4725C"
+              capturedData={groupedData.medical}
+              tasks={[...(domainTasks.medical || []), ...(domainTasks.caregiving || [])]}
+            />
 
-            {/* Legal Information */}
-            {groupedData.legal && groupedData.legal.length > 0 && (
-              <Section
-                title="Legal Documents"
-                icon="◉"
-                color="#6B8F71"
-                items={groupedData.legal}
-              />
-            )}
+            {/* Legal */}
+            <DomainSection
+              title="Legal"
+              icon="◉"
+              color="#6B8F71"
+              capturedData={groupedData.legal}
+              tasks={domainTasks.legal}
+            />
 
-            {/* Financial Information */}
-            {groupedData.financial && groupedData.financial.length > 0 && (
-              <Section
-                title="Financial Information"
-                icon="◈"
-                color="#1B6B7D"
-                items={groupedData.financial}
-              />
-            )}
+            {/* Financial */}
+            <DomainSection
+              title="Financial"
+              icon="◈"
+              color="#1B6B7D"
+              capturedData={groupedData.financial}
+              tasks={domainTasks.financial}
+            />
 
-            {/* Other Information */}
-            {groupedData.other && groupedData.other.length > 0 && (
-              <Section
-                title="Other Information"
-                icon="📝"
-                color="#4A6274"
-                items={groupedData.other}
-              />
-            )}
+            {/* Housing */}
+            <DomainSection
+              title="Housing"
+              icon="⌂"
+              color="#C4943A"
+              capturedData={groupedData.housing}
+              tasks={domainTasks.housing}
+            />
+
+            {/* Transportation */}
+            <DomainSection
+              title="Transportation"
+              icon="✈"
+              color="#7B68A8"
+              capturedData={groupedData.transportation}
+              tasks={domainTasks.transportation}
+            />
+
+            {/* Social */}
+            <DomainSection
+              title="Social"
+              icon="♦"
+              color="#5B8FA8"
+              capturedData={groupedData.social}
+              tasks={[...(domainTasks.social || []), ...(domainTasks.family || [])]}
+            />
+
+            {/* General / Other */}
+            <DomainSection
+              title="Other"
+              icon="●"
+              color="#4A6274"
+              capturedData={groupedData.other}
+              tasks={domainTasks.general}
+            />
           </>
         )}
       </div>
@@ -139,19 +176,36 @@ export default function ProfilePage() {
   );
 }
 
-function Section({
+function mapTaskDomainToCoreDomain(domain: ExtendedDomain): string {
+  if (domain === "family") return "social";
+  if (domain === "caregiving") return "medical";
+  return domain;
+}
+
+function DomainSection({
   title,
   icon,
   color,
-  items,
+  capturedData,
+  tasks,
 }: {
   title: string;
   icon: string;
   color: string;
-  items: TaskData[];
+  capturedData?: TaskData[];
+  tasks?: Task[];
 }) {
+  const hasCaptured = capturedData && capturedData.length > 0;
+  const hasTasks = tasks && tasks.length > 0;
+
+  // Skip domains with nothing to show
+  if (!hasCaptured && !hasTasks) return null;
+
+  const pendingTasks = tasks?.filter(t => !t.completedAt) || [];
+  const completedTasks = tasks?.filter(t => t.completedAt) || [];
+
   return (
-    <div className="mb-6">
+    <div style={{ marginBottom: "1.5rem" }}>
       <div className="flex items-center gap-2 mb-3">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center text-lg"
@@ -165,11 +219,104 @@ function Section({
         <div className="font-sans text-lg font-semibold text-slate">{title}</div>
       </div>
 
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <DataCard key={index} data={item} color={color} />
-        ))}
-      </div>
+      {/* Captured data */}
+      {hasCaptured && (
+        <div className="space-y-3">
+          {capturedData.map((item, index) => (
+            <DataCard key={index} data={item} color={color} />
+          ))}
+        </div>
+      )}
+
+      {/* Tasks */}
+      {hasTasks && (
+        <div style={{ marginTop: hasCaptured ? "0.75rem" : "0" }}>
+          {pendingTasks.length > 0 && (
+            <div>
+              <div className="font-sans text-[11px] font-semibold tracking-[1px] uppercase text-slateMid" style={{ marginBottom: "0.5rem" }}>
+                Pending ({pendingTasks.length})
+              </div>
+              <div className="space-y-2">
+                {pendingTasks.map((task, i) => (
+                  <TaskCard key={`p-${i}`} task={task} color={color} />
+                ))}
+              </div>
+            </div>
+          )}
+          {completedTasks.length > 0 && (
+            <div style={{ marginTop: pendingTasks.length > 0 ? "0.75rem" : "0" }}>
+              <div className="font-sans text-[11px] font-semibold tracking-[1px] uppercase text-slateMid" style={{ marginBottom: "0.5rem" }}>
+                Completed ({completedTasks.length})
+              </div>
+              <div className="space-y-2">
+                {completedTasks.map((task, i) => (
+                  <TaskCard key={`c-${i}`} task={task} color={color} completed />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TaskCard({ task, color, completed = false }: { task: Task; color: string; completed?: boolean }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div
+      className="bg-white rounded-xl border border-sandDark overflow-hidden"
+      style={{ opacity: completed ? 0.7 : 1 }}
+    >
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 text-left hover:bg-sand/30 transition-colors"
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: completed ? "#6B8F71" : PRIORITY_COLORS[task.priority], marginTop: "0.4rem" }}
+          />
+          <div className="flex-1 min-w-0">
+            <div className={`font-sans text-sm font-medium text-slate ${completed ? "line-through" : ""}`}>
+              {task.title}
+            </div>
+            <div className="font-sans text-[11px] text-slateMid">
+              {completed ? "Completed" : PRIORITY_LABELS[task.priority]}
+            </div>
+          </div>
+          <div
+            className="text-xs text-slateMid transition-transform flex-shrink-0"
+            style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            ▼
+          </div>
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="px-4 pb-3 border-t border-sand">
+          <div className="mt-2 font-sans text-sm text-slateMid leading-relaxed">
+            {task.why}
+          </div>
+          {task.suggestedActions.length > 0 && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <div className="font-sans text-[11px] font-semibold text-slateMid uppercase tracking-wide" style={{ marginBottom: "0.25rem" }}>
+                Suggested actions
+              </div>
+              <ul className="space-y-1">
+                {task.suggestedActions.map((action, i) => (
+                  <li key={i} className="font-sans text-sm text-slate flex items-start gap-2">
+                    <span className="text-slateMid">·</span>
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
