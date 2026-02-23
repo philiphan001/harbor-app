@@ -348,7 +348,7 @@ export default function DashboardPage() {
         <ConversationHistory />
 
         {/* Quick Actions — only items not linked elsewhere */}
-        <div className="mt-2">
+        <div style={{ marginTop: "1.25rem" }}>
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
             Quick Actions
           </div>

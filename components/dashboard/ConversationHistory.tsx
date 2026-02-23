@@ -64,7 +64,7 @@ export default function ConversationHistory() {
   if (conversations.length === 0) return null;
 
   return (
-    <div className="mb-6">
+    <div style={{ marginTop: "1.25rem", marginBottom: "1.25rem" }}>
       <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
         Recent Conversations
       </div>
