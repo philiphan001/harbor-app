@@ -48,7 +48,6 @@ const COMPLETION_CHECKLIST = [
 
 export default function AdvanceDirectivePage() {
   const [stateCode, setStateCode] = useState<string>("");
-  const [stateInfo, setStateInfo] = useState<StateFormInfo | null>(null);
   const [exportData, setExportData] = useState<ExportData | null>(null);
   const [parentName, setParentName] = useState("");
   const [parentAge, setParentAge] = useState<number | undefined>();
@@ -68,13 +67,7 @@ export default function AdvanceDirectivePage() {
     if (data) setExportData(data);
   }, []);
 
-  useEffect(() => {
-    if (stateCode) {
-      setStateInfo(getStateFormInfo(stateCode) || null);
-    } else {
-      setStateInfo(null);
-    }
-  }, [stateCode]);
+  const stateInfo = stateCode ? getStateFormInfo(stateCode) : null;
 
   const toggleCheck = (id: string) => {
     setCheckedItems((prev) => {
