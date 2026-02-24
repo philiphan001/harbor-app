@@ -23,9 +23,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { messages, mode } = body as {
+    const { messages, mode, dataSummary } = body as {
       messages: Message[];
       mode: "crisis" | "readiness";
+      dataSummary?: string;
     };
 
     if (!messages || !Array.isArray(messages)) {
@@ -42,7 +43,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const systemPrompt = mode === "crisis" ? CRISIS_INTAKE_PROMPT : READINESS_PROMPT;
+    let systemPrompt = mode === "crisis" ? CRISIS_INTAKE_PROMPT : READINESS_PROMPT;
+
+    // For crisis mode, append data summary so the AI knows what info Harbor has
+    if (mode === "crisis" && dataSummary) {
+      systemPrompt = systemPrompt + "\n\n" + dataSummary;
+    }
 
     const anthropicMessages = messages.map((msg) => ({
       role: msg.role === "user" ? ("user" as const) : ("assistant" as const),

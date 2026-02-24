@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { Message } from "@/lib/types/situation";
 import { Task } from "@/lib/ai/claude";
@@ -19,6 +19,8 @@ interface ChatInterfaceProps {
   onAnswersExtracted?: (answers: Answer[]) => void;
   // For resuming an existing conversation
   conversationId?: string;
+  // Data summary for crisis mode (injected into system prompt)
+  dataSummary?: string;
 }
 
 // --- Conversation persistence helpers (fire-and-forget) ---
@@ -79,6 +81,47 @@ async function loadConversationMessages(
   }
 }
 
+/** Render markdown links [text](url) as clickable elements. Internal routes use Next.js Link. */
+function renderMessageContent(content: string): ReactNode {
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkPattern.exec(content)) !== null) {
+    // Add text before the link
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const [, linkText, url] = match;
+    const isInternal = url.startsWith("/");
+
+    if (isInternal) {
+      parts.push(
+        <Link key={match.index} href={url} className="text-ocean underline hover:text-oceanMid">
+          {linkText}
+        </Link>
+      );
+    } else {
+      parts.push(
+        <a key={match.index} href={url} target="_blank" rel="noopener noreferrer" className="text-ocean underline hover:text-oceanMid">
+          {linkText}
+        </a>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : content;
+}
+
 export default function ChatInterface({
   initialMessage,
   mode,
@@ -86,6 +129,7 @@ export default function ChatInterface({
   currentAnswers,
   onAnswersExtracted,
   conversationId: initialConversationId,
+  dataSummary,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -189,6 +233,7 @@ export default function ChatInterface({
         body: JSON.stringify({
           messages: conversationHistory,
           mode,
+          ...(dataSummary ? { dataSummary } : {}),
         }),
       });
 
@@ -445,11 +490,11 @@ export default function ChatInterface({
               }`}
             >
               <div
-                className={`font-sans text-[15px] leading-relaxed ${
+                className={`font-sans text-[15px] leading-relaxed whitespace-pre-wrap ${
                   message.role === "user" ? "text-white" : "text-slate"
                 }`}
               >
-                {message.content}
+                {message.role === "assistant" ? renderMessageContent(message.content) : message.content}
               </div>
               <div
                 className={`font-sans text-[10px] mt-1.5 ${
