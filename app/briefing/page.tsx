@@ -126,9 +126,6 @@ export default function BriefingPage() {
             >
               {generating ? "Generating..." : "Generate Briefing"}
             </button>
-            <div className="mt-4 font-sans text-xs text-slateMid">
-              First, make sure you've generated mock agent data by visiting /monitoring
-            </div>
           </div>
         </div>
       </div>
