@@ -5,6 +5,7 @@ import { getReadinessLabel, type ReadinessBreakdown } from "@/lib/utils/readines
 
 interface ReadinessCardProps {
   readiness: ReadinessBreakdown;
+  hasCompletedIntake?: boolean;
 }
 
 function getScoreColorClass(score: number): {
@@ -19,11 +20,12 @@ function getScoreColorClass(score: number): {
   return { bg: "bg-sage/10", border: "border-sage", text: "text-sage", bgSolid: "bg-sage" };
 }
 
-export default function ReadinessCard({ readiness }: ReadinessCardProps) {
+export default function ReadinessCard({ readiness, hasCompletedIntake }: ReadinessCardProps) {
   const colors = getScoreColorClass(readiness.overall);
+  const href = hasCompletedIntake ? "/readiness/results" : "/readiness";
 
   return (
-    <Link href="/readiness" className="block mb-6">
+    <Link href={href} className="block mb-6">
       <div className={`w-full ${colors.bg} border-2 ${colors.border} rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">

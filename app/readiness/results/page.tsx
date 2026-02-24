@@ -1,26 +1,52 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
+import {
+  calculateReadinessScore,
+  getReadinessActions,
+  getReadinessLabel,
+  type ReadinessBreakdown,
+  type ReadinessAction,
+  type Domain,
+} from "@/lib/utils/readinessScore";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
-import { runAllInternalAgents, type InternalAgentDetection } from "@/lib/ai/internalAgents";
+
+const DOMAIN_INFO: Record<Domain, { icon: string; label: string; color: string }> = {
+  medical: { icon: "🏥", label: "Medical", color: "coral" },
+  legal: { icon: "⚖️", label: "Legal", color: "sage" },
+  financial: { icon: "💰", label: "Financial", color: "ocean" },
+  housing: { icon: "🏠", label: "Housing", color: "amber" },
+  transportation: { icon: "🚗", label: "Transportation", color: "ocean" },
+  social: { icon: "👥", label: "Social", color: "sage" },
+};
+
+function getScoreBarColor(score: number): string {
+  if (score < 30) return "bg-coral";
+  if (score < 60) return "bg-amber";
+  if (score < 85) return "bg-ocean";
+  return "bg-sage";
+}
+
+function getBadgeClasses(points: number): string {
+  if (points >= 5) return "bg-coral/15 text-coral";
+  if (points >= 4) return "bg-amber/15 text-amber";
+  return "bg-sage/15 text-sage";
+}
 
 export default function ReadinessResultsPage() {
-  const router = useRouter();
   const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
-  const [recommendations, setRecommendations] = useState<InternalAgentDetection[]>([]);
+  const [actions, setActions] = useState<ReadinessAction[]>([]);
 
   useEffect(() => {
     const profile = getParentProfile();
     const score = calculateReadinessScore();
-    const recs = runAllInternalAgents();
+    const allActions = getReadinessActions();
 
     setParentProfile(profile);
     setReadiness(score);
-    setRecommendations(recs.filter(r => r.severity === "critical" || r.severity === "high"));
+    setActions(allActions);
   }, []);
 
   if (!readiness) {
@@ -31,121 +57,71 @@ export default function ReadinessResultsPage() {
     );
   }
 
-  const scoreColor =
-    readiness.overall < 30
-      ? "coral"
-      : readiness.overall < 60
-      ? "amber"
-      : readiness.overall < 85
-      ? "ocean"
-      : "sage";
+  // Top 5 incomplete actions sorted by points desc
+  const topMoves = actions
+    .filter((a) => !a.completed)
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 5);
+
+  const barColor = getScoreBarColor(readiness.overall);
 
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-      {/* Header */}
+      {/* Score Header */}
       <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-10 pb-8">
         <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
 
         <div className="relative">
           <div className="font-sans text-[11px] text-white/60 tracking-[2px] uppercase mb-2">
-            Your Results
+            {parentProfile ? `${parentProfile.name}'s Readiness` : "Your Readiness"}
           </div>
-          <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mb-4">
-            Care Readiness Score
-          </h1>
 
-          {/* Overall Score */}
-          <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="font-sans text-sm font-medium text-white/80">
-                {parentProfile ? `${parentProfile.name}'s Readiness` : "Overall Readiness"}
-              </div>
-              <div className="font-sans text-xs font-semibold px-3 py-1 rounded-full bg-white/20 text-white">
-                {readiness.status.replace("-", " ").toUpperCase()}
-              </div>
+          <div className="flex items-end gap-3 mb-3">
+            <div className="font-serif text-5xl font-bold text-white leading-none">
+              {readiness.overall}
             </div>
-            <div className="font-serif text-5xl font-bold text-white mb-2">{readiness.overall}</div>
-            <div className="font-sans text-sm text-white/80 leading-relaxed">
-              {readiness.criticalGaps.length > 0
-                ? `${readiness.criticalGaps.length} critical ${readiness.criticalGaps.length === 1 ? "gap" : "gaps"} need immediate attention.`
-                : "You're well prepared for emergency situations."}
-            </div>
+            <div className="font-sans text-lg text-white/50 mb-1">/ 100</div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full bg-white/15 rounded-full h-3 mb-2">
+            <div
+              className={`${barColor} h-3 rounded-full transition-all`}
+              style={{ width: `${readiness.overall}%` }}
+            />
+          </div>
+
+          <div className="font-sans text-xs font-semibold px-3 py-1 rounded-full bg-white/20 text-white inline-block">
+            {getReadinessLabel(readiness.overall)}
           </div>
         </div>
       </div>
 
-      {/* Domain Breakdown */}
+      {/* Main Content */}
       <div className="flex-1 px-5 py-6">
-        <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
-          Domain Scores
-        </div>
-
-        <div className="space-y-3 mb-6">
-          {Object.entries(readiness.domains).map(([domainName, score]) => {
-            const domainInfo = getDomainInfo(domainName);
-            return (
-              <div key={domainName} className="bg-white border border-sandDark rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-xl">{domainInfo.icon}</div>
-                    <div className="font-sans text-sm font-semibold text-slate">
-                      {domainInfo.label}
-                    </div>
-                  </div>
-                  <div className="font-serif text-2xl font-bold text-ocean">{score}</div>
-                </div>
-                <div className="w-full bg-sand rounded-full h-2">
-                  <div
-                    className={
-                      domainInfo.color === "coral"
-                        ? "bg-coral h-2 rounded-full transition-all"
-                        : domainInfo.color === "sage"
-                        ? "bg-sage h-2 rounded-full transition-all"
-                        : domainInfo.color === "ocean"
-                        ? "bg-ocean h-2 rounded-full transition-all"
-                        : domainInfo.color === "teal-500"
-                        ? "bg-teal-500 h-2 rounded-full transition-all"
-                        : "bg-amber h-2 rounded-full transition-all"
-                    }
-                    style={{ width: `${score}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Top Recommendations */}
-        {recommendations.length > 0 && (
+        {/* Top Moves */}
+        {topMoves.length > 0 && (
           <div className="mb-6">
             <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-              Top Priority Actions
+              Top Moves to Level Up
             </div>
-            <div className="space-y-3">
-              {recommendations.slice(0, 3).map((rec) => (
+            <div className="space-y-2.5">
+              {topMoves.map((action) => (
                 <div
-                  key={rec.id}
-                  className={
-                    rec.severity === "critical"
-                      ? "bg-coral/5 border-2 border-coral rounded-xl p-4"
-                      : "bg-amber/5 border-2 border-amber rounded-xl p-4"
-                  }
+                  key={action.id}
+                  className="bg-white border border-sandDark rounded-xl px-4 py-3.5 flex items-center gap-3"
                 >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={
-                        rec.severity === "critical"
-                          ? "w-2 h-2 bg-coral rounded-full mt-1.5 shrink-0"
-                          : "w-2 h-2 bg-amber rounded-full mt-1.5 shrink-0"
-                      }
-                    />
-                    <div className="flex-1">
-                      <div className="font-sans text-sm font-semibold text-slate mb-1">
-                        {rec.title}
-                      </div>
-                      <div className="font-sans text-xs text-slateMid leading-relaxed">
-                        {rec.description}
-                      </div>
+                  <div
+                    className={`shrink-0 font-sans text-xs font-bold px-2.5 py-1 rounded-lg ${getBadgeClasses(action.points)}`}
+                  >
+                    +{action.points} pts
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-sans text-sm font-medium text-slate leading-snug">
+                      {action.label}
+                    </div>
+                    <div className="font-sans text-[11px] text-slateMid mt-0.5">
+                      {DOMAIN_INFO[action.domain].icon} {DOMAIN_INFO[action.domain].label}
                     </div>
                   </div>
                 </div>
@@ -154,43 +130,76 @@ export default function ReadinessResultsPage() {
           </div>
         )}
 
-        {/* Actions */}
-        <div className="space-y-3">
-          <button
-            onClick={() => router.push("/tasks")}
-            className="w-full bg-ocean text-white rounded-xl px-6 py-4 font-sans text-base font-semibold hover:bg-oceanMid transition-colors"
-          >
-            View Your Action Items
-          </button>
+        {topMoves.length === 0 && (
+          <div className="mb-6 bg-sage/10 border border-sage rounded-xl px-5 py-4 text-center">
+            <div className="font-sans text-sm font-semibold text-sage mb-1">
+              All actions complete!
+            </div>
+            <div className="font-sans text-xs text-slateMid">
+              You&apos;ve addressed every readiness item. Great work.
+            </div>
+          </div>
+        )}
 
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="w-full bg-white border-2 border-sandDark text-slate rounded-xl px-6 py-3 font-sans text-sm font-medium hover:bg-sand transition-colors"
-          >
-            Go to Dashboard
-          </button>
+        {/* Domain Mini-Breakdown */}
+        <div className="mb-6">
+          <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
+            Domain Progress
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {(Object.entries(readiness.domains) as [Domain, number][]).map(
+              ([domain, score]) => (
+                <div
+                  key={domain}
+                  className="bg-white border border-sandDark rounded-xl px-3.5 py-3"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="font-sans text-[11px] font-semibold text-slate">
+                      {DOMAIN_INFO[domain].icon} {DOMAIN_INFO[domain].label}
+                    </div>
+                    <div className="font-sans text-xs font-bold text-slateMid">
+                      {score}
+                    </div>
+                  </div>
+                  <div className="w-full bg-sand rounded-full h-1.5">
+                    <div
+                      className={`${getScoreBarColor(score)} h-1.5 rounded-full transition-all`}
+                      style={{ width: `${score}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
 
-        {/* Note */}
-        <div className="mt-6 bg-sand rounded-xl px-5 py-4">
-          <div className="font-sans text-xs text-slateMid leading-relaxed">
-            <span className="font-semibold">Note:</span> This score is based on your current preparedness.
-            As you complete action items, your readiness will improve over time.
-          </div>
+        {/* Actions */}
+        <div className="space-y-3">
+          <Link
+            href="/tasks"
+            className="block w-full bg-ocean text-white rounded-xl px-6 py-4 font-sans text-base font-semibold hover:bg-oceanMid transition-colors text-center"
+          >
+            View Your Action Items
+          </Link>
+
+          <Link
+            href="/dashboard"
+            className="block w-full bg-white border-2 border-sandDark text-slate rounded-xl px-6 py-3 font-sans text-sm font-medium hover:bg-sand transition-colors text-center"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
+
+        {/* Retake Assessment */}
+        <div className="mt-6 text-center">
+          <Link
+            href="/readiness"
+            className="font-sans text-sm text-ocean underline underline-offset-2 hover:text-oceanMid transition-colors"
+          >
+            Retake Assessment
+          </Link>
         </div>
       </div>
     </div>
   );
-}
-
-function getDomainInfo(domain: string): { icon: string; label: string; color: string } {
-  const map: Record<string, { icon: string; label: string; color: string }> = {
-    medical: { icon: "🏥", label: "Medical", color: "coral" },
-    legal: { icon: "⚖️", label: "Legal", color: "sage" },
-    financial: { icon: "💰", label: "Financial", color: "ocean" },
-    housing: { icon: "🏠", label: "Housing", color: "amber" },
-    transportation: { icon: "🚗", label: "Transportation", color: "purple-500" },
-    social: { icon: "👥", label: "Social", color: "teal-500" },
-  };
-  return map[domain] || { icon: "📋", label: domain, color: "ocean" };
 }

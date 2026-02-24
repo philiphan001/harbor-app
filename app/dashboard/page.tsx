@@ -222,7 +222,7 @@ export default function DashboardPage() {
         </Link>
 
         {/* Readiness Score */}
-        {readiness && <ReadinessCard readiness={readiness} />}
+        {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} />}
 
         {/* Domain Status Tiles */}
         {domainStatuses.length > 0 && <DomainStatusTiles statuses={domainStatuses} />}
