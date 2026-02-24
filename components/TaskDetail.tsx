@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
 import { saveTaskData } from "@/lib/utils/taskData";
 import { DOMAIN_COLORS, PRIORITY_LABELS } from "@/lib/constants/domains";
@@ -79,7 +80,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           {
             heading: "How to get this done (easier than you think):",
             items: [
-              "Download the form for your state - Search '[your state] healthcare proxy form'",
+              "Use Harbor's advance directive guide — your state's form and a step-by-step walkthrough are ready at /advance-directives",
               "Most states have simple 1-2 page forms, no lawyer needed",
               "Pick a time to talk with your parent about their wishes",
               "Fill out the form together - it takes 10-15 minutes",
@@ -138,6 +139,18 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
       };
     }
   };
+
+  const isAdvanceDirectiveTask = (() => {
+    const t = task.title.toLowerCase();
+    return (
+      task.domain === "legal" &&
+      (t.includes("proxy") ||
+        t.includes("poa") ||
+        t.includes("power of attorney") ||
+        t.includes("advance directive") ||
+        t.includes("living will"))
+    );
+  })();
 
   const helpContent = enhancedHelp || getHelpContent();
 
@@ -270,6 +283,30 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
             ))}
           </div>
         </div>
+
+        {/* Advance Directive CTA */}
+        {isAdvanceDirectiveTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/advance-directives"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-sage/5"
+              style={{ borderColor: "#6B8F71" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📝</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Get Started with Harbor&apos;s Guide
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Harbor has your state&apos;s form ready with a guided walkthrough
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* AI Help Section */}
         {!showHelp ? (
