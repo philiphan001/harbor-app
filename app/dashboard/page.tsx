@@ -325,6 +325,15 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
+            <Link href="/crisis/triage" className="block">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-coral/10 rounded-lg flex items-center justify-center text-coral text-sm">🏥</div>
+                  <div className="font-sans text-sm text-slate">ER triage sheet &amp; playbooks</div>
+                </div>
+                <div className="text-slateLight text-sm">&rarr;</div>
+              </div>
+            </Link>
             <Link href="/readiness" className="block">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
