@@ -8,7 +8,8 @@ import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { addTasks } from "@/lib/utils/taskStorage";
 import { saveTaskData } from "@/lib/utils/taskData";
-import { getParentProfile, saveParentProfile, extractStateFromText } from "@/lib/utils/parentProfile";
+import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
+import { US_STATES } from "@/lib/constants/usStates";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
 type AssessmentMode = "intro" | "parent-info" | "chat" | "questionnaire";
@@ -579,16 +580,10 @@ function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack
   const handleSubmit = () => {
     if (!canContinue) return;
 
-    // Normalize state input to 2-letter code (e.g. "California" → "CA")
-    const rawState = state.trim();
-    const normalizedState = rawState
-      ? extractStateFromText(rawState) || rawState
-      : undefined;
-
     saveParentProfile({
       name: name.trim(),
       age: parseInt(age, 10) || undefined,
-      state: normalizedState,
+      state: state || undefined,
       zip: zip.trim() || undefined,
     });
 
@@ -665,13 +660,18 @@ function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack
             <div className="font-sans text-xs text-slateMid mb-2">
               Used for state-specific programs like Medicaid, PACE, and pharmaceutical assistance
             </div>
-            <input
-              type="text"
+            <select
               value={state}
               onChange={(e) => setState(e.target.value)}
-              placeholder="e.g. California"
-              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate placeholder:text-slateLight focus:outline-none focus:border-ocean transition-colors"
-            />
+              className="w-full px-4 py-3 rounded-xl border-2 border-sandDark bg-white font-sans text-sm text-slate focus:outline-none focus:border-ocean transition-colors"
+            >
+              <option value="">Select a state...</option>
+              {US_STATES.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* ZIP Code */}
