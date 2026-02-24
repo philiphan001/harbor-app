@@ -72,7 +72,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           },
         ],
       };
-    } else if (title.includes("proxy") || title.includes("poa") || title.includes("power of attorney")) {
+    } else if (title.includes("proxy") || title.includes("poa") || title.includes("power of attorney") || title.includes("advance directive") || title.includes("living will") || title.includes("healthcare directive")) {
       return {
         type: "Action Guide",
         icon: "📋",
@@ -148,7 +148,8 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
         t.includes("poa") ||
         t.includes("power of attorney") ||
         t.includes("advance directive") ||
-        t.includes("living will"))
+        t.includes("living will") ||
+        t.includes("healthcare directive"))
     );
   })();
 
@@ -160,7 +161,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
 
     // Only fetch for healthcare proxy/POA tasks with state info
     if (
-      (title.includes("proxy") || title.includes("poa") || title.includes("power of attorney")) &&
+      (title.includes("proxy") || title.includes("poa") || title.includes("power of attorney") || title.includes("advance directive") || title.includes("living will") || title.includes("healthcare directive")) &&
       task.domain === "legal" &&
       userContext?.parentState
     ) {

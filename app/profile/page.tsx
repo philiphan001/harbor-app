@@ -8,7 +8,9 @@ import { getAllTaskData, hydrateTaskDataFromDb, saveTaskData, removeTaskData, Ta
 import { calculateReadinessScore } from "@/lib/utils/readinessScore";
 import { getTasks } from "@/lib/utils/taskStorage";
 import type { Task } from "@/lib/ai/claude";
-import { DOMAIN_ICONS, PRIORITY_COLORS, type Domain } from "@/lib/constants/domains";
+import { DOMAIN_ICONS, DOMAIN_COLORS, PRIORITY_COLORS, type Domain } from "@/lib/constants/domains";
+import TaskDetail from "@/components/TaskDetail";
+import { completeTask } from "@/lib/utils/taskStorage";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
 
 const DOMAIN_STYLES: Record<string, { label: string; color: string; icon: string }> = {
@@ -283,13 +285,9 @@ function DomainDetailView({
   const [readiness, setReadiness] = useState<ReturnType<typeof calculateReadinessScore> | null>(null);
   const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  useEffect(() => {
-    const score = calculateReadinessScore();
-    setReadiness(score);
-    setParentProfile(getParentProfile());
-
-    // Get pending tasks filtered to this domain (with aliases)
+  const loadPendingTasks = useCallback(() => {
     const allPending = getTasks();
     const filtered = allPending.filter((t) => {
       const taskDomain = t.domain as string;
@@ -297,6 +295,21 @@ function DomainDetailView({
     });
     setPendingTasks(filtered);
   }, [domain]);
+
+  useEffect(() => {
+    const score = calculateReadinessScore();
+    setReadiness(score);
+    setParentProfile(getParentProfile());
+    loadPendingTasks();
+  }, [domain, loadPendingTasks]);
+
+  const handleMarkComplete = () => {
+    if (selectedTask) {
+      completeTask(selectedTask.title);
+      setSelectedTask(null);
+      loadPendingTasks();
+    }
+  };
 
   const domainScore = readiness?.domains[domain as Domain] ?? 0;
 
@@ -306,10 +319,9 @@ function DomainDetailView({
   else if (domainScore >= 60) scoreColor = "#1B6B7D"; // ocean
   else if (domainScore >= 30) scoreColor = "#C4943A"; // amber
 
-  let statusText = "Critical Gaps";
+  let statusText = `${pendingTasks.length} pending task${pendingTasks.length !== 1 ? "s" : ""}`;
   if (domainScore >= 85) statusText = "Well Prepared";
   else if (domainScore >= 60) statusText = "Prepared";
-  else if (domainScore >= 30) statusText = "Needs Attention";
 
   // Compute gaps
   const gapDefs = DOMAIN_GAPS[domain] || [];
@@ -411,21 +423,44 @@ function DomainDetailView({
           </h3>
           <div className="bg-white rounded-xl border border-sandDark overflow-hidden">
             {pendingTasks.map((task, i) => (
-              <div
+              <button
                 key={i}
-                className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-sand" : ""}`}
+                onClick={() => setSelectedTask(task)}
+                className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sand/30 transition-colors ${i > 0 ? "border-t border-sand" : ""}`}
               >
-                <span className="font-sans text-sm text-slate">{task.title}</span>
-                <span
-                  className="font-sans text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: PRIORITY_COLORS[task.priority] || "#7F9BAC" }}
-                >
-                  {task.priority}
-                </span>
-              </div>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: DOMAIN_COLORS[task.domain as keyof typeof DOMAIN_COLORS] || "#7F9BAC" }}
+                  />
+                  <span className="font-sans text-sm text-slate truncate">{task.title}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <span
+                    className="font-sans text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: PRIORITY_COLORS[task.priority] || "#7F9BAC" }}
+                  >
+                    {task.priority}
+                  </span>
+                  <span className="text-slateLight text-sm">›</span>
+                </div>
+              </button>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          onMarkComplete={handleMarkComplete}
+          userContext={{
+            parentState: parentProfile?.state,
+            parentName: parentProfile?.name,
+          }}
+        />
       )}
     </div>
   );
