@@ -8,8 +8,8 @@ import {
   getStateFormInfo,
   isStateSupported,
   getFormComplexity,
-  type StateFormInfo,
 } from "@/lib/data/stateHealthcareProxyForms";
+import { extractStateFromText } from "@/lib/utils/parentProfile";
 
 const US_STATES: { code: string; name: string }[] = [
   { code: "AL", name: "Alabama" }, { code: "AK", name: "Alaska" }, { code: "AZ", name: "Arizona" },
@@ -60,7 +60,11 @@ export default function AdvanceDirectivePage() {
       setParentName(profile.name);
       setParentAge(profile.age);
       if (profile.state) {
-        setStateCode(profile.state);
+        // Normalize to 2-letter code (handles profiles saved as "California" etc.)
+        const code = isStateSupported(profile.state)
+          ? profile.state
+          : extractStateFromText(profile.state) || profile.state;
+        setStateCode(code);
       }
     }
     const data = gatherExportData();

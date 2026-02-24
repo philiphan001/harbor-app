@@ -8,7 +8,7 @@ import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
 import { addTasks } from "@/lib/utils/taskStorage";
 import { saveTaskData } from "@/lib/utils/taskData";
-import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, saveParentProfile, extractStateFromText } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
 type AssessmentMode = "intro" | "parent-info" | "chat" | "questionnaire";
@@ -579,10 +579,16 @@ function ParentInfoForm({ onComplete, onBack }: { onComplete: () => void; onBack
   const handleSubmit = () => {
     if (!canContinue) return;
 
+    // Normalize state input to 2-letter code (e.g. "California" → "CA")
+    const rawState = state.trim();
+    const normalizedState = rawState
+      ? extractStateFromText(rawState) || rawState
+      : undefined;
+
     saveParentProfile({
       name: name.trim(),
       age: parseInt(age, 10) || undefined,
-      state: state.trim() || undefined,
+      state: normalizedState,
       zip: zip.trim() || undefined,
     });
 
