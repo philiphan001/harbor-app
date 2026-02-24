@@ -5,16 +5,20 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getParentProfile, getActiveParentId, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllTaskData, hydrateTaskDataFromDb, saveTaskData, removeTaskData, TaskData } from "@/lib/utils/taskData";
+import { calculateReadinessScore } from "@/lib/utils/readinessScore";
+import { getTasks } from "@/lib/utils/taskStorage";
+import type { Task } from "@/lib/ai/claude";
+import { DOMAIN_ICONS, PRIORITY_COLORS, type Domain } from "@/lib/constants/domains";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
 
-const DOMAIN_STYLES: Record<string, { label: string; color: string }> = {
-  medical: { label: "Medical", color: "#D4725C" },
-  legal: { label: "Legal", color: "#6B8F71" },
-  financial: { label: "Financial", color: "#1B6B7D" },
-  housing: { label: "Housing", color: "#C4943A" },
-  transportation: { label: "Transportation", color: "#7B68A8" },
-  social: { label: "Social", color: "#5B8FA8" },
-  other: { label: "Other", color: "#4A6274" },
+const DOMAIN_STYLES: Record<string, { label: string; color: string; icon: string }> = {
+  medical: { label: "Medical", color: "#D4725C", icon: DOMAIN_ICONS.medical },
+  legal: { label: "Legal", color: "#6B8F71", icon: DOMAIN_ICONS.legal },
+  financial: { label: "Financial", color: "#1B6B7D", icon: DOMAIN_ICONS.financial },
+  housing: { label: "Housing", color: "#C4943A", icon: DOMAIN_ICONS.housing },
+  transportation: { label: "Transportation", color: "#7B68A8", icon: DOMAIN_ICONS.transportation },
+  social: { label: "Social", color: "#5B8FA8", icon: DOMAIN_ICONS.social },
+  other: { label: "Other", color: "#4A6274", icon: DOMAIN_ICONS.general },
 };
 
 export default function ProfilePage() {
@@ -159,68 +163,208 @@ function ProfilePageContent() {
       </div>
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
-        {/* Domain filter pills */}
-        {taskData.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
-            <Link
-              href="/profile"
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
-                !domainFilter
-                  ? "bg-ocean text-white"
-                  : "bg-sand text-slateMid hover:bg-sandDark"
-              }`}
-            >
-              All
-            </Link>
-            {Object.entries(DOMAIN_STYLES)
-              .filter(([key]) => key !== "other" || taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === "other"))
-              .filter(([key]) => taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === key))
-              .map(([key, style]) => (
+        {domainFilter ? (
+          <DomainDetailView
+            domain={domainFilter}
+            taskData={taskData}
+            sortedData={sortedData}
+            onSave={handleSave}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <>
+            {/* Domain filter pills */}
+            {taskData.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-4 mb-2">
                 <Link
-                  key={key}
-                  href={`/profile?domain=${key}`}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
-                    domainFilter === key
-                      ? "text-white"
-                      : "bg-sand text-slateMid hover:bg-sandDark"
-                  }`}
-                  style={domainFilter === key ? { backgroundColor: style.color } : undefined}
+                  href="/profile"
+                  className="flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors bg-ocean text-white"
                 >
-                  {style.label}
+                  All
                 </Link>
-              ))}
-          </div>
-        )}
+                {Object.entries(DOMAIN_STYLES)
+                  .filter(([key]) => key !== "other" || taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === "other"))
+                  .filter(([key]) => taskData.some((d) => getDomainFromToolName(d.toolName, d.taskTitle) === key))
+                  .map(([key, style]) => (
+                    <Link
+                      key={key}
+                      href={`/profile?domain=${key}`}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors bg-sand text-slateMid hover:bg-sandDark"
+                    >
+                      {style.label}
+                    </Link>
+                  ))}
+              </div>
+            )}
 
-        {sortedData.length === 0 && !domainFilter ? (
-          <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
-            <div className="text-5xl mb-4">📋</div>
-            <div className="font-serif text-xl font-semibold text-slate mb-2">
-              No information yet
-            </div>
-            <div className="font-sans text-sm text-slateMid leading-relaxed mb-6">
-              As you complete tasks and add information through &ldquo;Tell Harbor,&rdquo;
-              everything will be organized here.
-            </div>
-            <Link href="/tasks">
-              <button className="bg-ocean text-white rounded-xl px-6 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors">
-                View Tasks
-              </button>
-            </Link>
+            {sortedData.length === 0 ? (
+              <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
+                <div className="text-5xl mb-4">📋</div>
+                <div className="font-serif text-xl font-semibold text-slate mb-2">
+                  No information yet
+                </div>
+                <div className="font-sans text-sm text-slateMid leading-relaxed mb-6">
+                  As you complete tasks and add information through &ldquo;Tell Harbor,&rdquo;
+                  everything will be organized here.
+                </div>
+                <Link href="/tasks">
+                  <button className="bg-ocean text-white rounded-xl px-6 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors">
+                    View Tasks
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {sortedData.map((item, index) => (
+                  <DataCard
+                    key={`${item.taskTitle}-${index}`}
+                    data={item}
+                    onSave={handleSave}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Domain-specific gap definitions ---
+const DOMAIN_GAPS: Record<string, { label: string; check: (taskData: TaskData[], profile: ParentProfile | null) => boolean }[]> = {
+  medical: [
+    { label: "Primary care doctor contact", check: (td) => td.some((d) => d.toolName === "save_doctor_info") },
+    { label: "Current medications list", check: (td) => td.some((d) => d.toolName === "save_medication_list") },
+    { label: "Medicare/insurance information", check: (td) => td.some((d) => d.toolName === "save_insurance_info") },
+  ],
+  legal: [
+    { label: "Power of Attorney", check: (td) => td.some((d) => d.toolName === "save_legal_document_info" || (d.taskTitle.toLowerCase().includes("poa") || d.taskTitle.toLowerCase().includes("power of attorney"))) },
+    { label: "Advance directive / living will", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("advance directive") || d.taskTitle.toLowerCase().includes("living will")) },
+    { label: "Will or estate plan", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("will") || d.taskTitle.toLowerCase().includes("estate")) },
+  ],
+  financial: [
+    { label: "Primary bank account information", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("bank")) },
+    { label: "Income sources documented", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("income")) },
+  ],
+  housing: [
+    { label: "Current living arrangement", check: (_td, profile) => !!profile?.livingArrangement },
+    { label: "Emergency contact besides you", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("emergency contact")) },
+  ],
+  transportation: [
+    { label: "Transportation plan for appointments", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("transport") || d.taskTitle.toLowerCase().includes("ride") || d.taskTitle.toLowerCase().includes("driving")) },
+  ],
+  social: [
+    { label: "Key social contacts for parent", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("friend") || d.taskTitle.toLowerCase().includes("neighbor") || d.taskTitle.toLowerCase().includes("social")) },
+  ],
+};
+
+// Map extended domain names to core domains for task filtering
+const DOMAIN_ALIASES: Record<string, string> = {
+  caregiving: "medical",
+  family: "social",
+};
+
+function DomainDetailView({
+  domain,
+  taskData,
+  sortedData,
+  onSave,
+  onDelete,
+}: {
+  domain: string;
+  taskData: TaskData[];
+  sortedData: TaskData[];
+  onSave: (taskTitle: string, toolName: string, updatedData: TaskDataPayload) => void;
+  onDelete: (taskTitle: string) => void;
+}) {
+  const style = DOMAIN_STYLES[domain] || DOMAIN_STYLES.other;
+  const [readiness, setReadiness] = useState<ReturnType<typeof calculateReadinessScore> | null>(null);
+  const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
+  const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
+
+  useEffect(() => {
+    const score = calculateReadinessScore();
+    setReadiness(score);
+    setParentProfile(getParentProfile());
+
+    // Get pending tasks filtered to this domain (with aliases)
+    const allPending = getTasks();
+    const filtered = allPending.filter((t) => {
+      const taskDomain = t.domain as string;
+      return taskDomain === domain || DOMAIN_ALIASES[taskDomain] === domain;
+    });
+    setPendingTasks(filtered);
+  }, [domain]);
+
+  const domainScore = readiness?.domains[domain as Domain] ?? 0;
+
+  // Determine score color
+  let scoreColor = "#D4725C"; // coral for < 30
+  if (domainScore >= 85) scoreColor = "#6B8F71"; // sage
+  else if (domainScore >= 60) scoreColor = "#1B6B7D"; // ocean
+  else if (domainScore >= 30) scoreColor = "#C4943A"; // amber
+
+  let statusText = "Critical Gaps";
+  if (domainScore >= 85) statusText = "Well Prepared";
+  else if (domainScore >= 60) statusText = "Prepared";
+  else if (domainScore >= 30) statusText = "Needs Attention";
+
+  // Compute gaps
+  const gapDefs = DOMAIN_GAPS[domain] || [];
+  const missingGaps = gapDefs.filter((g) => !g.check(taskData, parentProfile));
+
+  return (
+    <div className="space-y-6">
+      {/* Back link */}
+      <Link
+        href="/profile"
+        className="font-sans text-sm text-ocean hover:text-oceanMid transition-colors inline-block"
+      >
+        &larr; All Information
+      </Link>
+
+      {/* Domain header */}
+      <div className="bg-white rounded-xl border border-sandDark p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg"
+            style={{ backgroundColor: style.color }}
+          >
+            {style.icon}
           </div>
-        ) : sortedData.length === 0 && domainFilter ? (
-          <div className="bg-white rounded-xl border border-sandDark px-6 py-8 text-center">
-            <div className="font-serif text-lg font-semibold text-slate mb-2">
-              No {DOMAIN_STYLES[domainFilter]?.label || domainFilter} information yet
+          <div className="flex-1">
+            <h2 className="font-serif text-xl font-semibold text-slate">
+              {style.label}
+            </h2>
+            <div className="font-sans text-xs font-semibold" style={{ color: scoreColor }}>
+              {statusText}
             </div>
-            <div className="font-sans text-sm text-slateMid leading-relaxed mb-4">
-              Complete tasks or add information through the readiness assessment to populate this section.
+          </div>
+          <div className="font-serif text-2xl font-bold" style={{ color: scoreColor }}>
+            {domainScore}
+          </div>
+        </div>
+        {/* Progress bar */}
+        <div className="w-full h-2 rounded-full bg-sand overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${domainScore}%`, backgroundColor: scoreColor }}
+          />
+        </div>
+      </div>
+
+      {/* What Harbor Knows */}
+      <div>
+        <h3 className="font-serif text-lg font-semibold text-slate mb-3">
+          What Harbor Knows
+        </h3>
+        {sortedData.length === 0 ? (
+          <div className="bg-white rounded-xl border border-sandDark px-5 py-6 text-center">
+            <div className="font-sans text-sm text-slateMid">
+              No {style.label.toLowerCase()} information captured yet.
             </div>
-            <Link href="/profile">
-              <button className="font-sans text-sm font-semibold text-ocean hover:text-oceanMid transition-colors">
-                View all information
-              </button>
-            </Link>
           </div>
         ) : (
           <div className="space-y-3">
@@ -228,13 +372,61 @@ function ProfilePageContent() {
               <DataCard
                 key={`${item.taskTitle}-${index}`}
                 data={item}
-                onSave={handleSave}
-                onDelete={handleDelete}
+                onSave={onSave}
+                onDelete={onDelete}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* What's Missing */}
+      {missingGaps.length > 0 && (
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-slate mb-3">
+            What&apos;s Missing
+          </h3>
+          <div className="bg-white rounded-xl border border-sandDark overflow-hidden">
+            {missingGaps.map((gap, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-sand" : ""}`}
+              >
+                <div
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: "#D4725C" }}
+                />
+                <span className="font-sans text-sm text-slate">{gap.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Tasks */}
+      {pendingTasks.length > 0 && (
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-slate mb-3">
+            Pending Tasks
+          </h3>
+          <div className="bg-white rounded-xl border border-sandDark overflow-hidden">
+            {pendingTasks.map((task, i) => (
+              <div
+                key={i}
+                className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-sand" : ""}`}
+              >
+                <span className="font-sans text-sm text-slate">{task.title}</span>
+                <span
+                  className="font-sans text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full text-white"
+                  style={{ backgroundColor: PRIORITY_COLORS[task.priority] || "#7F9BAC" }}
+                >
+                  {task.priority}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
