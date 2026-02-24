@@ -519,7 +519,7 @@ export default function AdvanceDirectivePage() {
                         className="font-sans text-sm text-slate flex items-start gap-2"
                       >
                         <span className="text-ocean mt-0.5 flex-shrink-0">
-                          {form.recommended ? "&#x2713;" : "&#x25CB;"}
+                          {form.recommended ? "✓" : "○"}
                         </span>
                         <div>
                           <span className="font-medium">{form.name}</span>
