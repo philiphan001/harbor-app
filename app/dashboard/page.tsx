@@ -261,17 +261,17 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
-          {/* Information Hub */}
-          <Link href="/profile" className="block">
+          {/* Ask Harbor */}
+          <Link href="/help" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-9 h-9 bg-sage/20 rounded-xl flex items-center justify-center text-sage text-base mb-2.5">
-                👤
+              <div className="w-9 h-9 bg-ocean/15 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
+                💬
               </div>
               <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
-                Info Hub
+                Ask Harbor
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                All details
+                Get help
               </div>
             </div>
           </Link>
