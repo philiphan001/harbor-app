@@ -37,6 +37,9 @@ export interface StateFormInfo {
   terminology: string;
   includesHIPAA: boolean;
 
+  hostedPdfPath?: string;  // "/forms/advance-directives/CA.pdf"
+  caringInfoLandingUrl: string;  // fallback for external link
+
   additionalForms?: Array<{
     name: string;
     description: string;
@@ -95,6 +98,9 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
 
     terminology: "Advance Health Care Directive",
     includesHIPAA: false,
+
+    hostedPdfPath: "/forms/advance-directives/CA.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/california/",
 
     additionalForms: [
       {
@@ -201,6 +207,9 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Medical Power of Attorney",
     includesHIPAA: true,
 
+    hostedPdfPath: "/forms/advance-directives/TX.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/texas/",
+
     reciprocity: {
       acceptsOtherStates: true
     },
@@ -291,6 +300,9 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
 
     terminology: "Healthcare Surrogate",
     includesHIPAA: false,
+
+    hostedPdfPath: "/forms/advance-directives/FL.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/florida/",
 
     additionalForms: [
       {
@@ -398,6 +410,9 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Health Care Proxy",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/NY.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/new-york/",
+
     additionalForms: [
       {
         name: "MOLST (Medical Orders for Life-Sustaining Treatment)",
@@ -500,6 +515,9 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Health Care Power of Attorney",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/PA.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/pennsylvania/",
+
     additionalForms: [
       {
         name: "Living Will",
@@ -578,6 +596,116 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     estimatedCompletionTime: "45 minutes",
 
     notes: "PA form is straightforward. Highly recommend pairing with Living Will for complete advance care planning."
+  },
+
+  MA: {
+    state: "Massachusetts",
+    stateCode: "MA",
+    population: 7_029_917,
+    formAvailability: "official",
+
+    form: {
+      title: "Health Care Proxy",
+      officialSourceUrl: "https://www.mass.gov/info-details/health-care-proxy-information",
+      lastVerified: "2025-01-15",
+      version: "Rev. 2023",
+      pageCount: 4
+    },
+
+    requirements: {
+      notaryRequired: false,
+      notaryRecommended: false,
+      witnessCount: 2,
+      witnessRestrictions: [
+        "Cannot be your health care agent or alternate agent",
+        "Cannot be your health care provider or employee of your provider"
+      ],
+      selfProving: false
+    },
+
+    terminology: "Health Care Proxy",
+    includesHIPAA: false,
+
+    hostedPdfPath: "/forms/advance-directives/MA.pdf",
+    caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/massachusetts/",
+
+    additionalForms: [
+      {
+        name: "MOLST (Medical Orders for Life-Sustaining Treatment)",
+        description: "For people with serious illness - must be signed by doctor",
+        recommended: false
+      },
+      {
+        name: "HIPAA Authorization",
+        description: "Allows your agent to access medical records",
+        recommended: true
+      }
+    ],
+
+    reciprocity: {
+      acceptsOtherStates: true,
+      notes: "MA generally recognizes out-of-state health care proxies"
+    },
+
+    instructions: {
+      fillOut: [
+        "Fill in your name, date of birth, and address",
+        "Name your health care agent and provide their contact info",
+        "Name an alternate agent (optional but recommended)",
+        "Add any specific instructions or limitations (optional)",
+        "Sign and date in front of 2 witnesses"
+      ],
+      witnesses: [
+        "Must have 2 witnesses who are 18 or older",
+        "Witnesses cannot be your health care agent or alternate",
+        "Both witnesses must be present when you sign"
+      ],
+      distribution: [
+        "Give a copy to your health care agent",
+        "Give a copy to your alternate agent",
+        "Give a copy to your primary care doctor",
+        "Keep original in an accessible location"
+      ]
+    },
+
+    commonPitfalls: [
+      "Not discussing your wishes with your agent before appointing them",
+      "Forgetting to name an alternate agent",
+      "Not giving a copy to your doctor (it won't be in your medical record)",
+      "Confusing Health Care Proxy with a living will (MA doesn't have a statutory living will form)"
+    ],
+
+    onlineServiceRecommendations: [
+      {
+        name: "Mama Bear Legal",
+        url: "https://mamabear.legal/massachusetts",
+        affiliateUrl: "https://mamabear.legal/massachusetts?ref=harbor",
+        cost: "$89",
+        features: [
+          "Includes HIPAA authorization",
+          "Massachusetts-specific guidance",
+          "Step-by-step process"
+        ],
+        rating: 4.7,
+        stateSpecific: true
+      },
+      {
+        name: "LegalZoom",
+        url: "https://legalzoom.com/power-of-attorney",
+        cost: "$79",
+        features: [
+          "Well-known service",
+          "Customer support",
+          "Quick turnaround"
+        ],
+        rating: 4.5,
+        stateSpecific: true
+      }
+    ],
+
+    estimatedCompletionTime: "30 minutes",
+
+    notes: "MA Health Care Proxy is straightforward. Note that MA does not have a statutory living will form - wishes are communicated through the proxy document itself."
   }
 };
 

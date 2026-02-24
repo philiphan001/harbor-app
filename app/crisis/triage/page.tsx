@@ -231,7 +231,15 @@ export default function TriagePage() {
               ))}
             </ul>
           ) : (
-            <div className="font-sans text-sm text-coral">No legal documents recorded</div>
+            <div className="flex flex-col gap-2">
+              <div className="font-sans text-sm text-coral">No legal documents recorded</div>
+              <Link
+                href="/advance-directives"
+                className="font-sans text-xs text-ocean font-semibold hover:underline"
+              >
+                Create an advance directive &rarr;
+              </Link>
+            </div>
           )}
         </div>
 
