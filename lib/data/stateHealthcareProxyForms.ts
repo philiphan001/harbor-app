@@ -737,6 +737,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Health Care Power of Attorney",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/OH.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/ohio/",
 
     additionalForms: [
@@ -848,6 +849,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Power of Attorney for Health Care",
     includesHIPAA: true,
 
+    hostedPdfPath: "/forms/advance-directives/IL.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/illinois/",
 
     additionalForms: [
@@ -955,6 +957,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Advance Directive for Health Care",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/GA.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/georgia/",
 
     additionalForms: [
@@ -1063,6 +1066,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Health Care Power of Attorney",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/NC.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/north-carolina/",
 
     additionalForms: [
@@ -1173,6 +1177,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Proxy Directive",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/NJ.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/new-jersey/",
 
     additionalForms: [
@@ -1281,6 +1286,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Advance Directive for Health Care",
     includesHIPAA: true,
 
+    hostedPdfPath: "/forms/advance-directives/VA.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/virginia/",
 
     reciprocity: {
@@ -1378,6 +1384,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Durable Power of Attorney for Health Care",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/WA.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/washington/",
 
     additionalForms: [
@@ -1487,6 +1494,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Life Care Planning (Health Care Power of Attorney)",
     includesHIPAA: false,
 
+    hostedPdfPath: "/forms/advance-directives/AZ.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/arizona/",
 
     additionalForms: [
@@ -1594,6 +1602,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Patient Advocate Designation",
     includesHIPAA: true,
 
+    hostedPdfPath: "/forms/advance-directives/MI.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/michigan/",
 
     reciprocity: {
@@ -1691,6 +1700,7 @@ export const STATE_FORMS_DATABASE: Record<string, StateFormInfo> = {
     terminology: "Advance Directive for Health Care",
     includesHIPAA: true,
 
+    hostedPdfPath: "/forms/advance-directives/TN.pdf",
     caringInfoLandingUrl: "https://www.caringinfo.org/planning/advance-directives/by-state/tennessee/",
 
     reciprocity: {
