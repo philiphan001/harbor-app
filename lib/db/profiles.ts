@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
+import { linkExistingAlertsToSituation } from "@/lib/db/alerts";
 
 const log = createLogger("db/profiles");
 
@@ -105,6 +106,9 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
         createdBy: user.id,
       },
     });
+
+    // Backfill existing global alerts for the new situation
+    linkExistingAlertsToSituation(situation.id, input.state ?? null).catch(() => {});
   }
 
   log.info("Profile upserted", { userId: user.id, situationId: situation.id });
@@ -349,6 +353,9 @@ export async function ensureSituationForUser(
       createdBy: authUserId,
     },
   });
+
+  // Backfill existing global alerts (no state known yet, just link global ones)
+  linkExistingAlertsToSituation(situation.id, null).catch(() => {});
 
   log.info("Created default situation for pre-intake user", {
     userId: authUserId,

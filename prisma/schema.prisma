@@ -24,6 +24,7 @@ model User {
   conversations    Conversation[]
   situationMembers SituationMember[]
   acknowledgedAlerts Alert[] @relation("AcknowledgedBy")
+  acknowledgedAlertStatuses SituationAlertStatus[] @relation("AlertStatusAcknowledgedBy")
 
   @@map("users")
 }
@@ -57,6 +58,7 @@ model Situation {
   tasks               Task[]
   conversations       Conversation[]
   alerts              Alert[]
+  alertStatuses       SituationAlertStatus[]
   documents           Document[]
   readinessHistory    ReadinessHistory[]
 
@@ -213,17 +215,21 @@ model CareScenario {
 // Tasks & Coordination
 
 model Task {
-  id          String    @id @default(uuid())
-  situationId String
-  title       String
-  description String?
-  assigneeId  String?
-  domain      String?   // medical, financial, legal, housing, family, logistics
-  priority    String    @default("normal") // urgent, high, normal, low
-  status      String    @default("pending") // pending, in_progress, completed, cancelled
-  dueDate     DateTime?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
+  id              String    @id @default(uuid())
+  situationId     String
+  title           String
+  description     String?
+  assigneeId      String?
+  domain          String?   // medical, financial, legal, housing, family, logistics
+  priority        String    @default("normal") // urgent, high, normal, low
+  status          String    @default("pending") // pending, in_progress, completed, cancelled
+  dueDate         DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  recurrenceFreq  String?   // monthly, quarterly, semi-annual, annual
+  nextDueDate     DateTime?
+  parentTaskId    String?   // links to the original recurring task
+  checklist       Json?     // Array<{ id, label, completed, linkTo? }>
 
   situation Situation        @relation(fields: [situationId], references: [id])
   assignee  SituationMember? @relation(fields: [assigneeId], references: [id])
@@ -279,6 +285,45 @@ model Alert {
   acknowledger    User?     @relation("AcknowledgedBy", fields: [acknowledgedBy], references: [id])
 
   @@map("alerts")
+}
+
+model GlobalAlert {
+  id              String    @id @default(uuid())
+  agentType       String?
+  severity        String    @default("informational")
+  title           String
+  message         String
+  sourceUrl       String?
+  dataSource      String?
+  domain          String?
+  stateCode       String    @default("ALL")
+  financialImpact Decimal?
+  createdAt       DateTime  @default(now())
+
+  situationStatuses SituationAlertStatus[]
+
+  @@unique([title, stateCode, agentType], name: "uq_global_alert_dedup")
+  @@index([stateCode])
+  @@index([createdAt])
+  @@map("global_alerts")
+}
+
+model SituationAlertStatus {
+  id             String    @id @default(uuid())
+  situationId    String
+  globalAlertId  String
+  acknowledged   Boolean   @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  situation   Situation   @relation(fields: [situationId], references: [id])
+  globalAlert GlobalAlert @relation(fields: [globalAlertId], references: [id])
+  acknowledger User?      @relation("AlertStatusAcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  @@unique([situationId, globalAlertId], name: "uq_situation_alert")
+  @@index([situationId, acknowledged])
+  @@map("situation_alert_status")
 }
 
 // Documents & Ingestion

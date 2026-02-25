@@ -1,8 +1,13 @@
-// Test setup — mock localStorage for jsdom environment
+// Vitest setup file
+import { vi } from "vitest";
 
-import { beforeEach } from "vitest";
-
-// Clear localStorage before each test
-beforeEach(() => {
-  localStorage.clear();
-});
+// Mock the logger to suppress output during tests
+vi.mock("@/lib/utils/logger", () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    errorWithStack: vi.fn(),
+    debug: vi.fn(),
+  }),
+}));

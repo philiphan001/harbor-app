@@ -2,6 +2,10 @@
 // Extracts text from PDFs and sends to Claude for structuring.
 // For scanned PDFs (no selectable text), renders pages to images
 // and sends to Claude Vision for OCR + extraction.
+//
+// NOTE: pdf-parse and pdf-to-img depend on @napi-rs/canvas which
+// does NOT work on Vercel serverless. All native-dep paths are wrapped
+// in try/catch so extraction degrades gracefully.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicApiKey } from "@/lib/utils/env";
@@ -30,13 +34,10 @@ const MAX_OCR_PAGES = 5;
  * Extract structured data from a PDF document.
  *
  * Strategy:
- * 1. Parse PDF to extract text
+ * 1. Parse PDF to extract text (may fail on serverless — native dep)
  * 2. If text is found, send to Claude for structuring
  * 3. If no text (scanned PDF), render pages to images and use Claude Vision
- *
- * @param pdfBuffer - Raw PDF file as a Buffer
- * @param documentType - Optional hint for document type
- * @returns Extraction result with structured data
+ * 4. If rendering fails (serverless), return guidance to upload as photos
  */
 export async function extractFromPdf(
   pdfBuffer: Buffer,
@@ -47,36 +48,45 @@ export async function extractFromPdf(
     documentType: documentType ?? "auto",
   });
 
+  // Step 1: Try to parse PDF text (may fail on Vercel due to @napi-rs/canvas)
+  let extractedText = "";
+  let pageCount = 0;
+
   try {
-    // Step 1: Parse PDF text (dynamic import to avoid bundling issues on Vercel)
     const { PDFParse } = await import("pdf-parse");
     const parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
     const textResult = await parser.getText();
-    const extractedText = textResult.text?.trim() || "";
-    const pageCount = textResult.pages?.length || 0;
+    extractedText = textResult.text?.trim() || "";
+    pageCount = textResult.pages?.length || 0;
 
     log.info("PDF parsed", {
       pages: pageCount,
       textLength: extractedText.length,
     });
-
-    // Step 2: If we got text, use Claude to structure it
-    if (extractedText.length > 50) {
-      return await structureTextWithClaude(extractedText, documentType, pageCount);
-    }
-
-    // Step 3: Scanned PDF — render pages to images and use Claude Vision
-    log.info("Scanned PDF detected, rendering pages to images for OCR", { pages: pageCount });
-
-    return await extractScannedPdfViaVision(pdfBuffer, documentType);
-  } catch (error) {
-    log.errorWithStack("PDF extraction failed", error);
-    throw error;
+  } catch (parseError) {
+    log.warn("PDF text parsing failed (likely native dep issue on serverless)", {
+      error: parseError instanceof Error ? parseError.message : String(parseError),
+    });
   }
+
+  // Step 2: If we got any meaningful text, send it to Claude
+  if (extractedText.length > 10) {
+    return await structureTextWithClaude(extractedText, documentType, pageCount);
+  }
+
+  // Step 3: No text — try rendering pages to images for Claude Vision
+  log.info("Using vision extraction for PDF", {
+    reason: extractedText.length === 0 ? "no text extracted" : "insufficient text",
+    textLength: extractedText.length,
+    pages: pageCount,
+  });
+
+  return await extractScannedPdfViaVision(pdfBuffer, documentType);
 }
 
 /**
  * Render scanned PDF pages to images and send to Claude Vision for extraction.
+ * Falls back to a helpful message if rendering fails (e.g., on Vercel serverless).
  */
 async function extractScannedPdfViaVision(
   pdfBuffer: Buffer,
@@ -128,10 +138,10 @@ async function extractScannedPdfViaVision(
 
     // Use the existing multi-image extraction pipeline
     return await extractFromMultipleImages(images, documentType);
-  } catch (importError) {
-    // If pdf-to-img fails (e.g., on Vercel), fall back to helpful message
-    log.warn("PDF-to-image rendering failed, falling back to user guidance", {
-      error: importError instanceof Error ? importError.message : String(importError),
+  } catch (visionError) {
+    // pdf-to-img fails on Vercel serverless (needs @napi-rs/canvas)
+    log.warn("PDF-to-image rendering failed (expected on serverless)", {
+      error: visionError instanceof Error ? visionError.message : String(visionError),
     });
 
     return {
@@ -139,14 +149,14 @@ async function extractScannedPdfViaVision(
       confidence: 0,
       data: {
         type: "other",
-        title: "Scanned PDF",
+        title: "PDF Upload",
         summary:
-          "This PDF appears to be a scanned document. " +
-          "For best results, please take a photo of each page and upload as images.",
+          "We couldn't extract text from this PDF automatically. " +
+          "This usually happens with scanned documents.",
         keyFacts: [],
         actionItems: [
-          "Take a photo of each page and upload as images",
-          "Or use a scanning app to create a text-searchable PDF",
+          "Take a photo of each page and upload as images instead",
+          "Or use a scanning app (like Apple Notes or Adobe Scan) to create a text-searchable PDF",
         ],
       },
     };

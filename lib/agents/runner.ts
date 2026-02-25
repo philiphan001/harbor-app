@@ -7,7 +7,7 @@ import {
   type PolicyDocument,
 } from "./policyFetcher";
 import { fetchAllElderCareNews, type NewsItem } from "./newsFetcher";
-import { createAlertsBatch, alertExistsRecently, type CreateAlertInput } from "@/lib/db/alerts";
+import { upsertGlobalAlerts, linkAlertsToSituations, type GlobalAlertInput } from "@/lib/db/alerts";
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
 import { sendAlertEmail } from "@/lib/email/send";
@@ -20,8 +20,6 @@ export interface AgentRunResult {
   newAlerts: number;
   skippedDuplicates: number;
   error?: string;
-  /** The alerts that were actually created (for email notifications) */
-  createdAlerts?: CreateAlertInput[];
 }
 
 export interface RunAllResult {
@@ -32,14 +30,14 @@ export interface RunAllResult {
 
 /**
  * Run all external monitoring agents for all active situations.
- * This is the main entry point called by the cron job.
+ * Fetches data once globally, upserts GlobalAlerts, then links to matching situations.
  */
 export async function runAllAgents(): Promise<RunAllResult> {
   const startTime = Date.now();
   const results: AgentRunResult[] = [];
 
   try {
-    // Get all situations with their parent state and creator email
+    // Get all situations with their location and creator email
     const situations = await prisma.situation.findMany({
       select: {
         id: true,
@@ -57,54 +55,155 @@ export async function runAllAgents(): Promise<RunAllResult> {
       return { results: [], totalNewAlerts: 0, duration: Date.now() - startTime };
     }
 
-    // Run external fetchers (once globally, not per-situation)
+    // Collect unique state codes and map each state to its situations
+    const stateToSituations = new Map<string, typeof situations>();
+    const globalSituationIds: string[] = [];
+
+    for (const situation of situations) {
+      const { state } = extractLocation(situation.elderLocation);
+      globalSituationIds.push(situation.id);
+
+      if (state) {
+        const existing = stateToSituations.get(state) || [];
+        existing.push(situation);
+        stateToSituations.set(state, existing);
+      }
+    }
+
+    // 1. Fetch global data once
     const [policyDocs, newsItems] = await Promise.all([
       fetchCMSPolicyDocuments(7, 20),
       fetchAllElderCareNews(),
     ]);
 
-    // Process each situation
-    for (const situation of situations) {
-      const { state } = extractLocation(situation.elderLocation);
+    // 2. Fetch state-specific docs once per unique state
+    const stateDocsMap = new Map<string, PolicyDocument[]>();
+    await Promise.all(
+      Array.from(stateToSituations.keys()).map(async (state) => {
+        const docs = await fetchStateMedicaidDocuments(state, 14, 10);
+        stateDocsMap.set(state, docs);
+      })
+    );
 
-      // Fetch state-specific documents if we know the state
-      let stateDocs: PolicyDocument[] = [];
-      if (state) {
-        stateDocs = await fetchStateMedicaidDocuments(state, 14, 10);
+    // 3. Build GlobalAlert inputs for policy documents (global)
+    const policyAlertInputs: GlobalAlertInput[] = policyDocs.map((doc) => ({
+      agentType: "policy_monitor",
+      severity: getSeverityForDocType(doc.type),
+      title: doc.title,
+      message: doc.abstract || `New ${doc.type} published on ${doc.publicationDate}.`,
+      sourceUrl: doc.htmlUrl,
+      dataSource: "Federal Register",
+      domain: categorizePolicyDomain(doc.title, doc.abstract),
+      stateCode: "ALL",
+    }));
+
+    // 4. Build GlobalAlert inputs for state-specific docs
+    const stateAlertInputs: GlobalAlertInput[] = [];
+    for (const [state, docs] of stateDocsMap) {
+      for (const doc of docs) {
+        stateAlertInputs.push({
+          agentType: "policy_monitor",
+          severity: getSeverityForDocType(doc.type),
+          title: doc.title,
+          message: doc.abstract || `New ${doc.type} published on ${doc.publicationDate}.`,
+          sourceUrl: doc.htmlUrl,
+          dataSource: `State Medicaid (${state})`,
+          domain: categorizePolicyDomain(doc.title, doc.abstract),
+          stateCode: state,
+        });
       }
+    }
 
-      // Convert policy documents to alerts
-      const policyResult = await processPolicyDocuments(
-        situation.id,
-        [...policyDocs, ...stateDocs]
-      );
-      results.push(policyResult);
+    // 5. Build GlobalAlert inputs for news items (cap at 15)
+    const newsAlertInputs: GlobalAlertInput[] = newsItems.slice(0, 15).map((item) => ({
+      agentType: "news_monitor",
+      severity: "informational" as const,
+      title: item.title,
+      message: item.description || item.title,
+      sourceUrl: item.link,
+      dataSource: item.source || "Google News",
+      domain: categorizeNewsDomain(item.title),
+      stateCode: "ALL",
+    }));
 
-      // Convert news items to alerts
-      const newsResult = await processNewsItems(situation.id, newsItems);
-      results.push(newsResult);
+    // 6. Upsert all GlobalAlerts
+    const allInputs = [...policyAlertInputs, ...stateAlertInputs, ...newsAlertInputs];
+    const globalAlerts = await upsertGlobalAlerts(allInputs);
 
-      // Send email notifications for urgent/actionable alerts (fire-and-forget)
-      const userEmail = situation.creator?.email;
-      if (userEmail) {
-        const allNewAlerts = [
-          ...(policyResult.createdAlerts || []),
-          ...(newsResult.createdAlerts || []),
-        ];
-        for (const alert of allNewAlerts) {
-          if (alert.severity === "urgent" || alert.severity === "actionable") {
-            sendAlertEmail(userEmail, {
-              elderName: situation.elderName || "Your parent",
-              alertTitle: alert.title,
-              alertMessage: alert.message,
-              severity: alert.severity,
-              sourceUrl: alert.sourceUrl,
-              domain: alert.domain,
-            }).catch(() => {}); // Fire and forget
-          }
+    // 7. Link alerts to matching situations
+    // Global alerts (stateCode=ALL) → all situations
+    const globalAlertIds = globalAlerts
+      .filter((a) => a.stateCode === "ALL")
+      .map((a) => a.id);
+
+    let totalLinked = 0;
+
+    if (globalAlertIds.length > 0) {
+      totalLinked += await linkAlertsToSituations(globalAlertIds, globalSituationIds);
+    }
+
+    // State-specific alerts → only situations in that state
+    for (const [state, stateSituations] of stateToSituations) {
+      const stateAlertIds = globalAlerts
+        .filter((a) => a.stateCode === state)
+        .map((a) => a.id);
+
+      if (stateAlertIds.length > 0) {
+        totalLinked += await linkAlertsToSituations(
+          stateAlertIds,
+          stateSituations.map((s) => s.id)
+        );
+      }
+    }
+
+    // Build results summary
+    results.push({
+      agentType: "policy_monitor",
+      fetched: policyDocs.length + stateAlertInputs.length,
+      newAlerts: policyAlertInputs.length + stateAlertInputs.length,
+      skippedDuplicates: 0, // Upsert handles dedup transparently
+    });
+
+    results.push({
+      agentType: "news_monitor",
+      fetched: newsItems.length,
+      newAlerts: newsAlertInputs.length,
+      skippedDuplicates: Math.max(0, newsItems.length - newsAlertInputs.length),
+    });
+
+    // 8. Send email notifications for urgent/actionable new alerts
+    const urgentAlerts = globalAlerts.filter(
+      (a) => a.severity === "urgent" || a.severity === "actionable"
+    );
+
+    if (urgentAlerts.length > 0) {
+      for (const situation of situations) {
+        const userEmail = situation.creator?.email;
+        if (!userEmail) continue;
+
+        const { state } = extractLocation(situation.elderLocation);
+        const relevantAlerts = urgentAlerts.filter(
+          (a) => a.stateCode === "ALL" || a.stateCode === state
+        );
+
+        for (const alert of relevantAlerts) {
+          sendAlertEmail(userEmail, {
+            elderName: situation.elderName || "Your parent",
+            alertTitle: alert.title,
+            alertMessage: alert.message,
+            severity: alert.severity as "informational" | "actionable" | "urgent",
+            sourceUrl: alert.sourceUrl ?? undefined,
+            domain: alert.domain ?? undefined,
+          }).catch(() => {}); // Fire and forget
         }
       }
     }
+
+    log.info("Agent run linking complete", {
+      globalAlerts: globalAlerts.length,
+      totalLinked,
+      uniqueStates: stateToSituations.size,
+    });
   } catch (error) {
     log.errorWithStack("Agent runner failed", error);
     results.push({
@@ -128,102 +227,6 @@ export async function runAllAgents(): Promise<RunAllResult> {
   return { results, totalNewAlerts, duration };
 }
 
-/**
- * Convert Federal Register policy documents into alerts.
- */
-async function processPolicyDocuments(
-  situationId: string,
-  docs: PolicyDocument[]
-): Promise<AgentRunResult> {
-  const result: AgentRunResult = {
-    agentType: "policy_monitor",
-    fetched: docs.length,
-    newAlerts: 0,
-    skippedDuplicates: 0,
-  };
-
-  const alertsToCreate: CreateAlertInput[] = [];
-
-  for (const doc of docs) {
-    // Deduplicate: skip if we already have an alert with this title
-    const exists = await alertExistsRecently(situationId, doc.title, 14);
-    if (exists) {
-      result.skippedDuplicates++;
-      continue;
-    }
-
-    // Determine severity based on document type
-    const severity = getSeverityForDocType(doc.type);
-
-    alertsToCreate.push({
-      situationId,
-      agentType: "policy_monitor",
-      severity,
-      title: doc.title,
-      message: doc.abstract || `New ${doc.type} published on ${doc.publicationDate}.`,
-      sourceUrl: doc.htmlUrl,
-      dataSource: "Federal Register",
-      domain: categorizePolicyDomain(doc.title, doc.abstract),
-    });
-  }
-
-  if (alertsToCreate.length > 0) {
-    await createAlertsBatch(alertsToCreate);
-    result.newAlerts = alertsToCreate.length;
-    result.createdAlerts = alertsToCreate;
-  }
-
-  return result;
-}
-
-/**
- * Convert Google News items into alerts.
- */
-async function processNewsItems(
-  situationId: string,
-  items: NewsItem[]
-): Promise<AgentRunResult> {
-  const result: AgentRunResult = {
-    agentType: "news_monitor",
-    fetched: items.length,
-    newAlerts: 0,
-    skippedDuplicates: 0,
-  };
-
-  const alertsToCreate: CreateAlertInput[] = [];
-
-  for (const item of items) {
-    // Deduplicate
-    const exists = await alertExistsRecently(situationId, item.title, 7);
-    if (exists) {
-      result.skippedDuplicates++;
-      continue;
-    }
-
-    alertsToCreate.push({
-      situationId,
-      agentType: "news_monitor",
-      severity: "informational",
-      title: item.title,
-      message: item.description || item.title,
-      sourceUrl: item.link,
-      dataSource: item.source || "Google News",
-      domain: categorizeNewsDomain(item.title),
-    });
-  }
-
-  // Cap at 15 news alerts per run to avoid flooding
-  const capped = alertsToCreate.slice(0, 15);
-
-  if (capped.length > 0) {
-    await createAlertsBatch(capped);
-    result.newAlerts = capped.length;
-    result.createdAlerts = capped;
-  }
-
-  return result;
-}
-
 // --- Helpers ---
 
 function extractLocation(elderLocation: unknown): { state: string | null; city: string | null; zip: string | null } {
@@ -241,9 +244,9 @@ function getSeverityForDocType(
 ): "informational" | "actionable" | "urgent" {
   switch (docType) {
     case "Rule":
-      return "actionable"; // Final rules = something changed
+      return "actionable";
     case "Proposed Rule":
-      return "informational"; // Proposed = FYI
+      return "informational";
     case "Notice":
       return "informational";
     default:
@@ -281,7 +284,6 @@ function categorizePolicyDomain(
   )
     return "legal";
 
-  // Default to medical for Medicare/CMS documents
   return "medical";
 }
 
@@ -297,5 +299,5 @@ function categorizeNewsDomain(title: string): string {
   if (text.includes("law") || text.includes("regulation") || text.includes("legal"))
     return "legal";
 
-  return "medical"; // default domain
+  return "medical";
 }

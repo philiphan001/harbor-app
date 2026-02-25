@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH /api/agents/detections
  * Acknowledge (mark as handled) a detection.
- * Body: { alertId: string }
+ * Body: { alertId: string, situationId: string }
  */
 export async function PATCH(request: NextRequest) {
   const rateLimitResponse = applyRateLimit(request, "detections", STANDARD_LIMIT);
@@ -83,13 +83,16 @@ export async function PATCH(request: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { alertId } = await request.json();
+    const { alertId, situationId } = await request.json();
 
-    if (!alertId) {
-      return NextResponse.json({ error: "alertId is required" }, { status: 400 });
+    if (!alertId || !situationId) {
+      return NextResponse.json(
+        { error: "alertId and situationId are required" },
+        { status: 400 }
+      );
     }
 
-    await acknowledgeAlert(alertId, auth.user.id);
+    await acknowledgeAlert(alertId, situationId, auth.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

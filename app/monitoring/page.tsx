@@ -15,6 +15,7 @@ export default function MonitoringPage() {
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [runningAgents, setRunningAgents] = useState(false);
   const [lastRunResult, setLastRunResult] = useState<string | null>(null);
+  const [situationId, setSituationId] = useState<string | null>(null);
 
   const loadActivity = useCallback(async () => {
     // Start with localStorage data (fast, always available)
@@ -24,7 +25,8 @@ export default function MonitoringPage() {
     try {
       const response = await fetch("/api/agents/detections");
       if (response.ok) {
-        const { detections: dbDetections } = await response.json();
+        const { detections: dbDetections, situationId: sid } = await response.json();
+        if (sid) setSituationId(sid);
         if (dbDetections && dbDetections.length > 0) {
           // Merge: DB detections + localStorage detections (dedup by title)
           const seenTitles = new Set(dbDetections.map((d: AgentDetection) => d.title));
@@ -65,7 +67,7 @@ export default function MonitoringPage() {
       await fetch("/api/agents/detections", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertId: detectionId }),
+        body: JSON.stringify({ alertId: detectionId, situationId }),
       });
     } catch {
       // Fall back to localStorage
@@ -170,7 +172,7 @@ export default function MonitoringPage() {
               disabled={runningAgents}
               className="flex-1 bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50"
             >
-              {runningAgents ? "Running Agents..." : "Run Agents Now"}
+              {runningAgents ? "Running Agents..." : "Run Agents Now (Testing Only)"}
             </button>
             {activity.recentDetections.length === 0 && (
               <button
@@ -474,14 +476,14 @@ function DetectionCard({
             onClick={() => onMarkHandled(detection.id, true)}
             className="flex-1 bg-sage text-white rounded-lg px-3 py-2 font-sans text-xs font-semibold hover:bg-sage/80 transition-colors"
           >
-            Mark as Handled
+            Mark as Read
           </button>
         ) : (
           <button
             onClick={() => onMarkHandled(detection.id, false)}
             className="flex-1 bg-sand text-slateMid rounded-lg px-3 py-2 font-sans text-xs font-medium hover:bg-sandDark transition-colors"
           >
-            ✓ Handled · Undo
+            ✓ Read · Undo
           </button>
         )}
 

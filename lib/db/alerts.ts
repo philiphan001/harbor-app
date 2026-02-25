@@ -1,4 +1,4 @@
-// DB layer for agent detections (alerts table)
+// DB layer for agent detections (global_alerts + situation_alert_status tables)
 
 import { prisma } from "@/lib/db";
 import { createLogger } from "@/lib/utils/logger";
@@ -18,68 +18,134 @@ export interface AlertRecord {
   acknowledged: boolean;
   acknowledgedBy: string | null;
   createdAt: Date;
-  // Extended fields stored in recommendedAction as JSON suffix
   sourceUrl?: string;
   dataSource?: string;
   domain?: string;
 }
 
-export interface CreateAlertInput {
-  situationId: string;
+export interface GlobalAlertInput {
   agentType: string;
   severity: "informational" | "actionable" | "urgent";
   title: string;
   message: string;
-  recommendedAction?: string;
   sourceUrl?: string;
   dataSource?: string;
   domain?: string;
+  stateCode?: string;
+  financialImpact?: number;
 }
 
 /**
- * Create a new alert (agent detection) in the database.
+ * Upsert global alerts — creates new rows or skips duplicates (by title+stateCode+agentType).
+ * Returns the full set of GlobalAlert rows that match the inputs.
  */
-export async function createAlert(input: CreateAlertInput) {
+export async function upsertGlobalAlerts(inputs: GlobalAlertInput[]) {
+  if (inputs.length === 0) return [];
+
   try {
-    // Pack extra fields into recommendedAction as JSON
-    const extraData = JSON.stringify({
-      recommendedAction: input.recommendedAction,
-      sourceUrl: input.sourceUrl,
-      dataSource: input.dataSource,
-      domain: input.domain,
-    });
+    // Use upsert per-row to get back the IDs (createMany doesn't return records in Postgres via Prisma)
+    const results = await Promise.all(
+      inputs.map((input) =>
+        prisma.globalAlert.upsert({
+          where: {
+            uq_global_alert_dedup: {
+              title: input.title,
+              stateCode: input.stateCode ?? "ALL",
+              agentType: input.agentType,
+            },
+          },
+          update: {}, // Already exists — no update needed
+          create: {
+            agentType: input.agentType,
+            severity: input.severity,
+            title: input.title,
+            message: input.message,
+            sourceUrl: input.sourceUrl,
+            dataSource: input.dataSource,
+            domain: input.domain,
+            stateCode: input.stateCode ?? "ALL",
+            financialImpact: input.financialImpact,
+          },
+        })
+      )
+    );
 
-    const alert = await prisma.alert.create({
-      data: {
-        situationId: input.situationId,
-        agentType: input.agentType,
-        severity: input.severity,
-        title: input.title,
-        message: input.message,
-        recommendedAction: extraData,
-      },
-    });
-
-    return alert;
+    log.info("Upserted global alerts", { count: results.length });
+    return results;
   } catch (error) {
-    log.errorWithStack("Failed to create alert", error);
+    log.errorWithStack("Failed to upsert global alerts", error);
     throw error;
   }
 }
 
 /**
- * Create multiple alerts in a batch.
+ * Link global alerts to matching situations via SituationAlertStatus.
+ * Uses createMany with skipDuplicates to avoid errors on re-runs.
  */
-export async function createAlertsBatch(inputs: CreateAlertInput[]) {
-  if (inputs.length === 0) return [];
+export async function linkAlertsToSituations(
+  globalAlertIds: string[],
+  situationIds: string[]
+) {
+  if (globalAlertIds.length === 0 || situationIds.length === 0) return 0;
 
   try {
-    const results = await Promise.all(inputs.map((input) => createAlert(input)));
-    log.info("Created alerts batch", { count: results.length });
-    return results;
+    const data = globalAlertIds.flatMap((globalAlertId) =>
+      situationIds.map((situationId) => ({
+        situationId,
+        globalAlertId,
+      }))
+    );
+
+    const result = await prisma.situationAlertStatus.createMany({
+      data,
+      skipDuplicates: true,
+    });
+
+    log.info("Linked alerts to situations", { created: result.count });
+    return result.count;
   } catch (error) {
-    log.errorWithStack("Failed to create alerts batch", error);
+    log.errorWithStack("Failed to link alerts to situations", error);
     throw error;
+  }
+}
+
+/**
+ * Link existing global alerts to a newly created situation.
+ * Matches by stateCode: links ALL (global) alerts plus any matching the situation's state.
+ */
+export async function linkExistingAlertsToSituation(
+  situationId: string,
+  stateCode: string | null
+) {
+  try {
+    const stateCodes = ["ALL"];
+    if (stateCode) stateCodes.push(stateCode);
+
+    const globalAlerts = await prisma.globalAlert.findMany({
+      where: { stateCode: { in: stateCodes } },
+      select: { id: true },
+    });
+
+    if (globalAlerts.length === 0) return 0;
+
+    const result = await prisma.situationAlertStatus.createMany({
+      data: globalAlerts.map((ga) => ({
+        situationId,
+        globalAlertId: ga.id,
+      })),
+      skipDuplicates: true,
+    });
+
+    log.info("Backfilled alerts for new situation", {
+      situationId,
+      stateCode: stateCode ?? "ALL",
+      linked: result.count,
+    });
+
+    return result.count;
+  } catch (error) {
+    log.errorWithStack("Failed to backfill alerts for situation", error);
+    return 0; // Non-fatal — don't block situation creation
   }
 }
 
@@ -89,15 +155,16 @@ export async function createAlertsBatch(inputs: CreateAlertInput[]) {
 export async function getAlertsForSituation(
   situationId: string,
   limit = 50
-) {
+): Promise<AlertRecord[]> {
   try {
-    const alerts = await prisma.alert.findMany({
+    const statuses = await prisma.situationAlertStatus.findMany({
       where: { situationId },
-      orderBy: { createdAt: "desc" },
+      include: { globalAlert: true },
+      orderBy: { globalAlert: { createdAt: "desc" } },
       take: limit,
     });
 
-    return alerts.map(parseAlertRecord);
+    return statuses.map((s) => mapToAlertRecord(s, situationId));
   } catch (error) {
     log.errorWithStack("Failed to get alerts", error);
     return [];
@@ -107,14 +174,17 @@ export async function getAlertsForSituation(
 /**
  * Get unacknowledged alerts for a situation.
  */
-export async function getUnacknowledgedAlerts(situationId: string) {
+export async function getUnacknowledgedAlerts(
+  situationId: string
+): Promise<AlertRecord[]> {
   try {
-    const alerts = await prisma.alert.findMany({
+    const statuses = await prisma.situationAlertStatus.findMany({
       where: { situationId, acknowledged: false },
-      orderBy: { createdAt: "desc" },
+      include: { globalAlert: true },
+      orderBy: { globalAlert: { createdAt: "desc" } },
     });
 
-    return alerts.map(parseAlertRecord);
+    return statuses.map((s) => mapToAlertRecord(s, situationId));
   } catch (error) {
     log.errorWithStack("Failed to get unacknowledged alerts", error);
     return [];
@@ -122,45 +192,30 @@ export async function getUnacknowledgedAlerts(situationId: string) {
 }
 
 /**
- * Mark an alert as acknowledged.
+ * Mark an alert as acknowledged for a specific situation.
  */
-export async function acknowledgeAlert(alertId: string, userId: string) {
+export async function acknowledgeAlert(
+  globalAlertId: string,
+  situationId: string,
+  userId: string
+) {
   try {
-    return await prisma.alert.update({
-      where: { id: alertId },
-      data: { acknowledged: true, acknowledgedBy: userId },
+    return await prisma.situationAlertStatus.update({
+      where: {
+        uq_situation_alert: {
+          situationId,
+          globalAlertId,
+        },
+      },
+      data: {
+        acknowledged: true,
+        acknowledgedBy: userId,
+        acknowledgedAt: new Date(),
+      },
     });
   } catch (error) {
     log.errorWithStack("Failed to acknowledge alert", error);
     throw error;
-  }
-}
-
-/**
- * Check if an alert with this title already exists (deduplication).
- * Checks within the last N days to avoid perpetual dedup.
- */
-export async function alertExistsRecently(
-  situationId: string,
-  title: string,
-  withinDays = 7
-): Promise<boolean> {
-  try {
-    const since = new Date();
-    since.setDate(since.getDate() - withinDays);
-
-    const existing = await prisma.alert.findFirst({
-      where: {
-        situationId,
-        title,
-        createdAt: { gte: since },
-      },
-    });
-
-    return !!existing;
-  } catch (error) {
-    log.errorWithStack("Failed to check alert existence", error);
-    return false;
   }
 }
 
@@ -176,16 +231,17 @@ export async function getRecentAlertsForBriefing(
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const alerts = await prisma.alert.findMany({
+    const statuses = await prisma.situationAlertStatus.findMany({
       where: {
         situationId,
-        createdAt: { gte: since },
+        globalAlert: { createdAt: { gte: since } },
       },
-      orderBy: { createdAt: "desc" },
+      include: { globalAlert: true },
+      orderBy: { globalAlert: { createdAt: "desc" } },
       take: limit,
     });
 
-    return alerts.map(parseAlertRecord);
+    return statuses.map((s) => mapToAlertRecord(s, situationId));
   } catch (error) {
     log.errorWithStack("Failed to get recent alerts for briefing", error);
     return [];
@@ -197,14 +253,12 @@ export async function getRecentAlertsForBriefing(
  */
 export function alertsToDetections(alerts: AlertRecord[]): AgentDetection[] {
   return alerts.map((alert) => {
-    // Map severity to relevanceScore
     const severityToScore: Record<string, "high" | "medium" | "low"> = {
       urgent: "high",
       actionable: "medium",
       informational: "low",
     };
 
-    // Map domain string to valid AgentDetection domain
     const validDomains = ["medical", "financial", "legal", "housing", "caregiving"] as const;
     type ValidDomain = typeof validDomains[number];
     const domain: ValidDomain = validDomains.includes(alert.domain as ValidDomain)
@@ -228,44 +282,44 @@ export function alertsToDetections(alerts: AlertRecord[]): AgentDetection[] {
   });
 }
 
-// Parse extra fields from recommendedAction JSON
-function parseAlertRecord(alert: {
-  id: string;
-  situationId: string;
-  agentType: string | null;
-  severity: string;
-  title: string;
-  message: string;
-  recommendedAction: string | null;
-  financialImpact: unknown;
-  acknowledged: boolean;
-  acknowledgedBy: string | null;
-  createdAt: Date;
-}): AlertRecord {
-  let sourceUrl: string | undefined;
-  let dataSource: string | undefined;
-  let domain: string | undefined;
-  let recommendedAction: string | null = alert.recommendedAction;
-
-  // Try to parse packed JSON from recommendedAction
-  if (alert.recommendedAction) {
-    try {
-      const extra = JSON.parse(alert.recommendedAction);
-      recommendedAction = extra.recommendedAction || null;
-      sourceUrl = extra.sourceUrl;
-      dataSource = extra.dataSource;
-      domain = extra.domain;
-    } catch {
-      // Not JSON, keep as plain text
-    }
-  }
-
+// Map a SituationAlertStatus (with included globalAlert) to AlertRecord
+function mapToAlertRecord(
+  status: {
+    id: string;
+    situationId: string;
+    globalAlertId: string;
+    acknowledged: boolean;
+    acknowledgedBy: string | null;
+    globalAlert: {
+      id: string;
+      agentType: string | null;
+      severity: string;
+      title: string;
+      message: string;
+      sourceUrl: string | null;
+      dataSource: string | null;
+      domain: string | null;
+      financialImpact: unknown;
+      createdAt: Date;
+    };
+  },
+  situationId: string
+): AlertRecord {
+  const ga = status.globalAlert;
   return {
-    ...alert,
-    financialImpact: alert.financialImpact ? Number(alert.financialImpact) : null,
-    recommendedAction,
-    sourceUrl,
-    dataSource,
-    domain,
+    id: ga.id,
+    situationId,
+    agentType: ga.agentType,
+    severity: ga.severity,
+    title: ga.title,
+    message: ga.message,
+    recommendedAction: null,
+    financialImpact: ga.financialImpact ? Number(ga.financialImpact) : null,
+    acknowledged: status.acknowledged,
+    acknowledgedBy: status.acknowledgedBy,
+    createdAt: ga.createdAt,
+    sourceUrl: ga.sourceUrl ?? undefined,
+    dataSource: ga.dataSource ?? undefined,
+    domain: ga.domain ?? undefined,
   };
 }

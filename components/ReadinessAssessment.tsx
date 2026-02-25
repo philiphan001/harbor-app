@@ -84,6 +84,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       // Switch to questionnaire starting at housing
       setCurrentDomain("housing");
       setMode("questionnaire");
+      window.scrollTo(0, 0);
     }
   }, [answers, mode]);
 
@@ -164,6 +165,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     const currentIndex = domains.indexOf(currentDomain);
     if (currentIndex < domains.length - 1) {
       setCurrentDomain(domains[currentIndex + 1]);
+      window.scrollTo(0, 0);
     } else {
       // All domains complete - go to results
       router.push("/readiness/results");
@@ -236,11 +238,13 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     const currentIndex = domains.indexOf(currentDomain);
     if (currentIndex > 0) {
       setCurrentDomain(domains[currentIndex - 1]);
+      window.scrollTo(0, 0);
     }
   };
 
   const handleDomainSelect = (domain: Domain) => {
     setCurrentDomain(domain);
+    window.scrollTo(0, 0);
   };
 
   const handleChatComplete = () => {
