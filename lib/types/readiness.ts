@@ -438,6 +438,38 @@ const socialQuestions: Question[] = [
       skippable: true,
     },
   },
+  {
+    id: "social-6",
+    text: "Does your parent have any pets?",
+    subtext: "Pets are important companions — but they also need a care plan if your parent can't look after them.",
+    options: ["Yes", "No"],
+    allowUncertainty: false,
+    followUp: {
+      triggerOptions: ["Yes"],
+      prompt: "Note the pet details so there's a plan if care is needed.",
+      fields: [
+        { key: "petType", label: "Type of pet(s)", placeholder: "e.g. Dog (golden retriever), two cats" },
+        { key: "petName", label: "Pet name(s)", placeholder: "e.g. Buddy, Whiskers" },
+      ],
+      skippable: true,
+    },
+  },
+  {
+    id: "social-7",
+    text: "If your parent were hospitalized or needed care, is there a plan for who would look after their pet(s)?",
+    subtext: "Pets left without care can end up in shelters. Having a backup plan prevents this.",
+    options: ["Yes, someone is lined up", "Informally — but nothing definite", "No plan", "No pets"],
+    allowUncertainty: true,
+    followUp: {
+      triggerOptions: ["Yes, someone is lined up"],
+      prompt: "Note who would take care of the pet(s).",
+      fields: [
+        { key: "petCaretaker", label: "Pet backup caretaker", placeholder: "e.g. Neighbor Sue, daughter Lisa" },
+        { key: "petCaretakerPhone", label: "Their phone number", placeholder: "e.g. (555) 123-4567", type: "tel" },
+      ],
+      skippable: true,
+    },
+  },
 ];
 
 export const DOMAIN_QUESTIONS: DomainQuestions[] = [
@@ -473,8 +505,8 @@ export const DOMAIN_QUESTIONS: DomainQuestions[] = [
   },
   {
     domain: "social",
-    title: "Social Readiness",
-    description: "Do you know your parent's social circle — friends, neighbors, and who checks on them? Social isolation is a critical risk factor.",
+    title: "Social & Pets",
+    description: "Do you know your parent's social circle — friends, neighbors, and who checks on them? We'll also cover pet care planning. Social isolation is a critical risk factor.",
     questions: socialQuestions,
   },
 ];

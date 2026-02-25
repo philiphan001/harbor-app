@@ -288,7 +288,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
                 { icon: "💰", title: "Financial Readiness", desc: "Income, expenses, long-term care funding" },
                 { icon: "🏠", title: "Housing Readiness", desc: "Living situation and future planning" },
                 { icon: "🚗", title: "Transportation Readiness", desc: "Getting to appointments, errands, and daily life" },
-                { icon: "👥", title: "Social Readiness", desc: "Friends, neighbors, and social connections" },
+                { icon: "👥", title: "Social & Pets", desc: "Friends, neighbors, social connections, and pet care planning" },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="text-2xl">{item.icon}</div>
@@ -566,6 +566,20 @@ function persistCapturedData(questionId: string, data: Record<string, string>) {
       if (data.checkerName || data.checkerFrequency) {
         const notes = [data.checkerName, data.checkerFrequency && `Frequency: ${data.checkerFrequency}`].filter(Boolean).join("\n");
         saveTaskData("Regular Check-in Contact", "save_task_notes", { notes });
+      }
+      break;
+
+    case "social-6":
+      if (data.petType || data.petName) {
+        const notes = [data.petType && `Pets: ${data.petType}`, data.petName && `Names: ${data.petName}`].filter(Boolean).join("\n");
+        saveTaskData("Pet Information", "save_task_notes", { notes });
+      }
+      break;
+
+    case "social-7":
+      if (data.petCaretaker || data.petCaretakerPhone) {
+        const notes = [data.petCaretaker, data.petCaretakerPhone && `Phone: ${data.petCaretakerPhone}`].filter(Boolean).join("\n");
+        saveTaskData("Pet Backup Caretaker", "save_task_notes", { notes });
       }
       break;
   }

@@ -25,7 +25,7 @@ export const DOMAIN_LABELS: Record<Domain, string> = {
   financial: "Financial",
   housing: "Housing",
   transportation: "Transportation",
-  social: "Social",
+  social: "Social & Pets",
 };
 
 /** Extended domain labels (includes family/caregiving/general) */
@@ -35,7 +35,7 @@ export const EXTENDED_DOMAIN_LABELS: Record<ExtendedDomain, string> = {
   financial: "Financial",
   housing: "Housing",
   transportation: "Transportation",
-  social: "Social",
+  social: "Social & Pets",
   family: "Family",
   caregiving: "Caregiving",
   general: "General",

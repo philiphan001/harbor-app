@@ -106,9 +106,6 @@ export default function DashboardPage() {
     loadData();
   };
 
-  const urgentTasks = tasks.filter((t) => t.priority === "high");
-  const otherTasks = tasks.filter((t) => t.priority !== "high");
-
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Header */}
@@ -154,31 +151,22 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
       <div className="flex-1 px-5 py-6">
-        {/* Alerts Banner */}
-        {unhandledDetections > 0 && (
-          <Link href="/monitoring" className="block mb-5">
-            <div className="w-full bg-amber/10 border-2 border-amber rounded-[14px] px-5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-amber rounded-lg flex items-center justify-center text-white font-sans text-sm font-bold">
-                    {unhandledDetections}
-                  </div>
-                  <div className="font-sans text-sm text-slate font-medium">
-                    {unhandledDetections} new {unhandledDetections === 1 ? "alert" : "alerts"} to review
-                  </div>
-                </div>
-                <div className="text-amber text-sm">&rarr;</div>
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* Weekly Briefing — promoted to top as the reason to come back */}
+        {/* Weekly Briefing — with alert count folded in */}
         <Link href="/briefing" className="block mb-5">
           <div className="bg-white border-2 border-ocean rounded-[14px] overflow-hidden cursor-pointer hover:scale-[1.01] transition-transform">
             <div className="px-5 py-3 bg-ocean/5 border-b border-sandDark flex items-center justify-between">
-              <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean">
-                This Week&apos;s Briefing
+              <div className="flex items-center gap-3">
+                <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean">
+                  This Week&apos;s Briefing
+                </div>
+                {unhandledDetections > 0 && (
+                  <div className="flex items-center gap-1.5 bg-amber/15 rounded-full px-2.5 py-0.5">
+                    <div className="w-1.5 h-1.5 bg-amber rounded-full" />
+                    <span className="font-sans text-[11px] font-semibold text-amber">
+                      {unhandledDetections} new
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="text-ocean text-sm">&rarr;</div>
             </div>
@@ -221,39 +209,11 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* Readiness Score */}
-        {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} />}
+        {/* Readiness Score + Action Items (consolidated) */}
+        {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} tasks={tasks} />}
 
         {/* Domain Status Tiles */}
         {domainStatuses.length > 0 && <DomainStatusTiles statuses={domainStatuses} />}
-
-        {/* Action Items */}
-        <Link href="/tasks" className="block mb-5">
-          <div className="bg-white border-2 border-ocean rounded-[14px] px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white font-sans text-lg font-bold">
-                  {tasks.length}
-                </div>
-                <div>
-                  <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-0.5">
-                    Action Items
-                  </div>
-                  {tasks.length > 0 ? (
-                    <div className="font-sans text-[11px] text-slateMid leading-relaxed">
-                      {urgentTasks.length > 0 && <span className="text-coral font-semibold">{urgentTasks.length} urgent</span>}
-                      {urgentTasks.length > 0 && otherTasks.length > 0 && " · "}
-                      {otherTasks.length > 0 && `${otherTasks.length} more`}
-                    </div>
-                  ) : (
-                    <div className="font-sans text-[11px] text-sage">All caught up</div>
-                  )}
-                </div>
-              </div>
-              <div className="text-ocean text-sm">&rarr;</div>
-            </div>
-          </div>
-        </Link>
 
         {/* --- Care Hub --- */}
         <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">

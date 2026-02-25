@@ -142,9 +142,12 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   { id: "community", label: "Connect with community resources", domain: "social", localWeight: 25, isCritical: false,
     pendingKeywords: ["community", "church", "senior center"],
     check: (ctx) => ctx.hasTaskNoteFor("community") || ctx.hasTaskNoteFor("church") || ctx.hasTaskNoteFor("senior center") || ctx.hasCompletedTask("community") || ctx.hasCompletedTask("church") || ctx.hasCompletedTask("senior center") },
-  { id: "check-ins", label: "Set up regular check-in schedule", domain: "social", localWeight: 40, isCritical: false,
+  { id: "check-ins", label: "Set up regular check-in schedule", domain: "social", localWeight: 30, isCritical: false,
     pendingKeywords: ["check in", "check-in"],
     check: (ctx) => ctx.hasTaskNoteFor("checks on") || ctx.hasTaskNoteFor("check in") || ctx.hasCompletedTask("checks on") || ctx.hasCompletedTask("check in") },
+  { id: "pet-care", label: "Document pet care plan", domain: "social", localWeight: 10, isCritical: false,
+    pendingKeywords: ["pet"],
+    check: (ctx) => ctx.hasTaskNoteFor("pet") || ctx.hasCompletedTask("pet") },
 ];
 
 function buildCheckContext(): CheckContext | null {
