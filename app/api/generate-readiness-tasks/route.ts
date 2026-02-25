@@ -116,8 +116,9 @@ Generate actionable tasks based on these answers. For questions where the user a
     });
   } catch (error) {
     log.errorWithStack("Failed to generate readiness tasks", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to generate tasks", tasks: [], count: 0 },
+      { error: "Failed to generate tasks", detail: errorMessage, tasks: [], count: 0 },
       { status: 500 }
     );
   }
