@@ -165,17 +165,23 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
 
   const handleNextDomain = async () => {
     // Mark current domain as complete
+    const isLastDomain = domains.indexOf(currentDomain) >= domains.length - 1;
+
     if (!completedDomains.includes(currentDomain)) {
       setCompletedDomains((prev) => [...prev, currentDomain]);
 
-      // Generate tasks for completed domain in background
-      generateTasksForDomain(currentDomain);
+      if (isLastDomain) {
+        // On last domain, wait for task generation before navigating to results
+        await generateTasksForDomain(currentDomain);
+      } else {
+        // Generate tasks in background while user works on next domain
+        generateTasksForDomain(currentDomain);
+      }
     }
 
     // Move to next domain
-    const currentIndex = domains.indexOf(currentDomain);
-    if (currentIndex < domains.length - 1) {
-      setCurrentDomain(domains[currentIndex + 1]);
+    if (!isLastDomain) {
+      setCurrentDomain(domains[domains.indexOf(currentDomain) + 1]);
       window.scrollTo(0, 0);
     } else {
       // All domains complete - go to results
