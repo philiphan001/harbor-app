@@ -20,6 +20,16 @@ export interface Task {
   why: string;
   suggestedActions: string[];
   completedAt?: string; // ISO timestamp when marked complete
+  recurrence?: {
+    frequency: "monthly" | "quarterly" | "semi-annual" | "annual";
+    nextDueDate?: string; // ISO date string
+  };
+  checklist?: Array<{
+    id: string;
+    label: string;
+    completed: boolean;
+    linkTo?: string; // optional URL to a guided page
+  }>;
 }
 
 // Parent profile information extraction
@@ -62,6 +72,20 @@ const taskCreationTool = {
         type: "array",
         items: { type: "string" },
         description: "3-5 specific, actionable steps to complete this task"
+      },
+      checklist: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Unique ID for this checklist item (e.g., 'step-1')" },
+            label: { type: "string", description: "Short description of the step" },
+            completed: { type: "boolean", description: "Whether this step is done (default false)" },
+            linkTo: { type: "string", description: "Optional URL to a guided page (e.g., '/power-of-attorney')" }
+          },
+          required: ["id", "label", "completed"]
+        },
+        description: "Optional checklist of sub-steps for this task"
       }
     },
     required: ["title", "priority", "domain", "why", "suggestedActions"]

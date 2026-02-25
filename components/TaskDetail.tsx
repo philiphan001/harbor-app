@@ -12,6 +12,8 @@ import ExtractionReview from "@/components/ExtractionReview";
 import { saveExtractionAsTaskData } from "@/lib/utils/extractionToTaskData";
 import type { ExtractionResult, ExtractedData } from "@/lib/ingestion/types";
 import type { HealthcareProxyOption } from "@/lib/types/taskCapture";
+import { toggleChecklistItem } from "@/lib/utils/taskStorage";
+import { getDefaultChecklist } from "@/lib/data/defaultChecklists";
 
 interface TaskDetailProps {
   task: Task;
@@ -34,6 +36,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
   } | null>(null);
   const [showDataCapture, setShowDataCapture] = useState(false);
   const [captureMode, setCaptureMode] = useState<"chat" | "form" | "upload" | null>(null);
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "reviewing" | "done" | "error">("idle");
   const [uploadResult, setUploadResult] = useState<string | null>(null);
   const [uploadExtraction, setUploadExtraction] = useState<{ uploadId: string; fileName: string; extraction: ExtractionResult } | null>(null);
@@ -72,7 +75,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           },
         ],
       };
-    } else if (title.includes("proxy") || title.includes("poa") || title.includes("power of attorney") || title.includes("advance directive") || title.includes("living will") || title.includes("healthcare directive")) {
+    } else if (title.includes("advance directive") || title.includes("living will") || title.includes("healthcare directive") || title.includes("proxy") || (title.includes("healthcare") && (title.includes("poa") || title.includes("power of attorney")))) {
       return {
         type: "Action Guide",
         icon: "📋",
@@ -95,6 +98,33 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
               "General wishes about life-sustaining treatment",
               "Where they want to be cared for if seriously ill",
               "Who should be informed of their medical status",
+            ],
+          },
+        ],
+      };
+    } else if (title.includes("power of attorney") || title.includes("poa")) {
+      return {
+        type: "Action Guide",
+        icon: "📋",
+        content: [
+          {
+            heading: "How to get this done:",
+            items: [
+              "Use Harbor's POA guide — your state's form and step-by-step walkthrough are ready at /power-of-attorney",
+              "You'll need a notary (required in most states for financial POA)",
+              "Decide who will be the agent (the person managing finances)",
+              "Choose which powers to grant (banking, real estate, taxes, etc.)",
+              "Have the form signed, witnessed if needed, and notarized",
+              "Give copies to the agent, banks, and financial advisor",
+            ],
+          },
+          {
+            heading: "What to discuss with your parent:",
+            items: [
+              "Who they trust to manage their finances",
+              "Which bank accounts and investments they have",
+              "Whether the POA should be effective immediately or only upon incapacity",
+              "Any limitations they want to place on the agent's authority",
             ],
           },
         ],
@@ -144,13 +174,28 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
     const t = task.title.toLowerCase();
     return (
       task.domain === "legal" &&
-      (t.includes("proxy") ||
-        t.includes("poa") ||
-        t.includes("power of attorney") ||
-        t.includes("advance directive") ||
+      (t.includes("advance directive") ||
         t.includes("living will") ||
-        t.includes("healthcare directive"))
+        t.includes("healthcare directive") ||
+        t.includes("proxy") ||
+        (t.includes("healthcare") && (t.includes("poa") || t.includes("power of attorney"))))
     );
+  })();
+
+  const isPoaTask = (() => {
+    const t = task.title.toLowerCase();
+    const hasPoaKeyword = t.includes("power of attorney") || t.includes("poa");
+    const isHealthcare =
+      t.includes("healthcare power") ||
+      t.includes("health care power") ||
+      t.includes("medical power") ||
+      t.includes("healthcare poa") ||
+      t.includes("health care poa") ||
+      t.includes("proxy") ||
+      t.includes("advance directive") ||
+      t.includes("living will") ||
+      t.includes("healthcare directive");
+    return task.domain === "legal" && hasPoaKeyword && !isHealthcare;
   })();
 
   const helpContent = enhancedHelp || getHelpContent();
@@ -285,6 +330,61 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           </div>
         </div>
 
+        {/* Checklist Section */}
+        {(() => {
+          const checklist = task.checklist || getDefaultChecklist(task.title);
+          if (!checklist || checklist.length === 0) return null;
+
+          return (
+            <div className="px-5 py-4 border-b border-sand">
+              <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-3">
+                Checklist
+              </div>
+              <div className="space-y-2">
+                {checklist.map((item) => {
+                  const isChecked = checklistState[item.id] ?? item.completed;
+
+                  return (
+                    <div key={item.id} className="flex items-start gap-3">
+                      <label className="flex items-start gap-3 cursor-pointer flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            toggleChecklistItem(task.title, item.id);
+                            setChecklistState((prev) => ({
+                              ...prev,
+                              [item.id]: !isChecked,
+                            }));
+                          }}
+                          className="mt-0.5 w-4 h-4 rounded border-slateLight accent-ocean flex-shrink-0"
+                        />
+                        <span
+                          className={`font-sans text-sm ${
+                            isChecked
+                              ? "text-slateLight line-through"
+                              : "text-slate"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </label>
+                      {item.linkTo && !isChecked && (
+                        <Link
+                          href={item.linkTo}
+                          className="font-sans text-xs text-ocean font-semibold hover:text-oceanMid transition-colors flex-shrink-0"
+                        >
+                          Open guide →
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Advance Directive CTA */}
         {isAdvanceDirectiveTask && (
           <div className="px-5 py-4 border-b border-sand">
@@ -301,6 +401,30 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                   </div>
                   <div className="font-sans text-xs text-slateMid mt-0.5">
                     Harbor has your state&apos;s form ready with a guided walkthrough
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* POA CTA */}
+        {isPoaTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/power-of-attorney"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-ocean/5"
+              style={{ borderColor: "#1B6B7D" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📄</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Get Started with Harbor&apos;s POA Guide
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Your state&apos;s financial POA form with a step-by-step walkthrough
                   </div>
                 </div>
                 <span className="ml-auto text-slateMid text-lg">→</span>

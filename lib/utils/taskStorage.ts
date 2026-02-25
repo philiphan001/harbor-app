@@ -187,13 +187,98 @@ export function addTasks(newTasks: Task[]): void {
   if (activeParentId) syncTasksToDb(activeParentId, uniqueNewTasks);
 }
 
+// Calculate the next due date based on recurrence frequency
+function calculateNextDueDate(
+  frequency: "monthly" | "quarterly" | "semi-annual" | "annual",
+  fromDate?: string
+): string {
+  const base = fromDate ? new Date(fromDate) : new Date();
+  switch (frequency) {
+    case "monthly":
+      base.setMonth(base.getMonth() + 1);
+      break;
+    case "quarterly":
+      base.setMonth(base.getMonth() + 3);
+      break;
+    case "semi-annual":
+      base.setMonth(base.getMonth() + 6);
+      break;
+    case "annual":
+      base.setFullYear(base.getFullYear() + 1);
+      break;
+  }
+  return base.toISOString().split("T")[0]; // ISO date only
+}
+
+// Create the next occurrence of a recurring task
+function createNextRecurrence(task: TaskWithParent): TaskWithParent | null {
+  if (!task.recurrence) return null;
+
+  const nextDueDate = calculateNextDueDate(
+    task.recurrence.frequency,
+    task.recurrence.nextDueDate
+  );
+
+  return {
+    ...task,
+    completedAt: undefined,
+    recurrence: {
+      ...task.recurrence,
+      nextDueDate,
+    },
+    // Reset checklist items if present
+    checklist: task.checklist?.map((item) => ({ ...item, completed: false })),
+  };
+}
+
 // Mark a task as completed (keeps it in storage with completedAt timestamp)
+// If the task is recurring, auto-creates the next occurrence
 export function completeTask(taskTitle: string): void {
   const activeParentId = getActiveParentId();
   const allTasks = getAllTasks();
+
+  // Find the task being completed
+  const completingTask = allTasks.find(
+    (t) => t.title === taskTitle && (t.parentId === activeParentId || !t.parentId) && !t.completedAt
+  );
+
   const updated = allTasks.map((t) => {
-    if (t.title === taskTitle && (t.parentId === activeParentId || !t.parentId)) {
+    if (t.title === taskTitle && (t.parentId === activeParentId || !t.parentId) && !t.completedAt) {
       return { ...t, completedAt: new Date().toISOString() };
+    }
+    return t;
+  });
+
+  // If recurring, create next occurrence
+  if (completingTask?.recurrence) {
+    const nextTask = createNextRecurrence(completingTask);
+    if (nextTask) {
+      updated.push(nextTask);
+    }
+  }
+
+  saveTasks(updated);
+
+  // Write-through to Supabase
+  if (activeParentId) syncTasksToDb(activeParentId, updated.filter((t) => t.parentId === activeParentId));
+}
+
+// Toggle a checklist item on a task
+export function toggleChecklistItem(taskTitle: string, itemId: string): void {
+  const activeParentId = getActiveParentId();
+  const allTasks = getAllTasks();
+  const updated = allTasks.map((t) => {
+    if (
+      t.title === taskTitle &&
+      (t.parentId === activeParentId || !t.parentId) &&
+      t.checklist
+    ) {
+      return {
+        ...t,
+        checklist: t.checklist.map((item) =>
+          item.id === itemId ? { ...item, completed: !item.completed } : item
+        ),
+      };
     }
     return t;
   });

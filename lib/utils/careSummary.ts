@@ -3,6 +3,7 @@ import { getAllTaskData, type TaskData } from "./taskData";
 import { getParentProfile } from "./parentProfile";
 import { getCompletedTasks, getTasks } from "./taskStorage";
 import type { DoctorInfo, MedicationList, InsuranceInfo, LegalDocumentInfo } from "@/lib/types/taskCapture";
+import { getFreshnessStatus, getFreshnessLabel, getWorstFreshness, type FreshnessStatus } from "@/lib/constants/reviewIntervals";
 
 export interface CareSummaryData {
   // Parent basics
@@ -38,6 +39,8 @@ export interface DomainStatus {
   status: "good" | "partial" | "missing";
   summary: string;
   items: string[];
+  freshness?: FreshnessStatus;
+  freshnessLabel?: string;
 }
 
 export function buildCareSummary(): CareSummaryData | null {
@@ -249,6 +252,42 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
   const social = domainStatusFromSignals("social", socialNotes.length, 2, "Social network captured", socialNotes.map(d => d.taskTitle));
 
   statuses.push({ domain: "social", label: "Social", icon: "👥", ...social });
+
+  // Compute freshness for each domain based on its task data entries
+  const domainToolMap: Record<string, string[]> = {
+    medical: ["save_doctor_info", "save_medication_list", "save_insurance_info"],
+    legal: ["save_legal_document_info"],
+    financial: ["save_task_notes", "manual_notes"],
+    housing: ["save_task_notes", "manual_notes"],
+    transportation: ["save_task_notes", "manual_notes"],
+    social: ["save_task_notes", "manual_notes"],
+  };
+
+  for (const status of statuses) {
+    const domainEntries = taskData.filter((d) => {
+      const tools = domainToolMap[status.domain] || [];
+      return tools.includes(d.toolName);
+    });
+
+    if (domainEntries.length > 0) {
+      const freshnessStatuses = domainEntries.map((d) =>
+        getFreshnessStatus(d.toolName, d.lastReviewedAt, d.capturedAt)
+      );
+      status.freshness = getWorstFreshness(freshnessStatuses);
+
+      // Find the oldest entry for the label
+      const oldestEntry = domainEntries.reduce((oldest, d) => {
+        const ref = d.lastReviewedAt || d.capturedAt;
+        const oldRef = oldest.lastReviewedAt || oldest.capturedAt;
+        return new Date(ref).getTime() < new Date(oldRef).getTime() ? d : oldest;
+      });
+      status.freshnessLabel = getFreshnessLabel(
+        oldestEntry.toolName,
+        oldestEntry.lastReviewedAt,
+        oldestEntry.capturedAt
+      );
+    }
+  }
 
   return statuses;
 }

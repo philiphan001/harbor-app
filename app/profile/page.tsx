@@ -12,6 +12,8 @@ import { DOMAIN_ICONS, DOMAIN_COLORS, PRIORITY_COLORS, type Domain } from "@/lib
 import TaskDetail from "@/components/TaskDetail";
 import { completeTask } from "@/lib/utils/taskStorage";
 import type { DoctorInfo, MedicationList, MedicationEntry, InsuranceInfo, LegalDocumentInfo, TaskDataPayload } from "@/lib/types/taskCapture";
+import { getFreshnessStatus } from "@/lib/constants/reviewIntervals";
+import FreshnessReview from "@/components/FreshnessReview";
 
 const DOMAIN_STYLES: Record<string, { label: string; color: string; icon: string }> = {
   medical: { label: "Medical", color: "#D4725C", icon: DOMAIN_ICONS.medical },
@@ -39,6 +41,7 @@ function ProfilePageContent() {
   const [editingLocation, setEditingLocation] = useState(false);
   const [cityInput, setCityInput] = useState("");
   const [zipInput, setZipInput] = useState("");
+  const [showFreshnessReview, setShowFreshnessReview] = useState(false);
 
   useEffect(() => {
     const profile = getParentProfile();
@@ -199,6 +202,58 @@ function ProfilePageContent() {
               </div>
             )}
 
+            {/* Stale data banner */}
+            {(() => {
+              const staleItems = taskData.filter(
+                (d) => getFreshnessStatus(d.toolName, d.lastReviewedAt, d.capturedAt) === "stale"
+              );
+              if (staleItems.length === 0) return null;
+
+              if (showFreshnessReview) {
+                return (
+                  <div className="mb-4">
+                    <FreshnessReview
+                      staleItems={staleItems}
+                      onReviewed={() => {
+                        setShowFreshnessReview(false);
+                        setTaskData(getAllTaskData());
+                      }}
+                      onUpdate={(taskTitle) => {
+                        setShowFreshnessReview(false);
+                        // Navigate to profile with the domain filter for update
+                        const domain = getDomainFromToolName(
+                          staleItems.find((d) => d.taskTitle === taskTitle)?.toolName || "",
+                          taskTitle
+                        );
+                        window.location.href = `/profile?domain=${domain}`;
+                      }}
+                    />
+                  </div>
+                );
+              }
+
+              return (
+                <div className="bg-coral/5 border border-coral/20 rounded-[14px] px-5 py-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-sans text-sm font-semibold text-slate">
+                        Some information may be out of date
+                      </div>
+                      <div className="font-sans text-xs text-slateMid mt-0.5">
+                        {staleItems.length} item{staleItems.length !== 1 ? "s" : ""} need{staleItems.length === 1 ? "s" : ""} review
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowFreshnessReview(true)}
+                      className="bg-coral/10 hover:bg-coral/20 text-coral rounded-lg px-3 py-1.5 font-sans text-xs font-semibold transition-colors flex-shrink-0"
+                    >
+                      Review
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {sortedData.length === 0 ? (
               <div className="bg-white rounded-xl border border-sandDark px-6 py-12 text-center">
                 <div className="text-5xl mb-4">📋</div>
@@ -355,7 +410,7 @@ function DomainDetailView({
             </div>
           </div>
           <div className="font-serif text-2xl font-bold" style={{ color: scoreColor }}>
-            {domainScore}
+            {domainScore}%
           </div>
         </div>
         {/* Progress bar */}

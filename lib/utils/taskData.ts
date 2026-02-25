@@ -28,6 +28,7 @@ export interface TaskData {
   toolName: string;
   data: TaskDataPayload;
   capturedAt: string;
+  lastReviewedAt?: string;
   parentId?: string;
 }
 
@@ -101,6 +102,34 @@ export function getAllTaskData(): TaskData[] {
 // Get task data for a specific parent
 export function getTaskDataForParent(parentId: string): TaskData[] {
   return getAllTaskDataRaw().filter((d) => d.parentId === parentId);
+}
+
+// Bump the lastReviewedAt timestamp for a task's captured data
+export function reviewTaskData(taskTitle: string): void {
+  if (typeof window === "undefined") return;
+
+  const parentId = getActiveParentId();
+  const allData = getAllTaskDataRaw();
+  const now = new Date().toISOString();
+
+  const updated = allData.map((d) => {
+    if (d.taskTitle === taskTitle && d.parentId === parentId) {
+      return { ...d, lastReviewedAt: now };
+    }
+    return d;
+  });
+
+  saveAllTaskData(updated);
+
+  // Write-through to Supabase
+  if (parentId) {
+    const entry = updated.find(
+      (d) => d.taskTitle === taskTitle && d.parentId === parentId
+    );
+    if (entry) {
+      syncTaskDataToDb(parentId, entry.toolName, taskTitle, entry.data);
+    }
+  }
 }
 
 export function removeTaskData(taskTitle: string) {

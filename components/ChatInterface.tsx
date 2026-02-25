@@ -272,58 +272,89 @@ export default function ChatInterface({
         content: "",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false); // Hide bouncing dots, show streaming text
 
       // Read the SSE stream
       let fullText = "";
-      const reader = streamResponse.body?.getReader();
-      const decoder = new TextDecoder();
 
-      if (reader) {
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      // Only add placeholder and start streaming if response is OK
+      if (!streamResponse.ok) {
+        console.error("Stream response not OK:", streamResponse.status);
+        fullText = "I'm sorry, I encountered an error. Please try again.";
+        setMessages((prev) => [...prev, {
+          ...assistantMessage,
+          content: fullText,
+        }]);
+        setIsLoading(false);
+      } else {
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsLoading(false); // Hide bouncing dots, show streaming text
+        const reader = streamResponse.body?.getReader();
+        const decoder = new TextDecoder();
 
-          buffer += decoder.decode(value, { stream: true });
+        if (reader) {
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          // Parse SSE events from buffer
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || ""; // Keep incomplete line in buffer
+            buffer += decoder.decode(value, { stream: true });
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            try {
-              const event = JSON.parse(line.slice(6));
-              if (event.type === "delta") {
-                fullText += event.text;
-                // Update the message in-place with accumulated text
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMsgId ? { ...m, content: fullText } : m
-                  )
-                );
-              } else if (event.type === "done") {
-                // Stream complete — update metadata
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMsgId
-                      ? { ...m, metadata: { model: event.model, usage: event.usage } }
-                      : m
-                  )
-                );
-              } else if (event.type === "error") {
-                console.error("Stream error:", event.message);
+            // Parse SSE events from buffer
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              try {
+                const event = JSON.parse(line.slice(6));
+                if (event.type === "delta") {
+                  fullText += event.text;
+                  // Update the message in-place with accumulated text
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMsgId ? { ...m, content: fullText } : m
+                    )
+                  );
+                } else if (event.type === "done") {
+                  // Stream complete — update metadata
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMsgId
+                        ? { ...m, metadata: { model: event.model, usage: event.usage } }
+                        : m
+                    )
+                  );
+                } else if (event.type === "error") {
+                  console.error("Stream error:", event.message);
+                  // Show error in message bubble instead of leaving it empty
+                  if (!fullText) {
+                    fullText = "I'm sorry, something went wrong. Please try again.";
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === assistantMsgId ? { ...m, content: fullText } : m
+                      )
+                    );
+                  }
+                }
+              } catch {
+                // Skip malformed SSE lines
               }
-            } catch {
-              // Skip malformed SSE lines
             }
           }
         }
-      }
 
-      console.log("✅ Streaming response complete");
+        // If stream completed but produced no text, replace with error message
+        if (!fullText.trim()) {
+          fullText = "I'm sorry, I wasn't able to generate a response. Please try again.";
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId ? { ...m, content: fullText } : m
+            )
+          );
+        }
+
+        console.log("✅ Streaming response complete");
+      }
 
       // --- Persist user + assistant messages (fire-and-forget) ---
       if (convId) {

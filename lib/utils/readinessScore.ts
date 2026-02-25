@@ -48,6 +48,8 @@ interface ScoreableItem {
   localWeight: number;
   isCritical: boolean;
   criticalLabel?: string;
+  /** Keywords to match against pending task titles for partial credit */
+  pendingKeywords?: string[];
   check: (ctx: CheckContext) => boolean;
 }
 
@@ -55,68 +57,93 @@ interface CheckContext {
   hasToolData: (toolName: string) => boolean;
   hasTaskNoteFor: (keyword: string) => boolean;
   hasCompletedTask: (keyword: string) => boolean;
+  hasPendingTask: (keyword: string) => boolean;
   profile: ReturnType<typeof getParentProfile>;
 }
 
 const SCOREABLE_ITEMS: ScoreableItem[] = [
   // Medical domain
   { id: "doctor", label: "Add primary care doctor contact", domain: "medical", localWeight: 25, isCritical: true, criticalLabel: "Primary care doctor contact",
+    pendingKeywords: ["doctor", "pcp", "physician", "primary care"],
     check: (ctx) => ctx.hasToolData("save_doctor_info") || ctx.hasCompletedTask("doctor") || ctx.hasCompletedTask("pcp") || ctx.hasCompletedTask("physician") },
   { id: "medications", label: "Record current medications list", domain: "medical", localWeight: 20, isCritical: true, criticalLabel: "Current medications list",
+    pendingKeywords: ["medication", "medicine", "prescription"],
     check: (ctx) => ctx.hasToolData("save_medication_list") || ctx.hasCompletedTask("medication") || ctx.hasCompletedTask("medicine") },
   { id: "insurance", label: "Add Medicare/insurance information", domain: "medical", localWeight: 25, isCritical: true, criticalLabel: "Medicare/insurance information",
+    pendingKeywords: ["insurance", "medicare"],
     check: (ctx) => ctx.hasToolData("save_insurance_info") || ctx.hasCompletedTask("insurance") || ctx.hasCompletedTask("medicare") },
   { id: "specialist", label: "Add specialist doctor details", domain: "medical", localWeight: 15, isCritical: false,
+    pendingKeywords: ["specialist"],
     check: (ctx) => ctx.hasTaskNoteFor("specialist") || ctx.hasCompletedTask("specialist") },
   { id: "pharmacy", label: "Add pharmacy information", domain: "medical", localWeight: 15, isCritical: false,
+    pendingKeywords: ["pharmacy"],
     check: (ctx) => ctx.hasTaskNoteFor("pharmacy") || ctx.hasCompletedTask("pharmacy") },
 
   // Legal domain
   { id: "poa", label: "Record Power of Attorney details", domain: "legal", localWeight: 35, isCritical: true, criticalLabel: "Power of Attorney location/holder",
+    pendingKeywords: ["power of attorney", "poa"],
     check: (ctx) => ctx.hasToolData("save_legal_document_info") || ctx.hasTaskNoteFor("power of attorney") || ctx.hasCompletedTask("power of attorney") || ctx.hasCompletedTask("poa") || ctx.hasCompletedTask("proxy") },
   { id: "living-will", label: "Document living will / advance directive", domain: "legal", localWeight: 25, isCritical: true, criticalLabel: "Living will/advance directive",
+    pendingKeywords: ["living will", "advance directive", "directive"],
     check: (ctx) => ctx.hasTaskNoteFor("living will") || ctx.hasTaskNoteFor("advance directive") || ctx.hasCompletedTask("living will") || ctx.hasCompletedTask("advance directive") },
   { id: "will-estate", label: "Record will / estate plan details", domain: "legal", localWeight: 20, isCritical: false,
+    pendingKeywords: ["will", "estate"],
     check: (ctx) => ctx.hasTaskNoteFor("will") || ctx.hasTaskNoteFor("estate") || ctx.hasCompletedTask("will") || ctx.hasCompletedTask("estate") },
   { id: "attorney", label: "Add attorney / lawyer contact", domain: "legal", localWeight: 20, isCritical: false,
+    pendingKeywords: ["attorney", "lawyer"],
     check: (ctx) => ctx.hasTaskNoteFor("attorney") || ctx.hasTaskNoteFor("lawyer") || ctx.hasCompletedTask("attorney") || ctx.hasCompletedTask("lawyer") },
 
   // Financial domain
   { id: "bank", label: "Add primary bank account information", domain: "financial", localWeight: 25, isCritical: true, criticalLabel: "Primary bank account information",
+    pendingKeywords: ["bank", "account"],
     check: (ctx) => ctx.hasTaskNoteFor("bank") || ctx.hasCompletedTask("bank") },
   { id: "income", label: "Document income sources", domain: "financial", localWeight: 20, isCritical: false,
+    pendingKeywords: ["income", "social security", "pension"],
     check: (ctx) => ctx.hasTaskNoteFor("income") || ctx.hasCompletedTask("income") },
   { id: "expenses", label: "Record regular expenses and bills", domain: "financial", localWeight: 20, isCritical: false,
+    pendingKeywords: ["expense", "bill"],
     check: (ctx) => ctx.hasTaskNoteFor("expense") || ctx.hasTaskNoteFor("bill") || ctx.hasCompletedTask("expense") || ctx.hasCompletedTask("bill") },
   { id: "debt", label: "Document debts and loans", domain: "financial", localWeight: 15, isCritical: false,
+    pendingKeywords: ["debt", "loan"],
     check: (ctx) => ctx.hasTaskNoteFor("debt") || ctx.hasTaskNoteFor("loan") || ctx.hasCompletedTask("debt") || ctx.hasCompletedTask("loan") },
   { id: "assets", label: "Record assets and investments", domain: "financial", localWeight: 20, isCritical: false,
+    pendingKeywords: ["asset", "investment"],
     check: (ctx) => ctx.hasTaskNoteFor("asset") || ctx.hasTaskNoteFor("investment") || ctx.hasCompletedTask("asset") || ctx.hasCompletedTask("investment") },
 
   // Housing domain
   { id: "living-arrangement", label: "Record current living arrangement", domain: "housing", localWeight: 30, isCritical: true, criticalLabel: "Current living situation details",
+    pendingKeywords: ["living arrangement", "living situation"],
     check: (ctx) => !!ctx.profile?.livingArrangement },
   { id: "housing-details", label: "Add rent / mortgage / ownership details", domain: "housing", localWeight: 25, isCritical: false,
+    pendingKeywords: ["rent", "mortgage", "housing"],
     check: (ctx) => ctx.hasTaskNoteFor("rent") || ctx.hasTaskNoteFor("mortgage") || ctx.hasTaskNoteFor("own") || ctx.hasCompletedTask("rent") || ctx.hasCompletedTask("mortgage") || ctx.hasCompletedTask("housing") },
   { id: "housing-cost", label: "Document housing costs", domain: "housing", localWeight: 20, isCritical: false,
+    pendingKeywords: ["housing cost", "rent amount"],
     check: (ctx) => ctx.hasTaskNoteFor("housing cost") || ctx.hasTaskNoteFor("rent amount") || ctx.hasCompletedTask("housing cost") },
   { id: "emergency-contact", label: "Add emergency contact besides you", domain: "housing", localWeight: 25, isCritical: true, criticalLabel: "Emergency contact besides you",
+    pendingKeywords: ["emergency contact"],
     check: (ctx) => ctx.hasTaskNoteFor("emergency contact") || ctx.hasCompletedTask("emergency contact") },
 
   // Transportation domain
   { id: "transport-plan", label: "Set up transportation plan", domain: "transportation", localWeight: 35, isCritical: false,
+    pendingKeywords: ["transport", "ride", "driving"],
     check: (ctx) => ctx.hasTaskNoteFor("transport") || ctx.hasTaskNoteFor("ride") || ctx.hasTaskNoteFor("driving") || ctx.hasCompletedTask("transport") || ctx.hasCompletedTask("ride") || ctx.hasCompletedTask("driving") },
   { id: "delivery", label: "Arrange delivery / grocery services", domain: "transportation", localWeight: 30, isCritical: false,
+    pendingKeywords: ["delivery", "grocery"],
     check: (ctx) => ctx.hasTaskNoteFor("delivery") || ctx.hasTaskNoteFor("grocery") || ctx.hasCompletedTask("delivery") || ctx.hasCompletedTask("grocery") },
   { id: "medical-transport", label: "Set up medical transport options", domain: "transportation", localWeight: 35, isCritical: true, criticalLabel: "Transportation plan for appointments",
+    pendingKeywords: ["senior shuttle", "medical transport"],
     check: (ctx) => ctx.hasTaskNoteFor("senior shuttle") || ctx.hasTaskNoteFor("medical transport") || ctx.hasCompletedTask("senior shuttle") || ctx.hasCompletedTask("medical transport") },
 
   // Social domain
   { id: "social-contacts", label: "Add key social contacts", domain: "social", localWeight: 35, isCritical: true, criticalLabel: "Key social contacts for parent",
+    pendingKeywords: ["friend", "neighbor", "social"],
     check: (ctx) => ctx.hasTaskNoteFor("friend") || ctx.hasTaskNoteFor("neighbor") || ctx.hasTaskNoteFor("social") || ctx.hasCompletedTask("friend") || ctx.hasCompletedTask("neighbor") || ctx.hasCompletedTask("social") },
   { id: "community", label: "Connect with community resources", domain: "social", localWeight: 25, isCritical: false,
+    pendingKeywords: ["community", "church", "senior center"],
     check: (ctx) => ctx.hasTaskNoteFor("community") || ctx.hasTaskNoteFor("church") || ctx.hasTaskNoteFor("senior center") || ctx.hasCompletedTask("community") || ctx.hasCompletedTask("church") || ctx.hasCompletedTask("senior center") },
   { id: "check-ins", label: "Set up regular check-in schedule", domain: "social", localWeight: 40, isCritical: false,
+    pendingKeywords: ["check in", "check-in"],
     check: (ctx) => ctx.hasTaskNoteFor("checks on") || ctx.hasTaskNoteFor("check in") || ctx.hasCompletedTask("checks on") || ctx.hasCompletedTask("check in") },
 ];
 
@@ -124,6 +151,7 @@ function buildCheckContext(): CheckContext | null {
   const profile = getParentProfile();
   const taskData = getAllTaskData();
   const completedTasks = getCompletedTasks();
+  const pendingTasks = getTasks();
 
   if (!profile) return null;
 
@@ -135,8 +163,10 @@ function buildCheckContext(): CheckContext | null {
     );
   const hasCompletedTask = (keyword: string) =>
     completedTasks.some((t) => t.title.toLowerCase().includes(keyword));
+  const hasPendingTask = (keyword: string) =>
+    pendingTasks.some((t) => t.title.toLowerCase().includes(keyword));
 
-  return { hasToolData, hasTaskNoteFor, hasCompletedTask, profile };
+  return { hasToolData, hasTaskNoteFor, hasCompletedTask, hasPendingTask, profile };
 }
 
 /**
@@ -166,18 +196,32 @@ export function calculateReadinessScore(): ReadinessBreakdown {
   // Special case: transportation critical gap depends on transport-plan item
   const transportPlanCompleted = SCOREABLE_ITEMS.find(i => i.id === "transport-plan")!.check(ctx);
 
+  // Partial credit weight for having a pending task (not yet completed)
+  const PENDING_CREDIT = 0.4;
+
   for (const item of SCOREABLE_ITEMS) {
     const completed = item.check(ctx);
     if (completed) {
       domainScores[item.domain] += item.localWeight;
-    } else if (item.isCritical && item.criticalLabel) {
-      // Transportation critical gap has special logic in original code
-      if (item.id === "medical-transport") {
-        if (!transportPlanCompleted) {
-          criticalGaps.push("Transportation plan for appointments");
+    } else {
+      // Check if there's a pending task related to this item (partial credit)
+      const hasPending = item.pendingKeywords
+        ? item.pendingKeywords.some((kw) => ctx.hasPendingTask(kw))
+        : false;
+
+      if (hasPending) {
+        domainScores[item.domain] += Math.round(item.localWeight * PENDING_CREDIT);
+      }
+
+      if (item.isCritical && item.criticalLabel && !hasPending) {
+        // Transportation critical gap has special logic in original code
+        if (item.id === "medical-transport") {
+          if (!transportPlanCompleted) {
+            criticalGaps.push("Transportation plan for appointments");
+          }
+        } else {
+          criticalGaps.push(item.criticalLabel);
         }
-      } else {
-        criticalGaps.push(item.criticalLabel);
       }
     }
   }

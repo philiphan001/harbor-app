@@ -378,6 +378,35 @@ function TaskCard({
   domainColor: string;
   onClick: () => void;
 }) {
+  // Due date logic for recurring tasks
+  const dueDate = task.recurrence?.nextDueDate;
+  let dueBadge: { label: string; className: string } | null = null;
+
+  if (dueDate) {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const daysUntil = Math.ceil(
+      (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysUntil < 0) {
+      dueBadge = {
+        label: "Overdue",
+        className: "bg-coral/15 text-coral",
+      };
+    } else if (daysUntil <= 7) {
+      dueBadge = {
+        label: `Due in ${daysUntil}d`,
+        className: "bg-amber/15 text-amber",
+      };
+    } else {
+      dueBadge = {
+        label: `Due ${due.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+        className: "bg-sand text-slateMid",
+      };
+    }
+  }
+
   return (
     <button
       onClick={onClick}
@@ -395,13 +424,20 @@ function TaskCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-sans text-base font-semibold text-slate mb-1">
-            {task.title}
+          <div className="flex items-center gap-2 mb-1">
+            <div className="font-sans text-base font-semibold text-slate truncate">
+              {task.title}
+            </div>
+            {task.recurrence && (
+              <span className="text-slateMid text-xs flex-shrink-0" title={`Repeats ${task.recurrence.frequency}`}>
+                ↻
+              </span>
+            )}
           </div>
           <div className="font-sans text-sm text-slateMid leading-relaxed mb-2">
             {task.why}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               className="px-2 py-0.5 rounded-md font-sans text-xs font-medium capitalize"
               style={{
@@ -411,6 +447,13 @@ function TaskCard({
             >
               {task.domain}
             </span>
+            {dueBadge && (
+              <span
+                className={`px-2 py-0.5 rounded-md font-sans text-[10px] font-semibold ${dueBadge.className}`}
+              >
+                {dueBadge.label}
+              </span>
+            )}
             <span className="font-sans text-xs text-slateMid">
               {task.suggestedActions.length} steps →
             </span>

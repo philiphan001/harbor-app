@@ -35,7 +35,19 @@ export default function DomainStatusTiles({ statuses }: DomainStatusTilesProps) 
                 <div className={`font-sans text-[11px] ${colors.text} font-medium`}>
                   {status.summary}
                 </div>
-                {status.items.length > 0 && (
+                {status.freshness === "stale" && (
+                  <div className="mt-1.5">
+                    <span className="inline-block bg-coral/15 text-coral font-sans text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                      Needs review
+                    </span>
+                  </div>
+                )}
+                {status.freshness === "aging" && status.freshnessLabel && (
+                  <div className="font-sans text-[10px] text-amber font-medium mt-1">
+                    {status.freshnessLabel}
+                  </div>
+                )}
+                {status.freshness !== "stale" && status.freshness !== "aging" && status.items.length > 0 && (
                   <div className="font-sans text-[10px] text-slateMid mt-1 truncate">
                     {status.items.slice(0, 2).join(" · ")}
                   </div>
