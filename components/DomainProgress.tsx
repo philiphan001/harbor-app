@@ -8,23 +8,22 @@ export type { Domain };
 export interface DomainProgressProps {
   currentDomain: Domain | null;
   completedDomains: Domain[];
+  activeDomains?: Domain[];
 }
 
-const DOMAINS = DOMAIN_LIST.map((id) => ({
+const ALL_DOMAINS = DOMAIN_LIST.map((id) => ({
   id,
   label: DOMAIN_LABELS[id],
   bgClass: DOMAIN_BG_CLASSES[id].solid,
   bgFadedClass: DOMAIN_BG_CLASSES[id].faded,
 }));
 
-export default function DomainProgress({ currentDomain, completedDomains }: DomainProgressProps) {
-  const getCurrentIndex = () => {
-    if (!currentDomain) return -1;
-    return DOMAINS.findIndex((d) => d.id === currentDomain);
-  };
+export default function DomainProgress({ currentDomain, completedDomains, activeDomains }: DomainProgressProps) {
+  const DOMAINS = activeDomains
+    ? ALL_DOMAINS.filter(d => activeDomains.includes(d.id))
+    : ALL_DOMAINS;
 
-  const currentIndex = getCurrentIndex();
-  const completedCount = completedDomains.length;
+  const completedCount = completedDomains.filter(d => DOMAINS.some(dd => dd.id === d)).length;
 
   return (
     <div className="bg-white border-b border-sandDark px-5 py-4">
@@ -39,7 +38,7 @@ export default function DomainProgress({ currentDomain, completedDomains }: Doma
 
       {/* Progress bar */}
       <div className="flex gap-1 mb-3">
-        {DOMAINS.map((domain, index) => {
+        {DOMAINS.map((domain) => {
           const isCompleted = completedDomains.includes(domain.id);
           const isCurrent = domain.id === currentDomain;
 
@@ -60,7 +59,7 @@ export default function DomainProgress({ currentDomain, completedDomains }: Doma
 
       {/* Domain labels */}
       <div className="flex justify-between">
-        {DOMAINS.map((domain, index) => {
+        {DOMAINS.map((domain) => {
           const isCompleted = completedDomains.includes(domain.id);
           const isCurrent = domain.id === currentDomain;
 

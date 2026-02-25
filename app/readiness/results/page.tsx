@@ -43,10 +43,12 @@ export default function ReadinessResultsPage() {
     const profile = getParentProfile();
     const score = calculateReadinessScore();
     const allActions = getReadinessActions();
+    const selected = profile?.selectedDomains;
 
     setParentProfile(profile);
     setReadiness(score);
-    setActions(allActions);
+    // Filter actions to only selected domains
+    setActions(selected ? allActions.filter(a => selected.includes(a.domain)) : allActions);
   }, []);
 
   if (!readiness) {
@@ -147,8 +149,9 @@ export default function ReadinessResultsPage() {
             Domain Progress
           </div>
           <div className="grid grid-cols-2 gap-2.5">
-            {(Object.entries(readiness.domains) as [Domain, number][]).map(
-              ([domain, score]) => (
+            {(Object.entries(readiness.domains) as [Domain, number][])
+              .filter(([domain]) => !parentProfile?.selectedDomains || parentProfile.selectedDomains.includes(domain))
+              .map(([domain, score]) => (
                 <div
                   key={domain}
                   className="bg-white border border-sandDark rounded-xl px-3.5 py-3"

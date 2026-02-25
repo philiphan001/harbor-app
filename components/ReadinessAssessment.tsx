@@ -12,7 +12,7 @@ import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { US_STATES } from "@/lib/constants/usStates";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
 
-type AssessmentMode = "intro" | "parent-info" | "chat" | "questionnaire";
+type AssessmentMode = "intro" | "parent-info" | "domain-select" | "chat" | "questionnaire";
 
 const CHAT_DOMAINS: Domain[] = ["medical", "legal", "financial"];
 const QUESTIONNAIRE_DOMAINS: Domain[] = ["housing", "transportation", "social"];
@@ -28,8 +28,13 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
   const [completedDomains, setCompletedDomains] = useState<Domain[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [generatingTasksFor, setGeneratingTasksFor] = useState<Domain[]>([]); // Track background task generation
+  const [selectedDomains, setSelectedDomains] = useState<Domain[]>(() => {
+    // Load persisted selection, default to all domains
+    const profile = getParentProfile();
+    return profile?.selectedDomains || DOMAIN_LIST;
+  });
 
-  const domains = DOMAIN_LIST;
+  const domains = selectedDomains;
 
   // Determine which domains are fully answered and find the first incomplete one
   const syncDomainProgress = useCallback((currentAnswers: Answer[]) => {
@@ -81,9 +86,15 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
           generateTasksForDomain(domain);
         }
       }
-      // Switch to questionnaire starting at housing
-      setCurrentDomain("housing");
-      setMode("questionnaire");
+      // Switch to questionnaire starting at first selected non-chat domain
+      const firstQuestionnaireDomain = selectedDomains.find(d => !CHAT_DOMAINS.includes(d));
+      if (firstQuestionnaireDomain) {
+        setCurrentDomain(firstQuestionnaireDomain);
+        setMode("questionnaire");
+      } else {
+        // All selected domains were chat domains — go to results
+        router.push("/readiness/results");
+      }
       window.scrollTo(0, 0);
     }
   }, [answers, mode]);
@@ -96,7 +107,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     // Skip parent info if profile already exists
     const existing = getParentProfile();
     if (existing && existing.name && existing.age) {
-      setMode("questionnaire");
+      setMode("domain-select");
     } else {
       setMode("parent-info");
     }
@@ -342,14 +353,152 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
 
   // Parent info collection (before questionnaire)
   if (mode === "parent-info") {
-    return <ParentInfoForm onComplete={() => setMode("questionnaire")} onBack={() => setMode("intro")} />;
+    return <ParentInfoForm onComplete={() => setMode("domain-select")} onBack={() => setMode("intro")} />;
+  }
+
+  // Domain selection screen
+  if (mode === "domain-select") {
+    const CORE_DOMAINS: Domain[] = ["medical", "legal", "financial"];
+    const OPTIONAL_DOMAINS: { id: Domain; icon: string; label: string; desc: string }[] = [
+      { id: "housing", icon: "🏠", label: "Housing", desc: "Living situation and future planning" },
+      { id: "transportation", icon: "🚗", label: "Transportation", desc: "Getting to appointments, errands, and daily life" },
+      { id: "social", icon: "👥", label: "Social & Pets", desc: "Friends, neighbors, social connections, and pet care planning" },
+    ];
+
+    const handleToggleDomain = (domain: Domain) => {
+      setSelectedDomains(prev =>
+        prev.includes(domain)
+          ? prev.filter(d => d !== domain)
+          : [...prev, domain].sort((a, b) => DOMAIN_LIST.indexOf(a) - DOMAIN_LIST.indexOf(b))
+      );
+    };
+
+    const handleDomainSelectContinue = () => {
+      // Persist selection
+      const profile = getParentProfile();
+      if (profile) {
+        saveParentProfile({ ...profile, selectedDomains });
+      }
+      // Start at first selected domain
+      setCurrentDomain(selectedDomains[0]);
+      setMode("questionnaire");
+    };
+
+    return (
+      <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+        {/* Header */}
+        <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-10 pb-8 overflow-hidden">
+          <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
+          <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
+
+          <div className="relative">
+            <button
+              onClick={() => setMode("intro")}
+              className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-sans mb-6 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+
+            <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mb-3 leading-tight">
+              Choose Your Domains
+            </h1>
+            <p className="font-sans text-[14px] text-white/80 leading-relaxed">
+              Some areas may not apply to your situation. Uncheck any that aren&apos;t relevant.
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 px-5 py-6">
+          {/* Always-included domains */}
+          <div className="mb-5">
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-3">
+              Always Included
+            </div>
+            <div className="space-y-2">
+              {[
+                { icon: "🏥", label: "Medical", desc: "Healthcare providers, medications, insurance" },
+                { icon: "⚖️", label: "Legal", desc: "Powers of attorney, wills, estate planning" },
+                { icon: "💰", label: "Financial", desc: "Income, expenses, long-term care funding" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 bg-white border border-sandDark rounded-xl px-4 py-3 opacity-80">
+                  <div className="text-lg">{item.icon}</div>
+                  <div className="flex-1">
+                    <div className="font-sans text-sm font-semibold text-slate">{item.label}</div>
+                    <div className="font-sans text-xs text-slateMid">{item.desc}</div>
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid uppercase tracking-wider">Required</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional domains */}
+          <div className="mb-5">
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-3">
+              Optional — Uncheck if Not Applicable
+            </div>
+            <div className="space-y-2">
+              {OPTIONAL_DOMAINS.map((item) => {
+                const isSelected = selectedDomains.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleToggleDomain(item.id)}
+                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors ${
+                      isSelected
+                        ? "bg-white border-2 border-ocean"
+                        : "bg-sand border-2 border-sandDark"
+                    }`}
+                  >
+                    <div className="text-lg">{item.icon}</div>
+                    <div className="flex-1">
+                      <div className={`font-sans text-sm font-semibold ${isSelected ? "text-slate" : "text-slateMid"}`}>
+                        {item.label}
+                      </div>
+                      <div className="font-sans text-xs text-slateMid">{item.desc}</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      isSelected ? "bg-ocean border-ocean" : "bg-white border-sandDark"
+                    }`}>
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-sand rounded-xl px-4 py-3 mb-6">
+            <div className="font-sans text-xs text-slateMid">
+              You can always add these domains later from your dashboard.
+            </div>
+          </div>
+
+          {/* Continue button */}
+          <button
+            onClick={handleDomainSelectContinue}
+            className="w-full bg-ocean text-white rounded-xl px-6 py-4 font-sans text-base font-semibold hover:bg-oceanMid transition-colors"
+          >
+            Continue with {selectedDomains.length} Domain{selectedDomains.length !== 1 ? "s" : ""}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Chat mode
   if (mode === "chat") {
     return (
       <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-        <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} />
+        <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
 
         {/* Mode switch button */}
         <div className="bg-sand border-b border-sandDark px-5 py-2 flex justify-end">
@@ -387,7 +536,7 @@ First — what's your parent's name and age?"
   // Questionnaire mode
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-      <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} />
+      <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
 
       {/* Background task generation indicator */}
       {generatingTasksFor.length > 0 && (
@@ -423,8 +572,9 @@ First — what's your parent's name and age?"
         onBack={handleBackDomain}
         onSwitchToChat={handleSwitchToChat}
         onDomainSelect={handleDomainSelect}
-        isFirstDomain={currentDomain === "medical"}
-        isLastDomain={currentDomain === "social"}
+        isFirstDomain={currentDomain === domains[0]}
+        isLastDomain={currentDomain === domains[domains.length - 1]}
+        activeDomains={selectedDomains}
       />
     </div>
   );

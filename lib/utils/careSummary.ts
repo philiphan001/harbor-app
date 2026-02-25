@@ -289,5 +289,11 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
     }
   }
 
+  // Filter to only selected domains (if set)
+  const profile2 = getParentProfile();
+  if (profile2?.selectedDomains) {
+    return statuses.filter(s => profile2.selectedDomains!.includes(s.domain));
+  }
+
   return statuses;
 }

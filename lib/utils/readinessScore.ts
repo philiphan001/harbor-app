@@ -173,7 +173,8 @@ function buildCheckContext(): CheckContext | null {
 }
 
 /**
- * Calculate readiness score based on captured information + task completion
+ * Calculate readiness score based on captured information + task completion.
+ * Only selected domains contribute to the score; unselected domains are excluded.
  */
 export function calculateReadinessScore(): ReadinessBreakdown {
   const ctx = buildCheckContext();
@@ -191,6 +192,10 @@ export function calculateReadinessScore(): ReadinessBreakdown {
     };
   }
 
+  // Determine which domains are selected (default to all)
+  const profile = getParentProfile();
+  const selected: Domain[] = profile?.selectedDomains || (Object.keys(DOMAIN_WEIGHTS) as Domain[]);
+
   const criticalGaps: string[] = [];
   const domainScores: Record<Domain, number> = {
     medical: 0, legal: 0, financial: 0, housing: 0, transportation: 0, social: 0,
@@ -203,6 +208,9 @@ export function calculateReadinessScore(): ReadinessBreakdown {
   const PENDING_CREDIT = 0.4;
 
   for (const item of SCOREABLE_ITEMS) {
+    // Skip items for unselected domains
+    if (!selected.includes(item.domain)) continue;
+
     const completed = item.check(ctx);
     if (completed) {
       domainScores[item.domain] += item.localWeight;
@@ -234,13 +242,18 @@ export function calculateReadinessScore(): ReadinessBreakdown {
     domainScores[domain] = Math.min(domainScores[domain], 100);
   }
 
-  // Calculate overall score (weighted average)
-  const overall = Math.round(
-    Object.entries(domainScores).reduce(
-      (sum, [domain, score]) => sum + score * DOMAIN_WEIGHTS[domain as Domain],
-      0
-    )
-  );
+  // Re-normalize weights to only selected domains so they sum to 1.0
+  const selectedWeightSum = selected.reduce((sum, d) => sum + DOMAIN_WEIGHTS[d], 0);
+
+  // Calculate overall score (weighted average across selected domains only)
+  const overall = selectedWeightSum > 0
+    ? Math.round(
+        selected.reduce(
+          (sum, domain) => sum + domainScores[domain] * (DOMAIN_WEIGHTS[domain] / selectedWeightSum),
+          0
+        )
+      )
+    : 0;
 
   // Determine status
   let status: ReadinessBreakdown["status"];

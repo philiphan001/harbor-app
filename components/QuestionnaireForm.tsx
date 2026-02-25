@@ -15,6 +15,7 @@ interface QuestionnaireFormProps {
   onDomainSelect: (domain: Domain) => void;
   isFirstDomain: boolean;
   isLastDomain: boolean;
+  activeDomains?: Domain[];
 }
 
 export default function QuestionnaireForm({
@@ -28,6 +29,7 @@ export default function QuestionnaireForm({
   onDomainSelect,
   isFirstDomain,
   isLastDomain,
+  activeDomains,
 }: QuestionnaireFormProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -149,7 +151,7 @@ export default function QuestionnaireForm({
             onClick={onNext}
             className="w-full bg-ocean text-white rounded-xl px-6 py-4 font-sans text-base font-semibold hover:bg-oceanMid transition-colors"
           >
-            {isLastDomain ? "Complete Assessment" : "Next: " + getNextDomainName(currentDomain)}
+            {isLastDomain ? "Complete Assessment" : "Next: " + getNextDomainName(currentDomain, activeDomains)}
           </button>
         ) : (
           <div className="bg-sand rounded-xl px-5 py-3 border border-sandDark">
@@ -164,7 +166,7 @@ export default function QuestionnaireForm({
             onClick={onBack}
             className="w-full bg-white border border-sandDark text-slate rounded-xl px-6 py-3 font-sans text-sm font-medium hover:bg-sand transition-colors"
           >
-            ← Back to {getPreviousDomainName(currentDomain)}
+            ← Back to {getPreviousDomainName(currentDomain, activeDomains)}
           </button>
         )}
 
@@ -364,14 +366,16 @@ function QuestionCard({
   );
 }
 
-function getNextDomainName(currentDomain: Domain): string {
-  const currentIndex = DOMAINS.indexOf(currentDomain);
-  const nextDomain = DOMAINS[currentIndex + 1];
+function getNextDomainName(currentDomain: Domain, domainList?: Domain[]): string {
+  const list = domainList || DOMAINS;
+  const currentIndex = list.indexOf(currentDomain);
+  const nextDomain = list[currentIndex + 1];
   return nextDomain ? DOMAIN_LABELS[nextDomain] : "";
 }
 
-function getPreviousDomainName(currentDomain: Domain): string {
-  const currentIndex = DOMAINS.indexOf(currentDomain);
-  const prevDomain = DOMAINS[currentIndex - 1];
+function getPreviousDomainName(currentDomain: Domain, domainList?: Domain[]): string {
+  const list = domainList || DOMAINS;
+  const currentIndex = list.indexOf(currentDomain);
+  const prevDomain = list[currentIndex - 1];
   return prevDomain ? DOMAIN_LABELS[prevDomain] : "";
 }
