@@ -18,7 +18,7 @@ const DOMAIN_INFO: Record<Domain, { icon: string; label: string; color: string }
   financial: { icon: "💰", label: "Financial", color: "ocean" },
   housing: { icon: "🏠", label: "Housing", color: "amber" },
   transportation: { icon: "🚗", label: "Transportation", color: "ocean" },
-  social: { icon: "👥", label: "Social", color: "sage" },
+  social: { icon: "👥", label: "Social & Pets", color: "sage" },
 };
 
 function getScoreBarColor(score: number): string {

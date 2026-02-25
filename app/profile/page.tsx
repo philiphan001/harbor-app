@@ -21,7 +21,7 @@ const DOMAIN_STYLES: Record<string, { label: string; color: string; icon: string
   financial: { label: "Financial", color: "#1B6B7D", icon: DOMAIN_ICONS.financial },
   housing: { label: "Housing", color: "#C4943A", icon: DOMAIN_ICONS.housing },
   transportation: { label: "Transportation", color: "#7B68A8", icon: DOMAIN_ICONS.transportation },
-  social: { label: "Social", color: "#5B8FA8", icon: DOMAIN_ICONS.social },
+  social: { label: "Social & Pets", color: "#5B8FA8", icon: DOMAIN_ICONS.social },
   other: { label: "Other", color: "#4A6274", icon: DOMAIN_ICONS.general },
 };
 

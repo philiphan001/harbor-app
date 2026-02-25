@@ -66,7 +66,7 @@ export default function QuestionnaireForm({
     { id: "financial", label: "Financial", icon: "💰" },
     { id: "housing", label: "Housing", icon: "🏠" },
     { id: "transportation", label: "Transport", icon: "🚗" },
-    { id: "social", label: "Social", icon: "👥" },
+    { id: "social", label: "Social & Pets", icon: "👥" },
   ];
 
   return (

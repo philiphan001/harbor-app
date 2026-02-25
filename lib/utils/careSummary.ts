@@ -244,14 +244,14 @@ export function buildDomainStatuses(taskData: TaskData[]): DomainStatus[] {
 
   statuses.push({ domain: "transportation", label: "Transportation", icon: "🚗", ...transport });
 
-  // Social
+  // Social & Pets
   const socialNotes = taskData.filter(d =>
     (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
-    (d.taskTitle.toLowerCase().includes("social") || d.taskTitle.toLowerCase().includes("friend") || d.taskTitle.toLowerCase().includes("neighbor") || d.taskTitle.toLowerCase().includes("community"))
+    (d.taskTitle.toLowerCase().includes("social") || d.taskTitle.toLowerCase().includes("friend") || d.taskTitle.toLowerCase().includes("neighbor") || d.taskTitle.toLowerCase().includes("community") || d.taskTitle.toLowerCase().includes("pet"))
   );
   const social = domainStatusFromSignals("social", socialNotes.length, 2, "Social network captured", socialNotes.map(d => d.taskTitle));
 
-  statuses.push({ domain: "social", label: "Social", icon: "👥", ...social });
+  statuses.push({ domain: "social", label: "Social & Pets", icon: "👥", ...social });
 
   // Compute freshness for each domain based on its task data entries
   const domainToolMap: Record<string, string[]> = {
