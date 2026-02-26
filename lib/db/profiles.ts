@@ -15,6 +15,7 @@ export interface ProfileInput {
   zip?: string;
   livingArrangement?: string;
   healthStatus?: string;
+  photoUrl?: string;
   authUserId?: string; // Supabase auth user ID (when authenticated)
   authEmail?: string; // Supabase auth email (when authenticated)
 }
@@ -30,6 +31,7 @@ export interface ProfileRecord {
   zip?: string;
   livingArrangement?: string;
   healthStatus?: string;
+  photoUrl?: string;
   lastUpdated: string;
 }
 
@@ -93,6 +95,7 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
         elderLocation: elderLocation ?? existingSituation.elderLocation ?? undefined,
         currentLivingSituation: input.livingArrangement ?? existingSituation.currentLivingSituation,
         cognitiveStatus: input.healthStatus ?? existingSituation.cognitiveStatus,
+        elderPhotoUrl: input.photoUrl ?? existingSituation.elderPhotoUrl,
       },
     });
   } else {
@@ -103,6 +106,7 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
         elderLocation: elderLocation ?? undefined,
         currentLivingSituation: input.livingArrangement,
         cognitiveStatus: input.healthStatus,
+        elderPhotoUrl: input.photoUrl,
         createdBy: user.id,
       },
     });
@@ -126,6 +130,7 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
     zip: loc?.zip,
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
+    photoUrl: situation.elderPhotoUrl ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
   };
 }
@@ -163,6 +168,7 @@ export async function getProfile(parentId: string): Promise<ProfileRecord | null
     zip: loc?.zip,
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
+    photoUrl: situation.elderPhotoUrl ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
   };
 }
@@ -195,6 +201,7 @@ export async function getProfilesForAuthUser(authUserId: string): Promise<Profil
       zip: loc?.zip,
       livingArrangement: situation.currentLivingSituation ?? undefined,
       healthStatus: situation.cognitiveStatus ?? undefined,
+      photoUrl: situation.elderPhotoUrl ?? undefined,
       lastUpdated: situation.updatedAt.toISOString(),
     };
   });
@@ -233,6 +240,7 @@ export async function getAllProfiles(): Promise<ProfileRecord[]> {
         zip: loc?.zip,
         livingArrangement: situation.currentLivingSituation ?? undefined,
         healthStatus: situation.cognitiveStatus ?? undefined,
+        photoUrl: situation.elderPhotoUrl ?? undefined,
         lastUpdated: situation.updatedAt.toISOString(),
       };
     });

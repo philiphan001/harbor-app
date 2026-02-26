@@ -1,7 +1,7 @@
 // Document extraction prompts for Claude Vision and text extraction
 // Each prompt returns a JSON schema matching our ExtractedData types
 
-import { DocumentType } from "./types";
+import { DocumentType, type ParentContext } from "./types";
 
 /** System prompt for all document extraction */
 export const DOCUMENT_EXTRACTION_SYSTEM = `You are a precise document data extractor for an elder care application called Harbor. Your job is to extract structured information from photos and documents that caregivers upload about their aging parents.
@@ -12,7 +12,22 @@ CRITICAL RULES:
 3. For medications, get the EXACT spelling and dosage — errors here are dangerous.
 4. Return confidence as a decimal 0.0–1.0 reflecting how clearly you could read the document.
 5. Always return valid JSON matching the requested schema. No markdown, no explanation.
-6. If the document doesn't match the expected type, set documentType to what it actually is.`;
+6. If the document doesn't match the expected type, set documentType to what it actually is.
+7. Always include a "warnings" array in your response (empty array if no issues). Add a warning string for each of these situations:
+   - If a name on the document doesn't match the parent's name (e.g. "Name on document (John Smith) doesn't match parent's name (Mary Jones). Please verify this document belongs to the right person.")
+   - If the document appears to be completely unrelated to elder care (e.g. a recipe, a random article, a selfie). In this case, set documentType to "other" and add a warning like "This document doesn't appear to contain medical, legal, financial, or care-related information."
+   - If the document is too blurry, dark, or cut off to extract meaningful information.`;
+
+/** Build the full system prompt, injecting parent context if available */
+export function buildSystemPrompt(parentContext?: ParentContext): string {
+  if (!parentContext?.name) return DOCUMENT_EXTRACTION_SYSTEM;
+
+  const parts = [`The parent/elder's name is "${parentContext.name}".`];
+  if (parentContext.age) parts.push(`They are ${parentContext.age} years old.`);
+  if (parentContext.state) parts.push(`They live in ${parentContext.state}.`);
+
+  return `${DOCUMENT_EXTRACTION_SYSTEM}\n\nPARENT CONTEXT:\n${parts.join(" ")} Use this to check if names on documents match. If a name on the document is clearly different from the parent's name, include a warning — but still extract the data.`;
+}
 
 /** Get the extraction prompt for a specific document type */
 export function getExtractionPrompt(
@@ -43,6 +58,7 @@ Return JSON:
 {
   "documentType": "<detected type>",
   "confidence": 0.0-1.0,
+  "warnings": [],
   "data": { ... } // Schema depends on detected type — use the matching schema from below
 }
 

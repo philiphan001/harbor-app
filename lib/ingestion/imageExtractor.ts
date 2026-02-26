@@ -9,9 +9,10 @@ import {
   type DocumentType,
   type ExtractionResult,
   type ClaudeMediaType,
+  type ParentContext,
 } from "./types";
 import {
-  DOCUMENT_EXTRACTION_SYSTEM,
+  buildSystemPrompt,
   getExtractionPrompt,
 } from "./prompts";
 import { parseExtractionResponse } from "./parseResponse";
@@ -33,18 +34,20 @@ const anthropic = new Anthropic({
 export async function extractFromImage(
   imageBase64: string,
   mediaType: ClaudeMediaType,
-  documentType?: DocumentType
+  documentType?: DocumentType,
+  parentContext?: ParentContext
 ): Promise<ExtractionResult> {
   log.info("Starting image extraction", { mediaType, documentType: documentType ?? "auto" });
 
   const prompt = getExtractionPrompt(documentType);
+  const systemPrompt = buildSystemPrompt(parentContext);
 
   try {
     const response = await anthropic.messages.create({
       model: AI_CONFIG.model,
       max_tokens: AI_CONFIG.maxTokens.extraction,
       temperature: AI_CONFIG.temperature.extraction,
-      system: DOCUMENT_EXTRACTION_SYSTEM,
+      system: systemPrompt,
       messages: [
         {
           role: "user",
@@ -132,7 +135,7 @@ export async function extractFromMultipleImages(
       model: AI_CONFIG.model,
       max_tokens: AI_CONFIG.maxTokens.extraction,
       temperature: AI_CONFIG.temperature.extraction,
-      system: DOCUMENT_EXTRACTION_SYSTEM,
+      system: buildSystemPrompt(),
       messages: [{ role: "user", content }],
     });
 

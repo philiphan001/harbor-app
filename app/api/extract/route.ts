@@ -7,7 +7,7 @@ import { applyRateLimit } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
 import { processFile } from "@/lib/ingestion/pipeline";
 import { createDocument } from "@/lib/db/documents";
-import { ensureSituationForUser } from "@/lib/db/profiles";
+import { ensureSituationForUser, getProfilesForAuthUser } from "@/lib/db/profiles";
 import { createClient } from "@/lib/supabase/server";
 import { type DocumentType } from "@/lib/ingestion/types";
 
@@ -78,8 +78,22 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await fileData.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Look up parent context for diligence checks
+    let parentContext: { name?: string; age?: number; state?: string } | undefined;
+    try {
+      const profiles = await getProfilesForAuthUser(auth.user.id);
+      const match = profiles.find(
+        (p) => p.parentId === parentId
+      );
+      if (match) {
+        parentContext = { name: match.name, age: match.age, state: match.state };
+      }
+    } catch {
+      // Non-critical — proceed without context
+    }
+
     // Run extraction pipeline
-    const result = await processFile(buffer, fileType, documentType || undefined);
+    const result = await processFile(buffer, fileType, documentType || undefined, parentContext);
 
     log.info("Extraction complete", {
       documentType: result.documentType,
@@ -125,6 +139,7 @@ export async function POST(request: NextRequest) {
         documentType: result.documentType,
         confidence: result.confidence,
         data: result.data,
+        warnings: result.warnings || [],
       },
     });
   } catch (error) {

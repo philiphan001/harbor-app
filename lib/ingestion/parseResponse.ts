@@ -33,6 +33,7 @@ export function parseExtractionResponse(responseText: string): ExtractionResult 
       documentType: parsed.documentType as DocumentType,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.5,
       data: parsed.data,
+      warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
     };
   } catch (error) {
     if (error instanceof SyntaxError) {

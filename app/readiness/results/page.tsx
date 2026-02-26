@@ -10,7 +10,8 @@ import {
   type ReadinessAction,
   type Domain,
 } from "@/lib/utils/readinessScore";
-import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
+import ParentPhotoUpload from "@/components/ParentPhotoUpload";
 
 const DOMAIN_INFO: Record<Domain, { icon: string; label: string; color: string }> = {
   medical: { icon: "🏥", label: "Medical", color: "coral" },
@@ -38,6 +39,7 @@ export default function ReadinessResultsPage() {
   const [readiness, setReadiness] = useState<ReadinessBreakdown | null>(null);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [actions, setActions] = useState<ReadinessAction[]>([]);
+  const [photoPromptDismissed, setPhotoPromptDismissed] = useState(false);
 
   useEffect(() => {
     const profile = getParentProfile();
@@ -175,6 +177,29 @@ export default function ReadinessResultsPage() {
             )}
           </div>
         </div>
+
+        {/* Photo Prompt */}
+        {parentProfile && !parentProfile.photoUrl && !photoPromptDismissed && (
+          <div className="mb-6 bg-white border border-sandDark rounded-xl px-5 py-5">
+            <div className="text-center">
+              <div className="font-sans text-sm text-slate leading-relaxed mb-4">
+                Want to add a favorite photo of {parentProfile.name}? It&apos;ll make Harbor feel a little more like home.
+              </div>
+              <ParentPhotoUpload
+                parentProfile={parentProfile}
+                onPhotoSaved={(url) => {
+                  setParentProfile({ ...parentProfile, photoUrl: url });
+                }}
+              />
+              <button
+                onClick={() => setPhotoPromptDismissed(true)}
+                className="mt-3 font-sans text-xs text-slateMid hover:text-slate transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-3">

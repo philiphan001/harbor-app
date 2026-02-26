@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getParentProfile, getActiveParentId, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
+import ParentPhotoUpload from "@/components/ParentPhotoUpload";
 import { getAllTaskData, hydrateTaskDataFromDb, saveTaskData, removeTaskData, TaskData } from "@/lib/utils/taskData";
 import { calculateReadinessScore } from "@/lib/utils/readinessScore";
 import { getTasks } from "@/lib/utils/taskStorage";
@@ -101,11 +102,17 @@ function ProfilePageContent() {
           </Link>
 
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-              <span className="font-serif text-white text-xl font-semibold">
-                {parentProfile?.name?.charAt(0) || "?"}
-              </span>
-            </div>
+            {parentProfile ? (
+              <ParentPhotoUpload
+                parentProfile={parentProfile}
+                onPhotoSaved={(url) => setParentProfile({ ...parentProfile, photoUrl: url })}
+                size="sm"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="font-serif text-white text-xl font-semibold">?</span>
+              </div>
+            )}
             <div>
               <h1 className="font-serif text-3xl font-semibold text-white">
                 {parentProfile?.name || "Parent"}&apos;s Profile

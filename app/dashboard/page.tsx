@@ -119,9 +119,24 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center justify-between mb-1">
-            <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
-              {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
-            </h1>
+            <div className="flex items-center gap-3">
+              {parentProfile?.photoUrl ? (
+                <img
+                  src={parentProfile.photoUrl}
+                  alt={parentProfile.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
+                />
+              ) : parentProfile?.name ? (
+                <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center flex-shrink-0">
+                  <span className="font-serif text-white text-xl font-semibold">
+                    {parentProfile.name.charAt(0)}
+                  </span>
+                </div>
+              ) : null}
+              <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
+                {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
+              </h1>
+            </div>
 
             <div className="flex items-center gap-2">
               <ParentSwitcher

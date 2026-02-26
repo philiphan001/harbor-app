@@ -12,6 +12,7 @@ export interface ParentProfile {
   livingArrangement?: string;
   healthStatus?: string;
   selectedDomains?: import("@/lib/constants/domains").Domain[];
+  photoUrl?: string;
   lastUpdated: string;
 }
 
@@ -34,6 +35,7 @@ function syncProfileToDb(profile: ParentProfile): void {
       livingArrangement: profile.livingArrangement,
       healthStatus: profile.healthStatus,
       selectedDomains: profile.selectedDomains,
+      photoUrl: profile.photoUrl,
     }),
   }).catch(() => {
     // Silently fail — localStorage is the fallback
@@ -68,7 +70,7 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
     if (!profiles || profiles.length === 0) return false;
 
     const localProfiles: ParentProfile[] = profiles.map(
-      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; lastUpdated: string }) => ({
+      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; lastUpdated: string }) => ({
         id: p.parentId,
         name: p.name,
         age: p.age,
@@ -78,6 +80,7 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
         livingArrangement: p.livingArrangement,
         healthStatus: p.healthStatus,
         selectedDomains: p.selectedDomains,
+        photoUrl: p.photoUrl,
         lastUpdated: p.lastUpdated,
       })
     );

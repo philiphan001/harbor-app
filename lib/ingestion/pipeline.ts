@@ -6,6 +6,7 @@ import {
   type DocumentType,
   type ExtractionResult,
   type ClaudeMediaType,
+  type ParentContext,
   MAX_FILE_SIZE_BYTES,
   isSupportedFileType,
   isImageType,
@@ -109,12 +110,14 @@ export function validateFile(
  * @param fileBuffer - Raw file data
  * @param fileType - MIME type of the file
  * @param documentType - Optional hint for what type of document this is
+ * @param parentContext - Optional parent info for diligence checks (name matching, relevance)
  * @returns Extraction result with structured data
  */
 export async function processFile(
   fileBuffer: Buffer,
   fileType: string,
-  documentType?: DocumentType
+  documentType?: DocumentType,
+  parentContext?: ParentContext
 ): Promise<ExtractionResult> {
   log.info("Processing file", {
     fileType,
@@ -142,11 +145,11 @@ export async function processFile(
 
     const mediaType = normalizeMediaType(processFileType);
     const base64 = processBuffer.toString("base64");
-    return extractFromImage(base64, mediaType, documentType);
+    return extractFromImage(base64, mediaType, documentType, parentContext);
   }
 
   if (isPdfType(fileType)) {
-    return extractFromPdf(fileBuffer, documentType);
+    return extractFromPdf(fileBuffer, documentType, parentContext);
   }
 
   // Should never reach here due to validation, but just in case

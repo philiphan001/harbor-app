@@ -41,7 +41,15 @@ export interface ExtractionResult {
   documentType: DocumentType;
   confidence: number; // 0.0–1.0
   data: ExtractedData;
+  warnings?: string[]; // Diligence flags (name mismatch, irrelevant doc, etc.)
   rawResponse?: string;
+}
+
+/** Context about the parent, passed to extraction for diligence checks */
+export interface ParentContext {
+  name?: string;
+  age?: number;
+  state?: string;
 }
 
 /** Union of all domain-specific extraction outputs */

@@ -112,6 +112,17 @@ export default function ExtractionReview({
           </div>
         )}
 
+        {extraction.warnings && extraction.warnings.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {extraction.warnings.map((warning, i) => (
+              <div key={i} className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex gap-2">
+                <span className="flex-shrink-0">&#9888;</span>
+                <span>{warning}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {editMode ? (
           <div className="space-y-3">
             <textarea
