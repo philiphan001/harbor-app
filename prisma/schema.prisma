@@ -39,6 +39,9 @@ model Situation {
   cognitiveStatus         String?
   mobilityStatus          String?
   elderPhotoUrl           String?
+  elderSpouseName         String?
+  elderSpouseLiving       Boolean?
+  elderVeteranStatus      Boolean?
   mode                    String   @default("preparedness") // preparedness, crisis, ongoing
   crisisActivatedAt       DateTime?
   readinessScore          Int      @default(0)

@@ -25,6 +25,8 @@ export function buildSystemPrompt(parentContext?: ParentContext): string {
   const parts = [`The parent/elder's name is "${parentContext.name}".`];
   if (parentContext.age) parts.push(`They are ${parentContext.age} years old.`);
   if (parentContext.state) parts.push(`They live in ${parentContext.state}.`);
+  if (parentContext.spouseName) parts.push(`Their spouse is ${parentContext.spouseName}.`);
+  if (parentContext.veteranStatus) parts.push(`They are a military veteran — flag any VA-related benefits, Aid & Attendance references, or veteran-specific information.`);
 
   return `${DOCUMENT_EXTRACTION_SYSTEM}\n\nPARENT CONTEXT:\n${parts.join(" ")} Use this to check if names on documents match. If a name on the document is clearly different from the parent's name, include a warning — but still extract the data.`;
 }

@@ -43,12 +43,18 @@ function ProfilePageContent() {
   const [cityInput, setCityInput] = useState("");
   const [zipInput, setZipInput] = useState("");
   const [showFreshnessReview, setShowFreshnessReview] = useState(false);
+  const [editingSpouse, setEditingSpouse] = useState(false);
+  const [spouseNameInput, setSpouseNameInput] = useState("");
+  const [spouseLivingInput, setSpouseLivingInput] = useState(true);
+  const [editingVeteran, setEditingVeteran] = useState(false);
 
   useEffect(() => {
     const profile = getParentProfile();
     setParentProfile(profile);
     setCityInput(profile?.city || "");
     setZipInput(profile?.zip || "");
+    setSpouseNameInput(profile?.spouse?.name || "");
+    setSpouseLivingInput(profile?.spouse?.living ?? true);
     setTaskData(getAllTaskData());
 
     // Hydrate from DB if available (merges into localStorage, then re-read)
@@ -67,6 +73,23 @@ function ProfilePageContent() {
     setParentProfile(getParentProfile());
     setEditingLocation(false);
   }, [cityInput, zipInput]);
+
+  const saveSpouse = useCallback(() => {
+    const name = spouseNameInput.trim();
+    if (name) {
+      updateParentProfile({ spouse: { name, living: spouseLivingInput } });
+    } else {
+      updateParentProfile({ spouse: undefined });
+    }
+    setParentProfile(getParentProfile());
+    setEditingSpouse(false);
+  }, [spouseNameInput, spouseLivingInput]);
+
+  const toggleVeteranStatus = useCallback((value: boolean) => {
+    updateParentProfile({ veteranStatus: value });
+    setParentProfile(getParentProfile());
+    setEditingVeteran(false);
+  }, []);
 
   const handleSave = useCallback((taskTitle: string, toolName: string, updatedData: TaskDataPayload) => {
     saveTaskData(taskTitle, toolName, updatedData);
@@ -175,6 +198,142 @@ function ProfilePageContent() {
       </div>
 
       <div className="max-w-[420px] mx-auto px-5 py-6">
+        {/* Personal Details */}
+        {!domainFilter && (
+          <div className="bg-white rounded-xl border border-sandDark overflow-hidden mb-4">
+            <div className="px-4 py-3 border-b border-sand">
+              <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight">
+                Personal Details
+              </div>
+            </div>
+
+            {/* Spouse */}
+            <div className="px-4 py-3 border-b border-sand">
+              {editingSpouse ? (
+                <div className="space-y-2">
+                  <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide block">
+                    Spouse
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Spouse name"
+                    value={spouseNameInput}
+                    onChange={(e) => setSpouseNameInput(e.target.value)}
+                    className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
+                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setSpouseLivingInput(true)}
+                      className={`px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
+                        spouseLivingInput
+                          ? "bg-ocean text-white"
+                          : "bg-sand text-slateMid hover:bg-sandDark"
+                      }`}
+                    >
+                      Living
+                    </button>
+                    <button
+                      onClick={() => setSpouseLivingInput(false)}
+                      className={`px-3 py-1.5 rounded-lg font-sans text-xs font-semibold transition-colors ${
+                        !spouseLivingInput
+                          ? "bg-ocean text-white"
+                          : "bg-sand text-slateMid hover:bg-sandDark"
+                      }`}
+                    >
+                      Deceased
+                    </button>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={saveSpouse}
+                      className="bg-ocean text-white rounded-lg px-4 py-1.5 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSpouseNameInput(parentProfile?.spouse?.name || "");
+                        setSpouseLivingInput(parentProfile?.spouse?.living ?? true);
+                        setEditingSpouse(false);
+                      }}
+                      className="text-slateMid hover:text-slate font-sans text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingSpouse(true)}
+                  className="w-full text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-0.5">
+                      Spouse
+                    </div>
+                    <div className="font-sans text-sm text-slate">
+                      {parentProfile?.spouse
+                        ? `${parentProfile.spouse.name} (${parentProfile.spouse.living ? "living" : "deceased"})`
+                        : "Add spouse info"}
+                    </div>
+                  </div>
+                  <span className="text-slateLight text-sm">›</span>
+                </button>
+              )}
+            </div>
+
+            {/* Veteran Status */}
+            <div className="px-4 py-3">
+              {editingVeteran ? (
+                <div className="space-y-2">
+                  <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide block">
+                    Veteran Status
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => toggleVeteranStatus(true)}
+                      className="px-4 py-1.5 rounded-lg font-sans text-sm font-semibold bg-ocean text-white hover:bg-oceanMid transition-colors"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => toggleVeteranStatus(false)}
+                      className="px-4 py-1.5 rounded-lg font-sans text-sm font-semibold bg-sand text-slateMid hover:bg-sandDark transition-colors"
+                    >
+                      No
+                    </button>
+                    <button
+                      onClick={() => setEditingVeteran(false)}
+                      className="text-slateMid hover:text-slate font-sans text-sm transition-colors ml-auto"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingVeteran(true)}
+                  className="w-full text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-0.5">
+                      Veteran Status
+                    </div>
+                    <div className="font-sans text-sm text-slate">
+                      {parentProfile?.veteranStatus === true
+                        ? "Yes"
+                        : parentProfile?.veteranStatus === false
+                        ? "No"
+                        : "Set veteran status"}
+                    </div>
+                  </div>
+                  <span className="text-slateLight text-sm">›</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {domainFilter ? (
           <DomainDetailView
             domain={domainFilter}
@@ -324,6 +483,15 @@ const DOMAIN_GAPS: Record<string, { label: string; check: (taskData: TaskData[],
   ],
 };
 
+const DOMAIN_TIPS: Record<string, string[]> = {
+  financial: [
+    "Review your parent's credit report annually — new accounts or inquiries they don't recognize can signal scam vulnerability or cognitive changes.",
+    "Watch for missed payments from someone who was previously reliable — this is one of the earliest financial signs of memory issues.",
+    "Sudden increases in debt or erratic spending patterns may indicate impaired judgment or susceptibility to fraud.",
+    "Duplicate bill payments or unusual charitable donations can be early warning signs worth investigating.",
+  ],
+};
+
 // Map extended domain names to core domains for task filtering
 const DOMAIN_ALIASES: Record<string, string> = {
   caregiving: "medical",
@@ -453,6 +621,29 @@ function DomainDetailView({
           </div>
         )}
       </div>
+
+      {/* Signs to Watch For */}
+      {DOMAIN_TIPS[domain] && (
+        <div>
+          <h3 className="font-serif text-lg font-semibold text-slate mb-3">
+            Signs to Watch For
+          </h3>
+          <div className="bg-ocean/5 rounded-xl border border-ocean/20 px-5 py-4 space-y-3">
+            {DOMAIN_TIPS[domain].map((tip, i) => (
+              <div key={i} className="flex gap-3">
+                <div className="text-ocean mt-0.5 flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M8 4.5v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
+                  </svg>
+                </div>
+                <p className="font-sans text-sm text-slateMid leading-relaxed">{tip}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* What's Missing */}
       {missingGaps.length > 0 && (

@@ -79,14 +79,20 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Look up parent context for diligence checks
-    let parentContext: { name?: string; age?: number; state?: string } | undefined;
+    let parentContext: { name?: string; age?: number; state?: string; spouseName?: string; veteranStatus?: boolean } | undefined;
     try {
       const profiles = await getProfilesForAuthUser(auth.user.id);
       const match = profiles.find(
         (p) => p.parentId === parentId
       );
       if (match) {
-        parentContext = { name: match.name, age: match.age, state: match.state };
+        parentContext = {
+          name: match.name,
+          age: match.age,
+          state: match.state,
+          spouseName: match.spouse?.name,
+          veteranStatus: match.veteranStatus,
+        };
       }
     } catch {
       // Non-critical — proceed without context

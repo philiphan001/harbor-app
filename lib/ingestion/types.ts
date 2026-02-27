@@ -50,6 +50,8 @@ export interface ParentContext {
   name?: string;
   age?: number;
   state?: string;
+  spouseName?: string;
+  veteranStatus?: boolean;
 }
 
 /** Union of all domain-specific extraction outputs */

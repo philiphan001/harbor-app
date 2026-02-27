@@ -13,6 +13,8 @@ export interface ParentProfile {
   healthStatus?: string;
   selectedDomains?: import("@/lib/constants/domains").Domain[];
   photoUrl?: string;
+  spouse?: { name: string; living: boolean };
+  veteranStatus?: boolean;
   lastUpdated: string;
 }
 
@@ -36,6 +38,8 @@ function syncProfileToDb(profile: ParentProfile): void {
       healthStatus: profile.healthStatus,
       selectedDomains: profile.selectedDomains,
       photoUrl: profile.photoUrl,
+      spouse: profile.spouse,
+      veteranStatus: profile.veteranStatus,
     }),
   }).catch(() => {
     // Silently fail — localStorage is the fallback
@@ -70,7 +74,7 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
     if (!profiles || profiles.length === 0) return false;
 
     const localProfiles: ParentProfile[] = profiles.map(
-      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; lastUpdated: string }) => ({
+      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; spouse?: { name: string; living: boolean }; veteranStatus?: boolean; lastUpdated: string }) => ({
         id: p.parentId,
         name: p.name,
         age: p.age,
@@ -81,6 +85,8 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
         healthStatus: p.healthStatus,
         selectedDomains: p.selectedDomains,
         photoUrl: p.photoUrl,
+        spouse: p.spouse,
+        veteranStatus: p.veteranStatus,
         lastUpdated: p.lastUpdated,
       })
     );

@@ -16,6 +16,8 @@ export interface ProfileInput {
   livingArrangement?: string;
   healthStatus?: string;
   photoUrl?: string;
+  spouse?: { name: string; living: boolean };
+  veteranStatus?: boolean;
   authUserId?: string; // Supabase auth user ID (when authenticated)
   authEmail?: string; // Supabase auth email (when authenticated)
 }
@@ -32,6 +34,8 @@ export interface ProfileRecord {
   livingArrangement?: string;
   healthStatus?: string;
   photoUrl?: string;
+  spouse?: { name: string; living: boolean };
+  veteranStatus?: boolean;
   lastUpdated: string;
 }
 
@@ -96,6 +100,9 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
         currentLivingSituation: input.livingArrangement ?? existingSituation.currentLivingSituation,
         cognitiveStatus: input.healthStatus ?? existingSituation.cognitiveStatus,
         elderPhotoUrl: input.photoUrl ?? existingSituation.elderPhotoUrl,
+        elderSpouseName: input.spouse?.name ?? existingSituation.elderSpouseName,
+        elderSpouseLiving: input.spouse ? input.spouse.living : existingSituation.elderSpouseLiving,
+        elderVeteranStatus: input.veteranStatus ?? existingSituation.elderVeteranStatus,
       },
     });
   } else {
@@ -107,6 +114,9 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
         currentLivingSituation: input.livingArrangement,
         cognitiveStatus: input.healthStatus,
         elderPhotoUrl: input.photoUrl,
+        elderSpouseName: input.spouse?.name,
+        elderSpouseLiving: input.spouse?.living,
+        elderVeteranStatus: input.veteranStatus,
         createdBy: user.id,
       },
     });
@@ -131,6 +141,8 @@ export async function upsertProfile(input: ProfileInput): Promise<ProfileRecord>
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
     photoUrl: situation.elderPhotoUrl ?? undefined,
+    spouse: situation.elderSpouseName ? { name: situation.elderSpouseName, living: situation.elderSpouseLiving ?? true } : undefined,
+    veteranStatus: situation.elderVeteranStatus ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
   };
 }
@@ -169,6 +181,8 @@ export async function getProfile(parentId: string): Promise<ProfileRecord | null
     livingArrangement: situation.currentLivingSituation ?? undefined,
     healthStatus: situation.cognitiveStatus ?? undefined,
     photoUrl: situation.elderPhotoUrl ?? undefined,
+    spouse: situation.elderSpouseName ? { name: situation.elderSpouseName, living: situation.elderSpouseLiving ?? true } : undefined,
+    veteranStatus: situation.elderVeteranStatus ?? undefined,
     lastUpdated: situation.updatedAt.toISOString(),
   };
 }
@@ -202,6 +216,8 @@ export async function getProfilesForAuthUser(authUserId: string): Promise<Profil
       livingArrangement: situation.currentLivingSituation ?? undefined,
       healthStatus: situation.cognitiveStatus ?? undefined,
       photoUrl: situation.elderPhotoUrl ?? undefined,
+      spouse: situation.elderSpouseName ? { name: situation.elderSpouseName, living: situation.elderSpouseLiving ?? true } : undefined,
+      veteranStatus: situation.elderVeteranStatus ?? undefined,
       lastUpdated: situation.updatedAt.toISOString(),
     };
   });
@@ -241,6 +257,8 @@ export async function getAllProfiles(): Promise<ProfileRecord[]> {
         livingArrangement: situation.currentLivingSituation ?? undefined,
         healthStatus: situation.cognitiveStatus ?? undefined,
         photoUrl: situation.elderPhotoUrl ?? undefined,
+        spouse: situation.elderSpouseName ? { name: situation.elderSpouseName, living: situation.elderSpouseLiving ?? true } : undefined,
+        veteranStatus: situation.elderVeteranStatus ?? undefined,
         lastUpdated: situation.updatedAt.toISOString(),
       };
     });

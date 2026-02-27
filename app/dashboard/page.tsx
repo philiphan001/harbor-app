@@ -121,17 +121,21 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-3">
               {parentProfile?.photoUrl ? (
-                <img
-                  src={parentProfile.photoUrl}
-                  alt={parentProfile.name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
-                />
+                <Link href="/profile" className="flex-shrink-0">
+                  <img
+                    src={parentProfile.photoUrl}
+                    alt={parentProfile.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white/20"
+                  />
+                </Link>
               ) : parentProfile?.name ? (
-                <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center flex-shrink-0">
-                  <span className="font-serif text-white text-xl font-semibold">
-                    {parentProfile.name.charAt(0)}
-                  </span>
-                </div>
+                <Link href="/profile" className="flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
+                    <span className="font-serif text-white text-xl font-semibold">
+                      {parentProfile.name.charAt(0)}
+                    </span>
+                  </div>
+                </Link>
               ) : null}
               <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
                 {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
@@ -277,6 +281,21 @@ export default function DashboardPage() {
               </div>
               <div className="font-sans text-[10px] text-slateMid">
                 Share info
+              </div>
+            </div>
+          </Link>
+
+          {/* Profile */}
+          <Link href="/profile" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-sage/15 rounded-xl flex items-center justify-center text-sage text-base mb-2.5">
+                👤
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                Profile
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Parent info
               </div>
             </div>
           </Link>
