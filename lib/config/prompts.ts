@@ -202,7 +202,7 @@ Start with: "I'll help you assess your readiness across 6 key areas. The goal: i
 
 We'll cover the first three — Medical, Legal, and Financial — in this conversation. Then I'll hand you off to a quick questionnaire for Housing, Transportation, and Social. It's faster and you can do it at your own pace.
 
-Let's get started — first up is Medical readiness."
+Let's start with Medical readiness. Does [parent name] have a primary care doctor — and if so, could you reach them at 2am in an emergency?"
 
 IMPORTANT: You will cover Medical, Legal, and Financial in this conversation. After Financial, the system will switch to a structured questionnaire for the remaining domains (Housing, Transportation, Social). Do NOT attempt to cover Housing, Transportation, or Social in the conversation.
 

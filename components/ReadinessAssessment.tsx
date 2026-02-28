@@ -23,10 +23,64 @@ interface ReadinessAssessmentProps {
 
 export default function ReadinessAssessment({ conversationId }: ReadinessAssessmentProps = {}) {
   const router = useRouter();
-  const [mode, setMode] = useState<AssessmentMode>(conversationId ? "chat" : "intro");
-  const [currentDomain, setCurrentDomain] = useState<Domain>("medical");
+  const [mode, setMode] = useState<AssessmentMode>(() => {
+    if (conversationId) return "chat";
+    // If returning with persisted answers, auto-resume
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("harbor_readiness_answers");
+        if (stored) {
+          const savedAnswers: Answer[] = JSON.parse(stored);
+          if (savedAnswers.length > 0) {
+            // Check if all chat domains are complete
+            const chatComplete = CHAT_DOMAINS.every(domain => {
+              const domainQuestions = DOMAIN_QUESTIONS.find(d => d.domain === domain);
+              if (!domainQuestions) return false;
+              return domainQuestions.questions.every(q => {
+                const answer = savedAnswers.find(a => a.questionId === q.id);
+                return answer && (answer.selectedOption !== null || answer.isUncertain);
+              });
+            });
+            if (chatComplete) return "questionnaire";
+            // Has some progress — resume chat
+            return "chat";
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return "intro";
+  });
+  const [currentDomain, setCurrentDomain] = useState<Domain>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("harbor_readiness_answers");
+        if (stored) {
+          const savedAnswers: Answer[] = JSON.parse(stored);
+          // Find first incomplete domain
+          for (const domain of DOMAIN_LIST) {
+            const domainQuestions = DOMAIN_QUESTIONS.find(d => d.domain === domain);
+            if (!domainQuestions) continue;
+            const allAnswered = domainQuestions.questions.every(q => {
+              const answer = savedAnswers.find(a => a.questionId === q.id);
+              return answer && (answer.selectedOption !== null || answer.isUncertain);
+            });
+            if (!allAnswered) return domain;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return "medical";
+  });
   const [completedDomains, setCompletedDomains] = useState<Domain[]>([]);
-  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [answers, setAnswers] = useState<Answer[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("harbor_readiness_answers");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [generatingTasksFor, setGeneratingTasksFor] = useState<Domain[]>([]); // Track background task generation
   const [selectedDomains, setSelectedDomains] = useState<Domain[]>(() => {
     // Load persisted selection, default to all domains
@@ -35,6 +89,25 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
   });
 
   const domains = selectedDomains;
+
+  // Persist answers to localStorage whenever they change
+  useEffect(() => {
+    if (answers.length > 0) {
+      localStorage.setItem("harbor_readiness_answers", JSON.stringify(answers));
+    }
+  }, [answers]);
+
+  // On mount, sync completed domains from persisted answers
+  useEffect(() => {
+    if (answers.length === 0) return;
+    const { completed } = syncDomainProgress(answers);
+    if (completed.length > 0) {
+      setCompletedDomains(prev => {
+        const merged = new Set([...prev, ...completed]);
+        return [...merged];
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Determine which domains are fully answered and find the first incomplete one
   const syncDomainProgress = useCallback((currentAnswers: Answer[]) => {
@@ -508,7 +581,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       : undefined;
 
     return (
-      <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+      <div className="h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
         <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
 
         {/* Mode switch button */}
@@ -534,7 +607,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
 
 We'll cover the first three in conversation, then switch to a quick form for the rest. For everything you already have in place, I'll capture the details in Harbor. For gaps, I'll build your action plan.
 
-Let's get started — first up is Medical readiness.`}
+Let's start with Medical readiness. Does ${parentName} have a primary care doctor — and if so, could you reach them at 2am in an emergency?`}
           onComplete={handleChatComplete}
           currentAnswers={answers}
           onAnswersExtracted={handleAnswersExtracted}

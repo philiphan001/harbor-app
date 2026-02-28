@@ -142,6 +142,7 @@ export default function ChatInterface({
     initialConversationId ?? null
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -150,6 +151,13 @@ export default function ChatInterface({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-focus input when loading completes
+  useEffect(() => {
+    if (!isLoading) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     // Load existing tasks from storage
@@ -461,7 +469,7 @@ export default function ChatInterface({
   const parentProfile = getParentProfile();
 
   return (
-    <div className="flex flex-col h-[calc(100vh-72px)] max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+    <div className="flex flex-col flex-1 min-h-0 max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Task Detail Modal */}
       {selectedTask && (
         <TaskDetail
@@ -568,6 +576,7 @@ export default function ChatInterface({
       <div className="border-t border-sandDark bg-white px-4 py-3">
         <form onSubmit={sendMessage} className="flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
