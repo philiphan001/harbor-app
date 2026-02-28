@@ -135,3 +135,8 @@ export function getAllSituationContexts(): Record<string, SituationContext> {
     return {};
   }
 }
+
+export function clearSituationContexts(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SITUATION_CONTEXT_KEY);
+}

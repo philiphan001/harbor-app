@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { clearParentProfile } from "@/lib/utils/parentProfile";
+import { clearAllTaskData } from "@/lib/utils/taskData";
+import { clearTasks } from "@/lib/utils/taskStorage";
+import { clearAllBriefings } from "@/lib/utils/briefingStorage";
+import { clearAgentData } from "@/lib/utils/agentStorage";
+import { clearSituationContexts } from "@/lib/utils/situationContext";
 
 export default function UserNav() {
   const [user, setUser] = useState<User | null>(null);
@@ -20,6 +26,12 @@ export default function UserNav() {
 
   const handleSignOut = async () => {
     setSigningOut(true);
+    clearParentProfile();
+    clearAllTaskData();
+    clearTasks();
+    clearAllBriefings();
+    clearAgentData();
+    clearSituationContexts();
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
