@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ChatInterface from "@/components/ChatInterface";
+import ParentInfoForm from "@/components/ParentInfoForm";
 import { useRouter } from "next/navigation";
 import { gatherExportData, type ExportData } from "@/lib/utils/exportCareSummary";
 import { getParentProfile } from "@/lib/utils/parentProfile";
@@ -75,14 +76,13 @@ function CrisisContent() {
   const [resumeConversationId, setResumeConversationId] = useState<string | undefined>(urlConversationId);
   const [isLoading, setIsLoading] = useState(!urlConversationId && !forceNew);
   const [dataSummary, setDataSummary] = useState<string>("");
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
-  // Redirect if no profile
+  // Check profile on mount
   useEffect(() => {
     const profile = getParentProfile();
-    if (!profile?.name) {
-      router.replace("/get-started");
-    }
-  }, [router]);
+    setHasProfile(!!profile?.name);
+  }, []);
 
   // Build data summary on mount
   useEffect(() => {
@@ -134,6 +134,25 @@ Let's start with the most important question: What happened with your parent?`;
       router.push('/dashboard');
     }, 1000);
   };
+
+  if (hasProfile === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-warmWhite">
+        <div className="animate-spin w-6 h-6 border-2 border-ocean border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!hasProfile) {
+    return (
+      <ParentInfoForm
+        onComplete={() => setHasProfile(true)}
+        title="First, tell us who we're helping"
+        subtitle="This helps us coordinate the right care."
+        submitLabel="Continue"
+      />
+    );
+  }
 
   if (isLoading) {
     return (
