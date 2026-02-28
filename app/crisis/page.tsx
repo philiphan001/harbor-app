@@ -6,6 +6,7 @@ import Link from "next/link";
 import ChatInterface from "@/components/ChatInterface";
 import { useRouter } from "next/navigation";
 import { gatherExportData, type ExportData } from "@/lib/utils/exportCareSummary";
+import { getParentProfile } from "@/lib/utils/parentProfile";
 
 function buildDataSummary(data: ExportData | null): string {
   const lines: string[] = ["HARBOR DATA STATUS:"];
@@ -74,6 +75,14 @@ function CrisisContent() {
   const [resumeConversationId, setResumeConversationId] = useState<string | undefined>(urlConversationId);
   const [isLoading, setIsLoading] = useState(!urlConversationId && !forceNew);
   const [dataSummary, setDataSummary] = useState<string>("");
+
+  // Redirect if no profile
+  useEffect(() => {
+    const profile = getParentProfile();
+    if (!profile?.name) {
+      router.replace("/get-started");
+    }
+  }, [router]);
 
   // Build data summary on mount
   useEffect(() => {

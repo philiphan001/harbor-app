@@ -7,7 +7,7 @@ import { Task } from "@/lib/ai/claude";
 import TaskList from "./TaskList";
 import TaskDetail from "./TaskDetail";
 import { getTasks, addTasks, removeTask } from "@/lib/utils/taskStorage";
-import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile } from "@/lib/utils/parentProfile";
 import { Answer } from "@/lib/types/readiness";
 
 interface ChatInterfaceProps {

@@ -1,6 +1,40 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import ParentInfoForm from "@/components/ParentInfoForm";
+import { getParentProfile } from "@/lib/utils/parentProfile";
 
 export default function GetStartedPage() {
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const profile = getParentProfile();
+    setHasProfile(!!profile?.name && !!profile?.age);
+  }, []);
+
+  // Loading state
+  if (hasProfile === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-warmWhite">
+        <div className="animate-spin w-6 h-6 border-2 border-ocean border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // No profile yet — show form
+  if (!hasProfile) {
+    return (
+      <ParentInfoForm
+        onComplete={() => setHasProfile(true)}
+        title="Tell us about your parent"
+        subtitle="We need a few details to personalize your experience."
+        submitLabel="Continue"
+      />
+    );
+  }
+
+  // Profile exists — show pathway cards
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Header */}

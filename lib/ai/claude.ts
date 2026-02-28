@@ -92,33 +92,6 @@ const taskCreationTool = {
   }
 };
 
-// Define parent profile capture tool
-const profileCaptureTool = {
-  name: "update_parent_profile",
-  description: "Save key information about the parent as you learn it during conversation. IMPORTANT: This tool should be called ALONGSIDE your conversational response text, not instead of it. Always include your normal conversational response when using this tool.",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      name: {
-        type: "string",
-        description: "Parent's first name or full name"
-      },
-      age: {
-        type: "number",
-        description: "Parent's age in years"
-      },
-      state: {
-        type: "string",
-        description: "Two-letter state code where parent lives (e.g., 'FL', 'CA', 'TX')"
-      },
-      livingArrangement: {
-        type: "string",
-        description: "Where parent lives (e.g., 'own home alone', 'with spouse', 'assisted living', 'with family')"
-      }
-    },
-    required: []  // All fields optional - capture what you learn
-  }
-};
 
 export async function chat(
   messages: Message[],
@@ -155,26 +128,13 @@ export async function chat(
         .map(block => block.text)
         .join("");
 
-      // Extract profile data from conversation
-      let parentProfile: ParentProfileData | undefined;
-      const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
-      const match = messageText.match(nameAgePattern);
-
-      if (match) {
-        parentProfile = {
-          name: match[1],
-          age: parseInt(match[2], 10)
-        };
-        log.info("Extracted profile from response", { name: parentProfile.name, age: parentProfile.age });
-      }
-
       log.info("Conversation response (no tools)", { length: messageText.length });
 
       return {
         message: messageText,
         complete: false,
         extractedData: {},
-        parentProfile,
+        parentProfile: undefined,
         metadata: {
           model: response.model,
           usage: response.usage,
@@ -281,47 +241,11 @@ export async function chat(
           });
           seenTaskTitles.add(normalizedTitle);
         }
-      } else if (block.type === "tool_use" && block.name === "update_parent_profile") {
-        // Extract parent profile data
-        const profileInput = block.input as Record<string, unknown>;
-        log.info("Profile update detected", { name: profileInput.name as string });
-        parentProfile = {
-          name: profileInput.name as string | undefined,
-          age: profileInput.age as number | undefined,
-          state: profileInput.state as string | undefined,
-          livingArrangement: profileInput.livingArrangement as string | undefined
-        };
       }
       }
     }
 
     log.debug("Response complete", { length: messageText.length, tasks: tasks.length, stopReason: response.stop_reason ?? "unknown" });
-
-    // Extract profile data from conversation (no tool use - text extraction only)
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-
-    // Check Claude's response for patterns like "Jack at 90" or "Thanks! Jack at 90"
-    const nameAgePattern = /([A-Z][a-z]+)\s+(?:at|is)\s+(\d{2})/;
-    const match = messageText.match(nameAgePattern);
-
-    if (match) {
-      parentProfile = {
-        name: match[1],
-        age: parseInt(match[2], 10)
-      };
-      log.info("Extracted profile from response", { name: parentProfile.name, age: parentProfile.age });
-    } else {
-      // Try user message for simple "Name Age" pattern
-      const simplePattern = /([A-Z][a-z]+)\s+(\d{2})/;
-      const userMatch = lastUserMessage.match(simplePattern);
-      if (userMatch) {
-        parentProfile = {
-          name: userMatch[1],
-          age: parseInt(userMatch[2], 10)
-        };
-        log.info("Extracted profile from user message", { name: parentProfile.name, age: parentProfile.age });
-      }
-    }
 
     // TODO: Add logic to detect when intake is complete
     // For now, we'll mark it as incomplete unless explicitly stated
