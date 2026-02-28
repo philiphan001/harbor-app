@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const profiles = await getProfilesForAuthUser(auth.user.id);
-    return NextResponse.json({ profiles });
+    return NextResponse.json({ profiles, userId: auth.user.id });
   } catch (error) {
     log.errorWithStack("Failed to fetch profiles", error);
     return NextResponse.json(

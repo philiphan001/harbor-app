@@ -20,6 +20,7 @@ export interface ParentProfile {
 
 const PROFILES_KEY = "harbor_parent_profiles"; // Array of all parent profiles
 const ACTIVE_PARENT_KEY = "harbor_active_parent_id"; // Currently selected parent ID
+const AUTH_USER_KEY = "harbor_auth_user_id"; // Track which auth user owns localStorage data
 
 // --- Write-through to Supabase (fire-and-forget) ---
 
@@ -53,58 +54,94 @@ function deleteProfileFromDb(parentId: string): void {
 }
 
 /**
+ * Clear all Harbor localStorage stores. Used when auth user changes
+ * to prevent data leaking between accounts.
+ */
+function clearAllLocalData(): void {
+  localStorage.removeItem(PROFILES_KEY);
+  localStorage.removeItem(ACTIVE_PARENT_KEY);
+  // Clear other stores by key — avoids circular imports
+  localStorage.removeItem("harbor_task_data");
+  localStorage.removeItem("harbor_tasks");
+  localStorage.removeItem("harbor_tasks_cleared");
+  localStorage.removeItem("harbor_weekly_briefings");
+  localStorage.removeItem("harbor_agent_runs");
+  localStorage.removeItem("harbor_agent_detections");
+  localStorage.removeItem("harbor_situation_contexts");
+}
+
+/**
  * Hydrate localStorage from the database.
  * If force=true, always overwrites localStorage with DB data (DB is source of truth).
  * If force=false (default), only hydrates when localStorage is empty.
+ *
+ * Also checks if the authenticated user has changed since the last hydration.
+ * If so, clears all localStorage to prevent data leaking between accounts.
  */
 export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
-  // Skip if localStorage has data and not forcing
-  if (!force) {
-    const existing = getAllParentProfiles();
-    if (existing.length > 0) return false;
-  }
-
+  // Detect auth user change: fetch current user and compare to stored user
   try {
-    const response = await fetch("/api/profile");
-    if (!response.ok) return false;
+    const authRes = await fetch("/api/profile");
+    // We'll use the response below — but first extract user ID from a lightweight endpoint
+    // Since /api/profile is auth-scoped, a 401 means no session
+    if (authRes.ok) {
+      const data = await authRes.json();
+      const currentUserId = data.userId;
+      if (currentUserId) {
+        const storedUserId = localStorage.getItem(AUTH_USER_KEY);
+        if (storedUserId && storedUserId !== currentUserId) {
+          // Different user — clear everything
+          clearAllLocalData();
+        }
+        localStorage.setItem(AUTH_USER_KEY, currentUserId);
+      }
 
-    const { profiles } = await response.json();
-    if (!profiles || profiles.length === 0) return false;
+      // Use the already-fetched profile data to hydrate
+      if (!force) {
+        const existing = getAllParentProfiles();
+        if (existing.length > 0) return false;
+      }
 
-    const localProfiles: ParentProfile[] = profiles.map(
-      (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; spouse?: { name: string; living: boolean }; veteranStatus?: boolean; lastUpdated: string }) => ({
-        id: p.parentId,
-        name: p.name,
-        age: p.age,
-        state: p.state,
-        city: p.city,
-        zip: p.zip,
-        livingArrangement: p.livingArrangement,
-        healthStatus: p.healthStatus,
-        selectedDomains: p.selectedDomains,
-        photoUrl: p.photoUrl,
-        spouse: p.spouse,
-        veteranStatus: p.veteranStatus,
-        lastUpdated: p.lastUpdated,
-      })
-    );
+      const profiles = data.profiles;
+      if (!profiles || profiles.length === 0) return false;
 
-    localStorage.setItem(PROFILES_KEY, JSON.stringify(localProfiles));
+      const localProfiles: ParentProfile[] = profiles.map(
+        (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; spouse?: { name: string; living: boolean }; veteranStatus?: boolean; lastUpdated: string }) => ({
+          id: p.parentId,
+          name: p.name,
+          age: p.age,
+          state: p.state,
+          city: p.city,
+          zip: p.zip,
+          livingArrangement: p.livingArrangement,
+          healthStatus: p.healthStatus,
+          selectedDomains: p.selectedDomains,
+          photoUrl: p.photoUrl,
+          spouse: p.spouse,
+          veteranStatus: p.veteranStatus,
+          lastUpdated: p.lastUpdated,
+        })
+      );
 
-    // Preserve active parent if valid, otherwise default to first
-    const currentActive = getActiveParentId();
-    const isStillValid = localProfiles.some((p) => p.id === currentActive);
-    if (!isStillValid && localProfiles.length > 0) {
-      setActiveParentId(localProfiles[0].id);
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(localProfiles));
+
+      // Preserve active parent if valid, otherwise default to first
+      const currentActive = getActiveParentId();
+      const isStillValid = localProfiles.some((p) => p.id === currentActive);
+      if (!isStillValid && localProfiles.length > 0) {
+        setActiveParentId(localProfiles[0].id);
+      }
+
+      return true;
     }
-
-    return true;
-  } catch {
-    // DB unavailable — localStorage is the fallback
     return false;
+  } catch {
+    // DB unavailable — fall through to localStorage
   }
+
+  return false;
 }
 
 // Generate a simple ID from name
@@ -242,6 +279,7 @@ export function clearParentProfile(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(PROFILES_KEY);
   localStorage.removeItem(ACTIVE_PARENT_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
 }
 
 /**
