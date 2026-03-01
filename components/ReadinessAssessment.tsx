@@ -181,10 +181,6 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     setMode("domain-select");
   };
 
-  const handleSwitchToChat = () => {
-    setMode("chat");
-  };
-
   const handleSwitchToQuestionnaire = () => {
     // Auto-advance past completed domains
     const { completed, firstIncomplete } = syncDomainProgress(answers);
@@ -655,7 +651,6 @@ Let's start with Medical readiness. Does ${parentName} have a primary care docto
         onAnswer={handleAnswer}
         onNext={handleNextDomain}
         onBack={handleBackDomain}
-        onSwitchToChat={handleSwitchToChat}
         onDomainSelect={handleDomainSelect}
         isFirstDomain={currentDomain === domains[0]}
         isLastDomain={currentDomain === domains[domains.length - 1]}

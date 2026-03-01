@@ -11,7 +11,6 @@ interface QuestionnaireFormProps {
   onAnswer: (questionId: string, selectedOption: string | null, isUncertain: boolean, capturedData?: Record<string, string>) => void;
   onNext: () => void;
   onBack: () => void;
-  onSwitchToChat: () => void;
   onDomainSelect: (domain: Domain) => void;
   isFirstDomain: boolean;
   isLastDomain: boolean;
@@ -25,7 +24,6 @@ export default function QuestionnaireForm({
   onAnswer,
   onNext,
   onBack,
-  onSwitchToChat,
   onDomainSelect,
   isFirstDomain,
   isLastDomain,
@@ -170,12 +168,6 @@ export default function QuestionnaireForm({
           </button>
         )}
 
-        <button
-          onClick={onSwitchToChat}
-          className="w-full text-ocean font-sans text-sm font-medium py-2 hover:underline"
-        >
-          Switch to conversational mode
-        </button>
       </div>
     </div>
   );
