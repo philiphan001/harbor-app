@@ -23,10 +23,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { domain, answers, parentProfile } = body as {
+    const { domain, answers, parentProfile, existingTasks } = body as {
       domain: Domain;
       answers: Answer[];
       parentProfile?: { name?: string; age?: number; state?: string };
+      existingTasks?: string[];
     };
 
     log.info("Generating readiness tasks", { domain, answerCount: answers.length });
@@ -69,7 +70,11 @@ Domain: ${domainData.title}
 User's answers:
 ${answerSummary}
 
-Generate actionable tasks based on these answers. For questions where the user already captured data in Harbor, you can reduce the priority of data-capture tasks (they're partially done). Focus gap tasks on things that are missing, uncertain, or incomplete. Return only the JSON array.`;
+Generate actionable tasks based on these answers. For questions where the user already captured data in Harbor, you can reduce the priority of data-capture tasks (they're partially done). Focus gap tasks on things that are missing, uncertain, or incomplete. Return only the JSON array.${
+      Array.isArray(existingTasks) && existingTasks.length > 0
+        ? `\n\nEXISTING TASKS (do not duplicate these):\n${existingTasks.map(t => `- ${t}`).join("\n")}`
+        : ""
+    }`;
 
     // Call Claude to generate tasks
     const response = await anthropic.messages.create({

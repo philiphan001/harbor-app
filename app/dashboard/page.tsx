@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
-import { getTasks, hydrateTasksFromDb } from "@/lib/utils/taskStorage";
+import { getTasks, hydrateTasksFromDb, removeTask } from "@/lib/utils/taskStorage";
 import {
   getParentProfile,
   getAllParentProfiles,
@@ -60,7 +60,37 @@ export default function DashboardPage() {
       await hydrateTasksFromDb(profile.id);
     }
 
-    const storedTasks = getTasks();
+    let storedTasks = getTasks();
+
+    // Deduplicate tasks once per session
+    if (!sessionStorage.getItem("harbor_dedup_ran") && storedTasks.length >= 2) {
+      try {
+        const dedupRes = await fetch("/api/deduplicate-tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tasks: storedTasks.map((t) => ({
+              title: t.title,
+              domain: t.domain,
+              priority: t.priority,
+            })),
+          }),
+        });
+        if (dedupRes.ok) {
+          const { removeTitles } = await dedupRes.json();
+          if (Array.isArray(removeTitles) && removeTitles.length > 0) {
+            for (const title of removeTitles) {
+              removeTask(title);
+            }
+            storedTasks = getTasks();
+          }
+        }
+      } catch (err) {
+        console.warn("Task deduplication failed:", err);
+      }
+      sessionStorage.setItem("harbor_dedup_ran", "1");
+    }
+
     const readinessScore = calculateReadinessScore();
 
     const taskData = getAllTaskData();

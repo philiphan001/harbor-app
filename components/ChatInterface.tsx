@@ -246,12 +246,14 @@ export default function ChatInterface({
       });
 
       // Request 2: Task extraction (runs in parallel)
+      const existingTaskTitles = getTasks().map(t => t.title);
       const taskExtractionPromise = fetch("/api/extract-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
           history: messages.map(m => ({ role: m.role, content: m.content })),
+          existingTasks: existingTaskTitles,
         }),
       });
 

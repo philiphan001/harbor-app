@@ -6,7 +6,7 @@ import DomainProgress from "./DomainProgress";
 import QuestionnaireForm from "./QuestionnaireForm";
 import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
-import { addTasks } from "@/lib/utils/taskStorage";
+import { addTasks, getTasks, removeTask } from "@/lib/utils/taskStorage";
 import { saveTaskData } from "@/lib/utils/taskData";
 import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
@@ -153,12 +153,15 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
         const merged = new Set([...prev, ...CHAT_DOMAINS]);
         return [...merged];
       });
-      // Generate tasks for completed chat domains
+      // Generate tasks for completed chat domains, then deduplicate
+      const taskGenPromises: Promise<void>[] = [];
       for (const domain of CHAT_DOMAINS) {
         if (!completedDomains.includes(domain)) {
-          generateTasksForDomain(domain);
+          taskGenPromises.push(generateTasksForDomain(domain));
         }
       }
+      // After all chat-domain task generation completes, run dedup cleanup
+      Promise.all(taskGenPromises).then(() => deduplicateTasks());
       // Switch to questionnaire starting at first selected non-chat domain
       const firstQuestionnaireDomain = selectedDomains.find(d => !CHAT_DOMAINS.includes(d));
       if (firstQuestionnaireDomain) {
@@ -281,6 +284,8 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       const capturedCount = domainAnswers.filter(a => a.capturedData && Object.keys(a.capturedData).length > 0).length;
       console.log(`📤 Sending ${domainAnswerCount} answers (${capturedCount} with captured data) for ${domain} to API`);
 
+      const existingTaskTitles = getTasks().map(t => t.title);
+
       const response = await fetch("/api/generate-readiness-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -290,6 +295,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
           parentProfile: parentProfile
             ? { name: parentProfile.name, age: parentProfile.age, state: parentProfile.state }
             : undefined,
+          existingTasks: existingTaskTitles,
         }),
       });
 
@@ -312,6 +318,39 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       console.error(`❌ Error generating tasks for ${domain}:`, error);
     } finally {
       setGeneratingTasksFor((prev) => prev.filter((d) => d !== domain));
+    }
+  };
+
+  const deduplicateTasks = async () => {
+    const allTasks = getTasks();
+    if (allTasks.length < 2) return;
+
+    try {
+      console.log("🧹 Running task deduplication...");
+      const res = await fetch("/api/deduplicate-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasks: allTasks.map((t) => ({
+            title: t.title,
+            domain: t.domain,
+            priority: t.priority,
+          })),
+        }),
+      });
+      if (res.ok) {
+        const { removeTitles } = await res.json();
+        if (Array.isArray(removeTitles) && removeTitles.length > 0) {
+          console.log(`🧹 Removing ${removeTitles.length} duplicate tasks`);
+          for (const title of removeTitles) {
+            removeTask(title);
+          }
+        } else {
+          console.log("🧹 No duplicates found");
+        }
+      }
+    } catch (err) {
+      console.warn("Task deduplication failed:", err);
     }
   };
 
