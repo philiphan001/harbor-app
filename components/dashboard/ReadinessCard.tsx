@@ -35,10 +35,7 @@ export default function ReadinessCard({ readiness, hasCompletedIntake, tasks = [
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className={`w-14 h-14 ${colors.bgSolid} rounded-xl flex items-center justify-center text-white`}>
-                <div className="text-center">
-                  <div className="font-sans text-xl font-bold leading-none">{readiness.overall}</div>
-                  <div className="font-sans text-[9px] font-medium opacity-80">/ 100</div>
-                </div>
+                <div className="font-sans text-lg font-bold">{readiness.overall}%</div>
               </div>
               <div>
                 <div className={`font-sans text-xs font-semibold tracking-[1.5px] uppercase ${colors.text} mb-0.5`}>
@@ -79,7 +76,7 @@ export default function ReadinessCard({ readiness, hasCompletedIntake, tasks = [
           <div className={`w-full bg-white border-2 ${colors.border} border-t-0 rounded-b-[14px] px-5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 ${colors.bgSolid} rounded-lg flex items-center justify-center text-white font-sans text-sm font-bold`}>
+                <div className="w-8 h-8 bg-slate rounded-lg flex items-center justify-center text-white font-sans text-sm font-bold">
                   {tasks.length}
                 </div>
                 <div>
