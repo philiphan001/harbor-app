@@ -27,6 +27,7 @@ async function convertToJpeg(file: File): Promise<Blob> {
 interface ParentPhotoUploadProps {
   parentProfile: ParentProfile;
   onPhotoSaved: (url: string) => void;
+  onPhotoDeleted?: () => void;
   size?: "sm" | "md";
   variant?: "dark" | "light";
 }
@@ -34,11 +35,13 @@ interface ParentPhotoUploadProps {
 export default function ParentPhotoUpload({
   parentProfile,
   onPhotoSaved,
+  onPhotoDeleted,
   size = "md",
   variant = "dark",
 }: ParentPhotoUploadProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dim = size === "sm" ? "w-12 h-12" : "w-20 h-20";
@@ -103,6 +106,23 @@ export default function ParentPhotoUpload({
     }
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      const storagePath = `photos/${parentProfile.id}.jpg`;
+      const supabase = createClient();
+      await supabase.storage.from(BUCKET).remove([storagePath]);
+      updateParentProfile({ photoUrl: undefined });
+      onPhotoDeleted?.();
+    } catch (err) {
+      console.error("Photo delete failed:", err);
+      setError("Delete failed. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center">
       <button
@@ -155,6 +175,17 @@ export default function ParentPhotoUpload({
         onChange={handleFile}
         className="hidden"
       />
+
+      {parentProfile.photoUrl && onPhotoDeleted && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="mt-1.5 font-sans text-xs text-coral hover:text-coral/80 transition-colors disabled:opacity-50"
+        >
+          {deleting ? "Removing..." : "Remove photo"}
+        </button>
+      )}
 
       {error && (
         <div className="mt-1 font-sans text-xs text-coral">{error}</div>

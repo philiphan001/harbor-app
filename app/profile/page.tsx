@@ -220,6 +220,7 @@ function ProfilePageContent() {
                   <ParentPhotoUpload
                     parentProfile={parentProfile}
                     onPhotoSaved={(url) => setParentProfile({ ...parentProfile, photoUrl: url })}
+                    onPhotoDeleted={() => setParentProfile({ ...parentProfile, photoUrl: undefined })}
                     size="sm"
                     variant="light"
                   />
