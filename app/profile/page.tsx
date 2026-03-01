@@ -221,6 +221,7 @@ function ProfilePageContent() {
                     parentProfile={parentProfile}
                     onPhotoSaved={(url) => setParentProfile({ ...parentProfile, photoUrl: url })}
                     size="sm"
+                    variant="light"
                   />
                   <div className="font-sans text-xs text-slateMid">
                     {parentProfile.photoUrl ? "Tap to change photo" : "Tap to add a photo"}

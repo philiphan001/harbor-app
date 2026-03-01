@@ -28,12 +28,14 @@ interface ParentPhotoUploadProps {
   parentProfile: ParentProfile;
   onPhotoSaved: (url: string) => void;
   size?: "sm" | "md";
+  variant?: "dark" | "light";
 }
 
 export default function ParentPhotoUpload({
   parentProfile,
   onPhotoSaved,
   size = "md",
+  variant = "dark",
 }: ParentPhotoUploadProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -41,6 +43,7 @@ export default function ParentPhotoUpload({
 
   const dim = size === "sm" ? "w-12 h-12" : "w-20 h-20";
   const textSize = size === "sm" ? "text-xl" : "text-3xl";
+  const isLight = variant === "light";
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -106,7 +109,11 @@ export default function ParentPhotoUpload({
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className={`${dim} rounded-full overflow-hidden relative group cursor-pointer border-2 border-white/20 hover:border-white/40 transition-colors flex-shrink-0`}
+        className={`${dim} rounded-full overflow-hidden relative group cursor-pointer border-2 transition-colors flex-shrink-0 ${
+          isLight
+            ? "border-sandDark hover:border-ocean"
+            : "border-white/20 hover:border-white/40"
+        }`}
       >
         {parentProfile.photoUrl ? (
           <img
@@ -115,8 +122,12 @@ export default function ParentPhotoUpload({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-white/10 flex items-center justify-center">
-            <span className={`font-serif text-white ${textSize} font-semibold`}>
+          <div className={`w-full h-full flex items-center justify-center ${
+            isLight ? "bg-sand" : "bg-white/10"
+          }`}>
+            <span className={`font-serif ${textSize} font-semibold ${
+              isLight ? "text-slateMid" : "text-white"
+            }`}>
               {parentProfile.name?.charAt(0) || "?"}
             </span>
           </div>
