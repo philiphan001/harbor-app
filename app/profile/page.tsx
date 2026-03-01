@@ -1114,11 +1114,111 @@ function renderDataFields(toolName: string, data: TaskDataPayload, color: string
     return <DataField label="Notes" value={notes.notes} color={color} multiline />;
   }
 
+  // Upload extraction data — render a human-friendly summary
+  if (toolName.startsWith("upload_")) {
+    return <UploadDataSummary data={data} color={color} />;
+  }
+
   // Generic fallback
   return (
     <pre className="font-sans text-sm text-slate whitespace-pre-wrap">
       {JSON.stringify(data, null, 2)}
     </pre>
+  );
+}
+
+function UploadDataSummary({ data, color }: { data: TaskDataPayload; color: string }) {
+  const d = data as unknown as Record<string, unknown>;
+  const type = (d.type as string) || "";
+
+  // Build a list of human-readable fields from the extraction
+  const fields: Array<{ label: string; value: string }> = [];
+
+  if (type === "insurance_card") {
+    if (d.provider) fields.push({ label: "Provider", value: String(d.provider) });
+    if (d.planName) fields.push({ label: "Plan", value: String(d.planName) });
+    if (d.memberId) fields.push({ label: "Member ID", value: String(d.memberId) });
+    if (d.groupNumber) fields.push({ label: "Group #", value: String(d.groupNumber) });
+    if (d.customerServicePhone) fields.push({ label: "Phone", value: String(d.customerServicePhone) });
+    if (d.effectiveDate) fields.push({ label: "Effective", value: String(d.effectiveDate) });
+    const copays = d.copays as Record<string, string> | undefined;
+    if (copays) {
+      const copayParts = Object.entries(copays)
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k.replace(/([A-Z])/g, " $1").trim()}: ${v}`);
+      if (copayParts.length) fields.push({ label: "Copays", value: copayParts.join(", ") });
+    }
+  } else if (type === "medication") {
+    const meds = d.medications as Array<{ name: string; dosage?: string; frequency?: string }> | undefined;
+    if (meds?.length) {
+      meds.forEach((m) => {
+        fields.push({ label: m.name, value: [m.dosage, m.frequency].filter(Boolean).join(" · ") || "—" });
+      });
+    }
+  } else if (type === "doctor_card") {
+    if (d.name) fields.push({ label: "Name", value: String(d.name) });
+    if (d.specialty) fields.push({ label: "Specialty", value: String(d.specialty) });
+    if (d.phone) fields.push({ label: "Phone", value: String(d.phone) });
+    if (d.address) fields.push({ label: "Address", value: String(d.address) });
+    if (d.practice) fields.push({ label: "Practice", value: String(d.practice) });
+  } else if (type === "discharge_summary") {
+    if (d.facility) fields.push({ label: "Facility", value: String(d.facility) });
+    if (d.admitDate) fields.push({ label: "Admitted", value: String(d.admitDate) });
+    if (d.dischargeDate) fields.push({ label: "Discharged", value: String(d.dischargeDate) });
+    if (d.primaryPhysician) fields.push({ label: "Physician", value: String(d.primaryPhysician) });
+    const diagnoses = d.diagnoses as string[] | undefined;
+    if (diagnoses?.length) fields.push({ label: "Diagnoses", value: diagnoses.join(", ") });
+    const followUp = d.followUpInstructions as string[] | undefined;
+    if (followUp?.length) fields.push({ label: "Follow-up", value: followUp.join("; ") });
+  } else if (type === "legal_document") {
+    if (d.documentType) fields.push({ label: "Type", value: String(d.documentType) });
+    if (d.title) fields.push({ label: "Title", value: String(d.title) });
+    if (d.status) fields.push({ label: "Status", value: String(d.status) });
+    if (d.dateExecuted) fields.push({ label: "Date", value: String(d.dateExecuted) });
+    const parties = d.parties as Array<{ name: string; role: string }> | undefined;
+    if (parties?.length) {
+      parties.forEach((p) => fields.push({ label: p.role, value: p.name }));
+    }
+  } else if (type === "bill_statement") {
+    if (d.provider) fields.push({ label: "Provider", value: String(d.provider) });
+    if (d.serviceDate) fields.push({ label: "Service Date", value: String(d.serviceDate) });
+    if (d.amountDue) fields.push({ label: "Amount Due", value: String(d.amountDue) });
+    if (d.dueDate) fields.push({ label: "Due Date", value: String(d.dueDate) });
+    if (d.insurancePaid) fields.push({ label: "Insurance Paid", value: String(d.insurancePaid) });
+  } else if (type === "lab_results") {
+    if (d.facility) fields.push({ label: "Lab", value: String(d.facility) });
+    if (d.resultDate) fields.push({ label: "Date", value: String(d.resultDate) });
+    if (d.orderingPhysician) fields.push({ label: "Ordered by", value: String(d.orderingPhysician) });
+    const results = d.results as Array<{ testName: string; value: string; unit?: string; flag?: string }> | undefined;
+    if (results?.length) {
+      results.forEach((r) => {
+        const flagLabel = r.flag && r.flag !== "normal" ? ` (${r.flag})` : "";
+        fields.push({ label: r.testName, value: `${r.value} ${r.unit || ""}${flagLabel}` });
+      });
+    }
+  } else {
+    // "other" type
+    if (d.title) fields.push({ label: "Title", value: String(d.title) });
+    if (d.summary) fields.push({ label: "Summary", value: String(d.summary) });
+    const keyFacts = d.keyFacts as string[] | undefined;
+    if (keyFacts?.length) fields.push({ label: "Key Facts", value: keyFacts.join("; ") });
+  }
+
+  // If we couldn't extract any known fields, fall back to JSON
+  if (fields.length === 0) {
+    return (
+      <pre className="font-sans text-sm text-slate whitespace-pre-wrap">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {fields.map((f, i) => (
+        <DataField key={i} label={f.label} value={f.value} color={color} />
+      ))}
+    </div>
   );
 }
 
