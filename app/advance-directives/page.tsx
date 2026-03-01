@@ -513,28 +513,46 @@ export default function AdvanceDirectivePage() {
                     Additional Forms to Consider
                   </div>
                   <ul className="flex flex-col gap-2">
-                    {stateInfo.additionalForms.map((form, i) => (
-                      <li
-                        key={i}
-                        className="font-sans text-sm text-slate flex items-start gap-2"
-                      >
-                        <span className="text-ocean mt-0.5 flex-shrink-0">
-                          {form.recommended ? "✓" : "○"}
-                        </span>
-                        <div>
-                          <span className="font-medium">{form.name}</span>
-                          <span className="text-slateMid">
-                            {" "}
-                            &mdash; {form.description}
+                    {stateInfo.additionalForms.map((form, i) => {
+                      const isHipaa = form.name.toLowerCase().includes("hipaa");
+                      return (
+                        <li
+                          key={i}
+                          className="font-sans text-sm text-slate flex items-start gap-2"
+                        >
+                          <span className="text-ocean mt-0.5 flex-shrink-0">
+                            {form.recommended ? "✓" : "○"}
                           </span>
-                          {form.recommended && (
-                            <span className="text-ocean text-xs ml-1">
-                              (recommended)
+                          <div>
+                            {isHipaa ? (
+                              <Link
+                                href="/hipaa-authorization"
+                                className="font-medium text-ocean hover:underline"
+                              >
+                                {form.name}
+                              </Link>
+                            ) : (
+                              <span className="font-medium">{form.name}</span>
+                            )}
+                            <span className="text-slateMid">
+                              {" "}
+                              &mdash; {form.description}
                             </span>
-                          )}
-                        </div>
-                      </li>
-                    ))}
+                            {form.recommended && (
+                              <span className="text-ocean text-xs ml-1">
+                                {isHipaa ? (
+                                  <Link href="/hipaa-authorization" className="hover:underline">
+                                    Harbor has a guide →
+                                  </Link>
+                                ) : (
+                                  "(recommended)"
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

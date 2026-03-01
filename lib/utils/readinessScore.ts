@@ -78,6 +78,9 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   { id: "pharmacy", label: "Add pharmacy information", domain: "medical", localWeight: 15, isCritical: false,
     pendingKeywords: ["pharmacy"],
     check: (ctx) => ctx.hasTaskNoteFor("pharmacy") || ctx.hasCompletedTask("pharmacy") },
+  { id: "hipaa-authorization", label: "Complete HIPAA authorization", domain: "medical", localWeight: 10, isCritical: false,
+    pendingKeywords: ["hipaa", "medical record access"],
+    check: (ctx) => ctx.hasCompletedTask("hipaa") || ctx.hasTaskNoteFor("hipaa") || ctx.hasTaskNoteFor("medical record access") },
 
   // Legal domain
   { id: "poa", label: "Record Power of Attorney details", domain: "legal", localWeight: 35, isCritical: true, criticalLabel: "Power of Attorney location/holder",

@@ -32,6 +32,15 @@ const CHECKLIST_MATCHERS: Array<{
     ],
   },
   {
+    pattern: /hipaa|medical record.?access/i,
+    checklist: [
+      { id: "hipaa-1", label: "Discuss medical record access with parent", completed: false },
+      { id: "hipaa-2", label: "Get the HIPAA authorization form", completed: false, linkTo: "/hipaa-authorization" },
+      { id: "hipaa-3", label: "Have parent sign the form", completed: false, linkTo: "/hipaa-authorization" },
+      { id: "hipaa-4", label: "Distribute copies to each healthcare provider", completed: false },
+    ],
+  },
+  {
     pattern: /primary care doctor|pcp|find.*doctor/i,
     checklist: [
       { id: "doc-1", label: "Ask parent for their doctor's name", completed: false },

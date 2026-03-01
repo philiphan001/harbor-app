@@ -75,6 +75,31 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           },
         ],
       };
+    } else if (title.includes("hipaa") || title.includes("medical record access")) {
+      return {
+        type: "Action Guide",
+        icon: "📋",
+        content: [
+          {
+            heading: "How to get this done (easier than you think):",
+            items: [
+              "Use Harbor's HIPAA authorization guide — a universal federal form and walkthrough are ready at /hipaa-authorization",
+              "HIPAA is a federal form — it's the same in every state",
+              "No notary or witnesses needed, just your parent's signature",
+              "Fill out the form with your parent — it takes 5-10 minutes",
+              "Make copies for every healthcare provider (doctor, hospital, pharmacy, specialists)",
+            ],
+          },
+          {
+            heading: "What to discuss with your parent:",
+            items: [
+              "Who they want to be able to access their medical records",
+              "Which providers they currently see (each needs a copy)",
+              "Whether they want to limit what information can be shared",
+            ],
+          },
+        ],
+      };
     } else if (title.includes("advance directive") || title.includes("living will") || title.includes("healthcare directive") || title.includes("proxy") || (title.includes("healthcare") && (title.includes("poa") || title.includes("power of attorney")))) {
       return {
         type: "Action Guide",
@@ -169,6 +194,14 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
       };
     }
   };
+
+  const isHipaaTask = (() => {
+    const t = task.title.toLowerCase();
+    return (
+      (task.domain === "medical" || task.domain === "legal") &&
+      (t.includes("hipaa") || t.includes("medical record access"))
+    );
+  })();
 
   const isAdvanceDirectiveTask = (() => {
     const t = task.title.toLowerCase();
@@ -425,6 +458,30 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                   </div>
                   <div className="font-sans text-xs text-slateMid mt-0.5">
                     Your state&apos;s financial POA form with a step-by-step walkthrough
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* HIPAA CTA */}
+        {isHipaaTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/hipaa-authorization"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-amber/5"
+              style={{ borderColor: "#C4943A" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏥</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Get Started with Harbor&apos;s HIPAA Guide
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Universal federal form with a guided walkthrough
                   </div>
                 </div>
                 <span className="ml-auto text-slateMid text-lg">→</span>

@@ -495,6 +495,7 @@ const DOMAIN_GAPS: Record<string, { label: string; check: (taskData: TaskData[],
     { label: "Primary care doctor contact", check: (td) => td.some((d) => d.toolName === "save_doctor_info") },
     { label: "Current medications list", check: (td) => td.some((d) => d.toolName === "save_medication_list") },
     { label: "Medicare/insurance information", check: (td) => td.some((d) => d.toolName === "save_insurance_info") },
+    { label: "HIPAA medical record access authorization", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("hipaa")) },
   ],
   legal: [
     { label: "Power of Attorney", check: (td) => td.some((d) => d.toolName === "save_legal_document_info" || (d.taskTitle.toLowerCase().includes("poa") || d.taskTitle.toLowerCase().includes("power of attorney"))) },
@@ -593,14 +594,6 @@ function DomainDetailView({
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
-      <Link
-        href="/profile"
-        className="font-sans text-sm text-ocean hover:text-oceanMid transition-colors inline-block"
-      >
-        &larr; All Information
-      </Link>
-
       {/* Domain header */}
       <div className="bg-white rounded-xl border border-sandDark p-5">
         <div className="flex items-center gap-3 mb-3">
