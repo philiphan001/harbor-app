@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { saveParentProfile, getParentProfile } from "@/lib/utils/parentProfile";
+import { saveParentProfile } from "@/lib/utils/parentProfile";
 import { US_STATES } from "@/lib/constants/usStates";
-import ParentPhotoUpload from "@/components/ParentPhotoUpload";
 
 interface ParentInfoFormProps {
   onComplete: () => void;
@@ -24,8 +23,6 @@ export default function ParentInfoForm({
   const [age, setAge] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
-  const [showPhotoStep, setShowPhotoStep] = useState(false);
-
   const canContinue = name.trim().length > 0 && age.trim().length > 0;
 
   const handleSubmit = () => {
@@ -39,53 +36,8 @@ export default function ParentInfoForm({
     });
 
     console.log("Parent profile created:", name.trim(), age);
-    setShowPhotoStep(true);
+    onComplete();
   };
-
-  const savedProfile = showPhotoStep ? getParentProfile() : null;
-
-  if (showPhotoStep && savedProfile) {
-    return (
-      <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-        <div className="relative bg-gradient-to-br from-ocean to-[#164F5C] px-7 pt-10 pb-8 overflow-hidden">
-          <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
-          <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
-          <div className="relative">
-            <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mb-3 leading-tight">
-              Add a photo of {savedProfile.name}
-            </h1>
-            <p className="font-sans text-[14px] text-white/80 leading-relaxed">
-              Optional — a favorite photo makes Harbor feel a little more personal.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex-1 px-5 py-10 flex flex-col items-center">
-          <ParentPhotoUpload
-            parentProfile={savedProfile}
-            onPhotoSaved={() => {}}
-            size="md"
-          />
-          <div className="font-sans text-xs text-slateMid mt-3">
-            Tap to choose a photo
-          </div>
-
-          <button
-            onClick={onComplete}
-            className="w-full mt-10 rounded-xl px-6 py-4 font-sans text-base font-semibold bg-ocean text-white hover:bg-oceanMid transition-colors"
-          >
-            {submitLabel}
-          </button>
-          <button
-            onClick={onComplete}
-            className="mt-3 font-sans text-sm text-slateMid hover:text-slate transition-colors"
-          >
-            Skip for now
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
