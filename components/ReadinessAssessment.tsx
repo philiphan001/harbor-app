@@ -19,11 +19,17 @@ const QUESTIONNAIRE_DOMAINS: Domain[] = ["housing", "transportation", "social"];
 
 interface ReadinessAssessmentProps {
   conversationId?: string;
+  startDomain?: Domain;
 }
 
-export default function ReadinessAssessment({ conversationId }: ReadinessAssessmentProps = {}) {
+export default function ReadinessAssessment({ conversationId, startDomain }: ReadinessAssessmentProps = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<AssessmentMode>(() => {
+    // Deep-link: jump directly to the requested domain
+    if (startDomain) {
+      if (CHAT_DOMAINS.includes(startDomain)) return "chat";
+      if (QUESTIONNAIRE_DOMAINS.includes(startDomain)) return "questionnaire";
+    }
     if (conversationId) return "chat";
     // If returning with persisted answers, auto-resume
     if (typeof window !== "undefined") {
@@ -51,6 +57,8 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
     return "intro";
   });
   const [currentDomain, setCurrentDomain] = useState<Domain>(() => {
+    // Deep-link: start at the requested domain
+    if (startDomain) return startDomain;
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("harbor_readiness_answers");
@@ -85,7 +93,12 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
   const [selectedDomains, setSelectedDomains] = useState<Domain[]>(() => {
     // Load persisted selection, default to all domains
     const profile = getParentProfile();
-    return profile?.selectedDomains || DOMAIN_LIST;
+    const domains = profile?.selectedDomains || DOMAIN_LIST;
+    // Ensure startDomain is included even if not previously selected
+    if (startDomain && !domains.includes(startDomain)) {
+      return [...domains, startDomain].sort((a, b) => DOMAIN_LIST.indexOf(a) - DOMAIN_LIST.indexOf(b));
+    }
+    return domains;
   });
 
   const domains = selectedDomains;

@@ -699,6 +699,27 @@ function DomainDetailView({
               </div>
             ))}
           </div>
+          <Link
+            href={`/readiness?startDomain=${domain}`}
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-ocean text-white rounded-xl px-6 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+          >
+            Complete Assessment
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      )}
+
+      {/* Update answers link (always visible) */}
+      {missingGaps.length === 0 && (
+        <div className="text-center">
+          <Link
+            href={`/readiness?startDomain=${domain}`}
+            className="font-sans text-sm text-ocean hover:text-oceanMid transition-colors"
+          >
+            Update answers &rarr;
+          </Link>
         </div>
       )}
 
