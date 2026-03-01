@@ -6,7 +6,7 @@ import DomainProgress from "./DomainProgress";
 import QuestionnaireForm from "./QuestionnaireForm";
 import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
-import { addTasks } from "@/lib/utils/taskStorage";
+import { addTasks, getTasks } from "@/lib/utils/taskStorage";
 import { saveTaskData } from "@/lib/utils/taskData";
 import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
@@ -281,6 +281,8 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
       const capturedCount = domainAnswers.filter(a => a.capturedData && Object.keys(a.capturedData).length > 0).length;
       console.log(`📤 Sending ${domainAnswerCount} answers (${capturedCount} with captured data) for ${domain} to API`);
 
+      const existingTaskTitles = getTasks().map(t => t.title);
+
       const response = await fetch("/api/generate-readiness-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -290,6 +292,7 @@ export default function ReadinessAssessment({ conversationId }: ReadinessAssessm
           parentProfile: parentProfile
             ? { name: parentProfile.name, age: parentProfile.age, state: parentProfile.state }
             : undefined,
+          existingTasks: existingTaskTitles,
         }),
       });
 

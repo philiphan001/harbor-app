@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { message, history } = body;
+    const { message, history, existingTasks } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -46,9 +46,13 @@ export async function POST(request: NextRequest) {
     log.info("Starting task extraction");
 
     // Build conversation context
+    const existingTasksContext = Array.isArray(existingTasks) && existingTasks.length > 0
+      ? `\n\nEXISTING TASKS ALREADY CREATED (do not create duplicates):\n${existingTasks.map((t: string) => `- ${t}`).join("\n")}`
+      : "";
+
     const conversationHistory: Message[] = [
       ...(Array.isArray(history) ? history : []),
-      { role: "user", content: message },
+      { role: "user", content: message + existingTasksContext },
     ];
 
     // Use structured output to extract tasks as JSON
