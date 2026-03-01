@@ -492,9 +492,9 @@ function ProfilePageContent() {
 // --- Domain-specific gap definitions ---
 const DOMAIN_GAPS: Record<string, { label: string; check: (taskData: TaskData[], profile: ParentProfile | null) => boolean }[]> = {
   medical: [
-    { label: "Primary care doctor contact", check: (td) => td.some((d) => d.toolName === "save_doctor_info") },
-    { label: "Current medications list", check: (td) => td.some((d) => d.toolName === "save_medication_list") },
-    { label: "Medicare/insurance information", check: (td) => td.some((d) => d.toolName === "save_insurance_info") },
+    { label: "Primary care doctor contact", check: (td) => td.some((d) => d.toolName === "save_doctor_info" || d.toolName === "upload_doctor_card") },
+    { label: "Current medications list", check: (td) => td.some((d) => d.toolName === "save_medication_list" || d.toolName === "upload_medication") },
+    { label: "Medicare/insurance information", check: (td) => td.some((d) => d.toolName === "save_insurance_info" || d.toolName === "upload_insurance_card" || d.taskTitle.toLowerCase().includes("insurance")) },
     { label: "HIPAA medical record access authorization", check: (td) => td.some((d) => d.taskTitle.toLowerCase().includes("hipaa")) },
   ],
   legal: [

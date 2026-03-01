@@ -65,13 +65,13 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   // Medical domain
   { id: "doctor", label: "Add primary care doctor contact", domain: "medical", localWeight: 25, isCritical: true, criticalLabel: "Primary care doctor contact",
     pendingKeywords: ["doctor", "pcp", "physician", "primary care"],
-    check: (ctx) => ctx.hasToolData("save_doctor_info") || ctx.hasCompletedTask("doctor") || ctx.hasCompletedTask("pcp") || ctx.hasCompletedTask("physician") },
+    check: (ctx) => ctx.hasToolData("save_doctor_info") || ctx.hasToolData("upload_doctor_card") || ctx.hasCompletedTask("doctor") || ctx.hasCompletedTask("pcp") || ctx.hasCompletedTask("physician") },
   { id: "medications", label: "Record current medications list", domain: "medical", localWeight: 20, isCritical: true, criticalLabel: "Current medications list",
     pendingKeywords: ["medication", "medicine", "prescription"],
-    check: (ctx) => ctx.hasToolData("save_medication_list") || ctx.hasCompletedTask("medication") || ctx.hasCompletedTask("medicine") },
+    check: (ctx) => ctx.hasToolData("save_medication_list") || ctx.hasToolData("upload_medication") || ctx.hasCompletedTask("medication") || ctx.hasCompletedTask("medicine") },
   { id: "insurance", label: "Add Medicare/insurance information", domain: "medical", localWeight: 25, isCritical: true, criticalLabel: "Medicare/insurance information",
     pendingKeywords: ["insurance", "medicare"],
-    check: (ctx) => ctx.hasToolData("save_insurance_info") || ctx.hasCompletedTask("insurance") || ctx.hasCompletedTask("medicare") },
+    check: (ctx) => ctx.hasToolData("save_insurance_info") || ctx.hasToolData("upload_insurance_card") || ctx.hasTaskNoteFor("insurance") || ctx.hasCompletedTask("insurance") || ctx.hasCompletedTask("medicare") },
   { id: "specialist", label: "Add specialist doctor details", domain: "medical", localWeight: 15, isCritical: false,
     pendingKeywords: ["specialist"],
     check: (ctx) => ctx.hasTaskNoteFor("specialist") || ctx.hasCompletedTask("specialist") },
@@ -164,7 +164,7 @@ function buildCheckContext(): CheckContext | null {
   const hasToolData = (toolName: string) => taskData.some((d) => d.toolName === toolName);
   const hasTaskNoteFor = (keyword: string) =>
     taskData.some((d) =>
-      (d.toolName === "save_task_notes" || d.toolName === "manual_notes") &&
+      (d.toolName === "save_task_notes" || d.toolName === "manual_notes" || d.toolName.startsWith("upload_")) &&
       d.taskTitle.toLowerCase().includes(keyword)
     );
   const hasCompletedTask = (keyword: string) =>
