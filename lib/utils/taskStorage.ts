@@ -154,7 +154,52 @@ export function addTask(task: Task): void {
   saveTasks(allTasks);
 }
 
-// Add multiple tasks (associates with active parent, deduplicates by title)
+// Extract meaningful keywords from a task title for fuzzy dedup
+const STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "for", "in", "on", "to", "of", "with",
+  "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+  "do", "does", "did", "will", "would", "could", "should", "may", "might",
+  "so", "you", "your", "their", "that", "this", "it", "its", "can",
+  "all", "each", "every", "both", "few", "more", "most", "other", "some",
+  "up", "about", "into", "through", "during", "before", "after",
+  "harbor", "record", "create", "document", "set", "establish", "get",
+  "make", "ensure", "confirm", "check", "verify", "update", "add",
+  "complete", "gather", "collect", "obtain", "secure", "prepare",
+]);
+
+function extractKeywords(title: string): Set<string> {
+  return new Set(
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && !STOP_WORDS.has(w))
+  );
+}
+
+function isSimilarTask(existingTitle: string, existingDomain: string, newTitle: string, newDomain: string): boolean {
+  // Exact match (case-insensitive)
+  if (existingTitle.toLowerCase().trim() === newTitle.toLowerCase().trim()) return true;
+
+  // Different domains are never duplicates
+  if (existingDomain !== newDomain) return false;
+
+  // Keyword overlap check
+  const existingKw = extractKeywords(existingTitle);
+  const newKw = extractKeywords(newTitle);
+  if (existingKw.size === 0 || newKw.size === 0) return false;
+
+  let overlap = 0;
+  for (const word of newKw) {
+    if (existingKw.has(word)) overlap++;
+  }
+
+  const smaller = Math.min(existingKw.size, newKw.size);
+  // If 60%+ of the smaller keyword set overlaps, it's a duplicate
+  return smaller > 0 && overlap / smaller >= 0.6;
+}
+
+// Add multiple tasks (associates with active parent, deduplicates by similarity)
 export function addTasks(newTasks: Task[]): void {
   const activeParentId = getActiveParentId();
 
@@ -163,20 +208,31 @@ export function addTasks(newTasks: Task[]): void {
 
   const allTasks = getAllTasks();
 
-  // Build a set of existing titles for this parent to deduplicate
-  const existingTitles = new Set(
-    allTasks
-      .filter((t) => t.parentId === activeParentId || !t.parentId)
-      .map((t) => t.title.toLowerCase().trim())
+  // Get existing tasks for this parent
+  const existingTasks = allTasks.filter(
+    (t) => t.parentId === activeParentId || !t.parentId
   );
 
-  const uniqueNewTasks = newTasks.filter(
-    (task) => !existingTitles.has(task.title.toLowerCase().trim())
-  );
+  const uniqueNewTasks = newTasks.filter((task) => {
+    // Check against existing tasks
+    const isDupe = existingTasks.some((existing) =>
+      isSimilarTask(existing.title, existing.domain, task.title, task.domain)
+    );
+    return !isDupe;
+  });
 
-  if (uniqueNewTasks.length === 0) return;
+  // Also deduplicate within the new batch itself
+  const dedupedNew: Task[] = [];
+  for (const task of uniqueNewTasks) {
+    const isDupeInBatch = dedupedNew.some((added) =>
+      isSimilarTask(added.title, added.domain, task.title, task.domain)
+    );
+    if (!isDupeInBatch) dedupedNew.push(task);
+  }
 
-  const tasksWithParent: TaskWithParent[] = uniqueNewTasks.map((task) => ({
+  if (dedupedNew.length === 0) return;
+
+  const tasksWithParent: TaskWithParent[] = dedupedNew.map((task) => ({
     ...task,
     parentId: activeParentId || undefined
   }));
@@ -184,7 +240,7 @@ export function addTasks(newTasks: Task[]): void {
   saveTasks(allTasks);
 
   // Write-through to Supabase
-  if (activeParentId) syncTasksToDb(activeParentId, uniqueNewTasks);
+  if (activeParentId) syncTasksToDb(activeParentId, dedupedNew);
 }
 
 // Calculate the next due date based on recurrence frequency
