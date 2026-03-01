@@ -143,7 +143,6 @@ export default function ChatInterface({
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastExtractedIndexRef = useRef<number>(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -206,9 +205,7 @@ export default function ChatInterface({
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-    if (mode !== "readiness") {
-      setIsExtractingTasks(true); // Start background task extraction (skipped in readiness mode)
-    }
+    setIsExtractingTasks(true); // Start background task extraction
 
     // For readiness mode, also extract structured answers
     if (mode === "readiness" && onAnswersExtracted) {
@@ -249,23 +246,14 @@ export default function ChatInterface({
       });
 
       // Request 2: Task extraction (runs in parallel)
-      // In readiness mode, skip per-message extraction entirely (tasks generated at domain completion)
-      // In crisis mode, only send delta messages since last extraction + existing task titles
-      const taskExtractionPromise = mode === "readiness"
-        ? null
-        : (() => {
-            const deltaHistory = messages.slice(lastExtractedIndexRef.current).map(m => ({ role: m.role, content: m.content }));
-            const existingTasks = getTasks().map(t => t.title);
-            return fetch("/api/extract-tasks", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                message: userMessage.content,
-                history: deltaHistory,
-                existingTasks,
-              }),
-            });
-          })();
+      const taskExtractionPromise = fetch("/api/extract-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage.content,
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
 
       // Request 3: Answer extraction for readiness mode (runs in parallel)
       const answerExtractionPromise = mode === "readiness" && onAnswersExtracted
@@ -388,32 +376,26 @@ export default function ChatInterface({
       }
 
       // Wait for task extraction (happens in background, doesn't block UI)
-      if (taskExtractionPromise) {
-        console.log("⏳ Waiting for task extraction...");
-        try {
-          const taskResponse = await taskExtractionPromise;
-          if (!taskResponse.ok) {
-            console.warn(`Task extraction failed: ${taskResponse.status} ${taskResponse.statusText}`);
-          } else {
-            const taskData = await taskResponse.json();
+      console.log("⏳ Waiting for task extraction...");
+      try {
+        const taskResponse = await taskExtractionPromise;
+        if (!taskResponse.ok) {
+          console.warn(`Task extraction failed: ${taskResponse.status} ${taskResponse.statusText}`);
+        } else {
+          const taskData = await taskResponse.json();
 
-            // Add extracted tasks
-            if (taskData.tasks && taskData.tasks.length > 0) {
-              console.log("💾 Saving extracted tasks:", taskData.tasks.length);
-              setTasks((prev) => [...prev, ...taskData.tasks]);
-              addTasks(taskData.tasks);
-              console.log("✅ Task extraction complete");
-            } else {
-              console.log("ℹ️ No new tasks extracted this turn");
-            }
+          // Add extracted tasks
+          if (taskData.tasks && taskData.tasks.length > 0) {
+            console.log("💾 Saving extracted tasks:", taskData.tasks.length);
+            setTasks((prev) => [...prev, ...taskData.tasks]);
+            addTasks(taskData.tasks);
+            console.log("✅ Task extraction complete");
+          } else {
+            console.log("ℹ️ No new tasks extracted this turn");
           }
-          // Update last extracted index to current message count (including user + assistant)
-          lastExtractedIndexRef.current = messages.length + 2;
-        } catch (taskError) {
-          console.warn("Task extraction error:", taskError);
         }
-      } else {
-        console.log("ℹ️ Skipping per-message task extraction in readiness mode");
+      } catch (taskError) {
+        console.warn("Task extraction error:", taskError);
       }
 
       // Wait for answer extraction (readiness mode only)

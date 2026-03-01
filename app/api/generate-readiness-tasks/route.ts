@@ -23,11 +23,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { domain, answers, parentProfile, existingTasks } = body as {
+    const { domain, answers, parentProfile } = body as {
       domain: Domain;
       answers: Answer[];
       parentProfile?: { name?: string; age?: number; state?: string };
-      existingTasks?: string[];
     };
 
     log.info("Generating readiness tasks", { domain, answerCount: answers.length });
@@ -63,17 +62,12 @@ export async function POST(request: NextRequest) {
       ? `User is assessing readiness for ${parentProfile.name}${parentProfile.age ? ` (age ${parentProfile.age})` : ""}${parentProfile.state ? ` in ${parentProfile.state}` : ""}.`
       : "User is assessing care readiness for their parent.";
 
-    const existingTasksBlock = existingTasks && existingTasks.length > 0
-      ? `\n\nEXISTING TASKS (do not duplicate these):\n${existingTasks.map(t => `- ${t}`).join("\n")}`
-      : "";
-
     const prompt = `${contextInfo}
 
 Domain: ${domainData.title}
 
 User's answers:
 ${answerSummary}
-${existingTasksBlock}
 
 Generate actionable tasks based on these answers. For questions where the user already captured data in Harbor, you can reduce the priority of data-capture tasks (they're partially done). Focus gap tasks on things that are missing, uncertain, or incomplete. Return only the JSON array.`;
 
