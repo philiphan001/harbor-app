@@ -45,23 +45,24 @@ export async function POST(request: NextRequest) {
 
     log.info("Starting task extraction");
 
-    // Append existing task titles so Claude avoids regenerating duplicates
-    let userContent = message;
-    if (Array.isArray(existingTasks) && existingTasks.length > 0) {
-      userContent += `\n\nEXISTING TASKS ALREADY CREATED (do not create duplicates):\n${existingTasks.map((t: string) => `- ${t}`).join("\n")}`;
-    }
-
     // Build conversation context
     const conversationHistory: Message[] = [
       ...(Array.isArray(history) ? history : []),
-      { role: "user", content: userContent },
+      { role: "user", content: message },
     ];
+
+    // Pass existing task titles in the system prompt so Claude avoids duplicates
+    // but still extracts genuinely new tasks from the conversation
+    let systemPrompt = TASK_EXTRACTION_PROMPT;
+    if (Array.isArray(existingTasks) && existingTasks.length > 0) {
+      systemPrompt += `\n\nTASKS ALREADY IN THE USER'S LIST (do not re-extract these, but DO extract genuinely new tasks):\n${existingTasks.map((t: string) => `- ${t}`).join("\n")}`;
+    }
 
     // Use structured output to extract tasks as JSON
     const response = await anthropic.messages.create({
       model: AI_CONFIG.model,
       max_tokens: AI_CONFIG.maxTokens.extraction,
-      system: TASK_EXTRACTION_PROMPT,
+      system: systemPrompt,
       messages: conversationHistory.map((msg) => ({
         role: msg.role,
         content: msg.content,
