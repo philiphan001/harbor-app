@@ -40,6 +40,7 @@ model Situation {
   mobilityStatus          String?
   elderPhotoUrl           String?
   elderSpouseName         String?
+  elderSpouseAge          Int?
   elderSpouseLiving       Boolean?
   elderVeteranStatus      Boolean?
   mode                    String   @default("preparedness") // preparedness, crisis, ongoing

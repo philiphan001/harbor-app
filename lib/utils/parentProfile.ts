@@ -13,7 +13,7 @@ export interface ParentProfile {
   healthStatus?: string;
   selectedDomains?: import("@/lib/constants/domains").Domain[];
   photoUrl?: string;
-  spouse?: { name: string; living: boolean };
+  spouse?: { name: string; age?: number; living: boolean };
   veteranStatus?: boolean;
   lastUpdated: string;
 }
@@ -108,7 +108,7 @@ export async function hydrateProfilesFromDb(force = false): Promise<boolean> {
       if (!profiles || profiles.length === 0) return false;
 
       const localProfiles: ParentProfile[] = profiles.map(
-        (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; spouse?: { name: string; living: boolean }; veteranStatus?: boolean; lastUpdated: string }) => ({
+        (p: { parentId: string; name: string; age?: number; state?: string; city?: string; zip?: string; livingArrangement?: string; healthStatus?: string; selectedDomains?: import("@/lib/constants/domains").Domain[]; photoUrl?: string; spouse?: { name: string; age?: number; living: boolean }; veteranStatus?: boolean; lastUpdated: string }) => ({
           id: p.parentId,
           name: p.name,
           age: p.age,

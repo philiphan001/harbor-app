@@ -45,6 +45,7 @@ function ProfilePageContent() {
   const [showFreshnessReview, setShowFreshnessReview] = useState(false);
   const [editingSpouse, setEditingSpouse] = useState(false);
   const [spouseNameInput, setSpouseNameInput] = useState("");
+  const [spouseAgeInput, setSpouseAgeInput] = useState("");
   const [spouseLivingInput, setSpouseLivingInput] = useState(true);
   const [editingVeteran, setEditingVeteran] = useState(false);
 
@@ -54,6 +55,7 @@ function ProfilePageContent() {
     setCityInput(profile?.city || "");
     setZipInput(profile?.zip || "");
     setSpouseNameInput(profile?.spouse?.name || "");
+    setSpouseAgeInput(profile?.spouse?.age?.toString() || "");
     setSpouseLivingInput(profile?.spouse?.living ?? true);
     setTaskData(getAllTaskData());
 
@@ -77,13 +79,14 @@ function ProfilePageContent() {
   const saveSpouse = useCallback(() => {
     const name = spouseNameInput.trim();
     if (name) {
-      updateParentProfile({ spouse: { name, living: spouseLivingInput } });
+      const age = parseInt(spouseAgeInput, 10) || undefined;
+      updateParentProfile({ spouse: { name, age, living: spouseLivingInput } });
     } else {
       updateParentProfile({ spouse: undefined });
     }
     setParentProfile(getParentProfile());
     setEditingSpouse(false);
-  }, [spouseNameInput, spouseLivingInput]);
+  }, [spouseNameInput, spouseAgeInput, spouseLivingInput]);
 
   const toggleVeteranStatus = useCallback((value: boolean) => {
     updateParentProfile({ veteranStatus: value });
@@ -207,6 +210,25 @@ function ProfilePageContent() {
               </div>
             </div>
 
+            {/* Photo */}
+            {parentProfile && (
+              <div className="px-4 py-3 border-b border-sand">
+                <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-2">
+                  Photo
+                </div>
+                <div className="flex items-center gap-3">
+                  <ParentPhotoUpload
+                    parentProfile={parentProfile}
+                    onPhotoSaved={(url) => setParentProfile({ ...parentProfile, photoUrl: url })}
+                    size="sm"
+                  />
+                  <div className="font-sans text-xs text-slateMid">
+                    {parentProfile.photoUrl ? "Tap to change photo" : "Tap to add a photo"}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Spouse */}
             <div className="px-4 py-3 border-b border-sand">
               {editingSpouse ? (
@@ -219,6 +241,15 @@ function ProfilePageContent() {
                     placeholder="Spouse name"
                     value={spouseNameInput}
                     onChange={(e) => setSpouseNameInput(e.target.value)}
+                    className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Age"
+                    value={spouseAgeInput}
+                    onChange={(e) => setSpouseAgeInput(e.target.value)}
+                    min="18"
+                    max="120"
                     className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean"
                   />
                   <div className="flex items-center gap-3">
@@ -253,6 +284,7 @@ function ProfilePageContent() {
                     <button
                       onClick={() => {
                         setSpouseNameInput(parentProfile?.spouse?.name || "");
+                        setSpouseAgeInput(parentProfile?.spouse?.age?.toString() || "");
                         setSpouseLivingInput(parentProfile?.spouse?.living ?? true);
                         setEditingSpouse(false);
                       }}
@@ -273,7 +305,7 @@ function ProfilePageContent() {
                     </div>
                     <div className="font-sans text-sm text-slate">
                       {parentProfile?.spouse
-                        ? `${parentProfile.spouse.name} (${parentProfile.spouse.living ? "living" : "deceased"})`
+                        ? `${parentProfile.spouse.name}${parentProfile.spouse.age ? `, ${parentProfile.spouse.age}` : ""} (${parentProfile.spouse.living ? "living" : "deceased"})`
                         : "Add spouse info"}
                     </div>
                   </div>
