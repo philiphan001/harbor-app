@@ -1,0 +1,98 @@
+import type { LifeEventTemplate } from "@/lib/types/lifeEvents";
+
+export const LIFE_EVENT_TEMPLATES: LifeEventTemplate[] = [
+  {
+    eventType: "hospitalization",
+    label: "Hospitalization",
+    icon: "\ud83c\udfe5",
+    description: "Parent was admitted to the hospital",
+    taskTemplates: [
+      { title: "Obtain discharge summary", domain: "medical", priority: "high", description: "Request and file the discharge summary from the hospital.", dueDaysAfterEvent: 3 },
+      { title: "Schedule follow-up appointment", domain: "medical", priority: "high", description: "Schedule a follow-up with primary care within 7 days of discharge.", dueDaysAfterEvent: 7 },
+      { title: "Medication reconciliation", domain: "medical", priority: "high", description: "Compare pre-hospital medications with discharge medications. Update medication list.", dueDaysAfterEvent: 2 },
+      { title: "Notify insurance of hospitalization", domain: "financial", priority: "medium", description: "Contact insurance provider about the hospital stay for claims processing.", dueDaysAfterEvent: 5 },
+      { title: "Reassess housing safety", domain: "housing", priority: "medium", description: "Evaluate whether current living arrangement is still safe post-hospitalization.", dueDaysAfterEvent: 14 },
+      { title: "Arrange home health or rehab if needed", domain: "medical", priority: "medium", description: "Coordinate post-acute care services if prescribed at discharge.", dueDaysAfterEvent: 3, minSeverity: "moderate" },
+    ],
+  },
+  {
+    eventType: "fall",
+    label: "Fall",
+    icon: "\u26a0\ufe0f",
+    description: "Parent experienced a fall",
+    taskTemplates: [
+      { title: "Home safety evaluation", domain: "housing", priority: "high", description: "Walk through the home to identify and fix fall hazards: loose rugs, poor lighting, clutter.", dueDaysAfterEvent: 7 },
+      { title: "Review medications for fall risk", domain: "medical", priority: "high", description: "Ask doctor to review medications that can cause dizziness or balance issues.", dueDaysAfterEvent: 7 },
+      { title: "Install grab bars in bathroom", domain: "housing", priority: "medium", description: "Install grab bars near toilet and in shower/tub area.", dueDaysAfterEvent: 14 },
+      { title: "Physical therapy referral", domain: "medical", priority: "medium", description: "Get a PT referral for balance and strength training.", dueDaysAfterEvent: 10 },
+      { title: "Consider medical alert device", domain: "medical", priority: "medium", description: "Research and set up a medical alert button/pendant.", dueDaysAfterEvent: 14, minSeverity: "moderate" },
+    ],
+  },
+  {
+    eventType: "cognitive_decline",
+    label: "Cognitive Decline",
+    icon: "\ud83e\udde0",
+    description: "Signs of cognitive decline or dementia diagnosis",
+    taskTemplates: [
+      { title: "Complete power of attorney if not done", domain: "legal", priority: "high", description: "Establish POA while parent can still participate in legal decisions.", dueDaysAfterEvent: 14 },
+      { title: "Driving safety assessment", domain: "transportation", priority: "high", description: "Evaluate whether it's safe for parent to continue driving. Consider formal assessment.", dueDaysAfterEvent: 14 },
+      { title: "Set up medication management", domain: "medical", priority: "high", description: "Arrange pill organizer, automatic dispenser, or caregiver-managed medication schedule.", dueDaysAfterEvent: 7 },
+      { title: "Research adult day programs", domain: "social", priority: "medium", description: "Look into local adult day programs for social engagement and caregiver respite.", dueDaysAfterEvent: 30 },
+      { title: "Update advance directive", domain: "legal", priority: "medium", description: "Review and update advance directive to reflect wishes about dementia care.", dueDaysAfterEvent: 30 },
+      { title: "Secure financial accounts", domain: "financial", priority: "high", description: "Review financial accounts, set up safeguards against exploitation or poor decisions.", dueDaysAfterEvent: 14, minSeverity: "moderate" },
+    ],
+  },
+  {
+    eventType: "spouse_death",
+    label: "Spouse Death",
+    icon: "\ud83d\udd4a\ufe0f",
+    description: "Parent's spouse has passed away",
+    taskTemplates: [
+      { title: "Obtain death certificates (10+ copies)", domain: "legal", priority: "high", description: "Order at least 10 certified copies of the death certificate from the funeral home or county.", dueDaysAfterEvent: 7 },
+      { title: "Update beneficiary designations", domain: "financial", priority: "high", description: "Update beneficiaries on insurance policies, retirement accounts, and bank accounts.", dueDaysAfterEvent: 30 },
+      { title: "Notify Social Security", domain: "financial", priority: "high", description: "Report the death to Social Security. File for survivor benefits if eligible.", dueDaysAfterEvent: 14 },
+      { title: "Review and update POA/AD documents", domain: "legal", priority: "medium", description: "If deceased spouse was named as agent, update legal documents with a new agent.", dueDaysAfterEvent: 30 },
+      { title: "Assess emotional support needs", domain: "social", priority: "medium", description: "Connect parent with grief counseling, support groups, or companionship services.", dueDaysAfterEvent: 14 },
+      { title: "Review housing situation", domain: "housing", priority: "medium", description: "Determine whether parent can safely live alone. Consider options if not.", dueDaysAfterEvent: 30 },
+    ],
+  },
+  {
+    eventType: "new_diagnosis",
+    label: "New Diagnosis",
+    icon: "\ud83e\ude7a",
+    description: "Parent received a new medical diagnosis",
+    taskTemplates: [
+      { title: "Research the diagnosis", domain: "medical", priority: "high", description: "Learn about the condition, prognosis, and treatment options from reliable sources.", dueDaysAfterEvent: 7 },
+      { title: "Schedule specialist consultation", domain: "medical", priority: "high", description: "Get a specialist referral for the new condition.", dueDaysAfterEvent: 14 },
+      { title: "Update medication list", domain: "medical", priority: "high", description: "Record any new medications prescribed. Check for interactions.", dueDaysAfterEvent: 3 },
+      { title: "Notify insurance", domain: "financial", priority: "medium", description: "Understand coverage for treatment. Pre-authorize if needed.", dueDaysAfterEvent: 14 },
+      { title: "Review advance directive", domain: "legal", priority: "medium", description: "Review care preferences in light of the new diagnosis.", dueDaysAfterEvent: 30, minSeverity: "moderate" },
+    ],
+  },
+  {
+    eventType: "moved_to_facility",
+    label: "Moved to Facility",
+    icon: "\ud83c\udfe0",
+    description: "Parent moved to assisted living, nursing home, or similar",
+    taskTemplates: [
+      { title: "Review facility contract", domain: "legal", priority: "high", description: "Read the admission agreement carefully. Understand costs, services, and discharge policies.", dueDaysAfterEvent: 3 },
+      { title: "Transfer medical records", domain: "medical", priority: "high", description: "Ensure facility has complete medical records, medication list, and advance directives.", dueDaysAfterEvent: 7 },
+      { title: "Update address with insurance, Social Security, VA", domain: "financial", priority: "medium", description: "Notify relevant agencies and providers of the address change.", dueDaysAfterEvent: 14 },
+      { title: "Set up regular visit schedule", domain: "social", priority: "medium", description: "Create a visit rotation among family members.", dueDaysAfterEvent: 14 },
+      { title: "Research Medicaid planning if applicable", domain: "financial", priority: "medium", description: "If paying out-of-pocket, consult elder law attorney about Medicaid eligibility.", dueDaysAfterEvent: 30, minSeverity: "moderate" },
+    ],
+  },
+  {
+    eventType: "caregiver_burnout",
+    label: "Caregiver Burnout",
+    icon: "\ud83d\ude2e\u200d\ud83d\udca8",
+    description: "Primary caregiver is overwhelmed or burned out",
+    taskTemplates: [
+      { title: "Research respite care options", domain: "caregiving", priority: "high", description: "Find local respite care: adult day programs, in-home aides, short-term facility stays.", dueDaysAfterEvent: 7 },
+      { title: "Delegate specific tasks to family", domain: "caregiving", priority: "high", description: "Identify tasks other family members can take on. Create a shared responsibility plan.", dueDaysAfterEvent: 7 },
+      { title: "Explore caregiver support groups", domain: "social", priority: "medium", description: "Find local or online caregiver support groups for emotional support.", dueDaysAfterEvent: 14 },
+      { title: "Assess home health aide options", domain: "medical", priority: "medium", description: "Research and arrange professional home health aide services.", dueDaysAfterEvent: 14 },
+      { title: "Review care plan sustainability", domain: "caregiving", priority: "medium", description: "Re-evaluate the overall care plan. Consider what changes would make it sustainable.", dueDaysAfterEvent: 14 },
+    ],
+  },
+];

@@ -20,10 +20,12 @@ import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/re
 import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
+import { computeVisibleNudges, type VisibleNudge } from "@/lib/utils/nudgeStorage";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
 import DomainStatusTiles from "@/components/dashboard/DomainStatusTiles";
+import NudgeBanner from "@/components/dashboard/NudgeBanner";
 import ConversationHistory from "@/components/dashboard/ConversationHistory";
 import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
@@ -39,6 +41,7 @@ export default function DashboardPage() {
   const [domainStatuses, setDomainStatuses] = useState<DomainStatus[]>([]);
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
+  const [nudges, setNudges] = useState<VisibleNudge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -112,6 +115,8 @@ export default function DashboardPage() {
     const activity = getAgentActivity();
     const unhandled = activity.recentDetections.filter(d => !d.handled).length;
     setUnhandledDetections(unhandled);
+
+    setNudges(computeVisibleNudges());
     setIsLoading(false);
   };
 
@@ -258,6 +263,9 @@ export default function DashboardPage() {
           </div>
         </Link>
 
+        {/* Calendar-Aware Nudges */}
+        <NudgeBanner nudges={nudges} onUpdate={() => setNudges(computeVisibleNudges())} />
+
         {/* Readiness Score + Action Items (consolidated) */}
         {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} tasks={tasks} />}
 
@@ -270,7 +278,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
-          {/* Ask Harbor */}
+          {/* Row 1: Ask Harbor, Guides, Documents */}
           <Link href="/help" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-ocean/15 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
@@ -285,7 +293,20 @@ export default function DashboardPage() {
             </div>
           </Link>
 
-          {/* Documents */}
+          <Link href="/guides" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-sage/15 rounded-xl flex items-center justify-center text-sage text-base mb-2.5">
+                📑
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                Guides
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Worksheets
+              </div>
+            </div>
+          </Link>
+
           <Link href="/documents" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-sand rounded-xl flex items-center justify-center text-base mb-2.5">
@@ -300,7 +321,7 @@ export default function DashboardPage() {
             </div>
           </Link>
 
-          {/* Export & Share */}
+          {/* Row 2: Export, Medications, Wallet Card */}
           <Link href="/export" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-ocean/10 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
@@ -311,6 +332,34 @@ export default function DashboardPage() {
               </div>
               <div className="font-sans text-[10px] text-slateMid">
                 Share info
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/medications" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-sage/15 rounded-xl flex items-center justify-center text-base mb-2.5">
+                💊
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                Medications
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Rx tracking
+              </div>
+            </div>
+          </Link>
+
+          <Link href="/wallet-card" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-coral/10 rounded-xl flex items-center justify-center text-coral text-base mb-2.5">
+                🪪
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                Wallet Card
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Emergency ID
               </div>
             </div>
           </Link>
@@ -340,6 +389,24 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-coral/10 rounded-lg flex items-center justify-center text-coral text-sm">🏥</div>
                   <div className="font-sans text-sm text-slate">ER triage sheet &amp; playbooks</div>
+                </div>
+                <div className="text-slateLight text-sm">&rarr;</div>
+              </div>
+            </Link>
+            <Link href="/appointment-prep" className="block">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sage/10 rounded-lg flex items-center justify-center text-sage text-sm">🩺</div>
+                  <div className="font-sans text-sm text-slate">Doctor appointment prep sheet</div>
+                </div>
+                <div className="text-slateLight text-sm">&rarr;</div>
+              </div>
+            </Link>
+            <Link href="/report-event" className="block">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-amber/15 rounded-lg flex items-center justify-center text-amber text-sm">⚡</div>
+                  <div className="font-sans text-sm text-slate">Report a life event</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>

@@ -16,6 +16,11 @@ export interface MedicationEntry {
   dosage: string;
   frequency: string;
   purpose?: string;
+  prescriber?: string;
+  pharmacy?: string;
+  rxNumber?: string;
+  refillsRemaining?: number;
+  expirationDate?: string;
 }
 
 /** Medication list */

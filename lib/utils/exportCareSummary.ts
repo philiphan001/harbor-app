@@ -7,7 +7,7 @@ import type { DoctorInfo, MedicationList, InsuranceInfo, LegalDocumentInfo } fro
 
 // ==================== Export Scenarios ====================
 
-export type ExportScenario = "er-visit" | "specialist" | "family" | "full";
+export type ExportScenario = "er-visit" | "specialist" | "family" | "full" | "appointment-prep" | "wallet-card";
 
 export interface ExportScenarioConfig {
   id: ExportScenario;
@@ -57,6 +57,20 @@ export const EXPORT_SCENARIOS: ExportScenarioConfig[] = [
     icon: "📋",
     description: "Complete export of all captured care information",
     sections: ["patient-info", "primary-doctor", "specialists", "medications", "conditions", "insurance", "legal", "emergency-contacts", "tasks", "notes"],
+  },
+  {
+    id: "appointment-prep",
+    label: "Doctor Appointment Prep",
+    icon: "🩺",
+    description: "Medication list, doctors, insurance, and conditions for a doctor visit",
+    sections: ["patient-info", "medications", "conditions", "primary-doctor", "specialists", "insurance"],
+  },
+  {
+    id: "wallet-card",
+    label: "Emergency Wallet Card",
+    icon: "🪪",
+    description: "Compact emergency info for a wallet-sized card",
+    sections: ["patient-info", "medications", "conditions", "emergency-contacts"],
   },
 ];
 
