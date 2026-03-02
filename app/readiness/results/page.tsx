@@ -10,7 +10,7 @@ import {
   type ReadinessAction,
   type Domain,
 } from "@/lib/utils/readinessScore";
-import { getParentProfile, updateParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
+import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import ParentPhotoUpload from "@/components/ParentPhotoUpload";
 
 const DOMAIN_INFO: Record<Domain, { icon: string; label: string; color: string }> = {
@@ -82,9 +82,8 @@ export default function ReadinessResultsPage() {
 
           <div className="flex items-end gap-3 mb-3">
             <div className="font-serif text-5xl font-bold text-white leading-none">
-              {readiness.overall}
+              {readiness.overall}%
             </div>
-            <div className="font-sans text-lg text-white/50 mb-1">/ 100</div>
           </div>
 
           {/* Progress bar */}
@@ -144,39 +143,6 @@ export default function ReadinessResultsPage() {
             </div>
           </div>
         )}
-
-        {/* Domain Mini-Breakdown */}
-        <div className="mb-6">
-          <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-            Domain Progress
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            {(Object.entries(readiness.domains) as [Domain, number][])
-              .filter(([domain]) => !parentProfile?.selectedDomains || parentProfile.selectedDomains.includes(domain))
-              .map(([domain, score]) => (
-                <div
-                  key={domain}
-                  className="bg-white border border-sandDark rounded-xl px-3.5 py-3"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="font-sans text-[11px] font-semibold text-slate">
-                      {DOMAIN_INFO[domain].icon} {DOMAIN_INFO[domain].label}
-                    </div>
-                    <div className="font-sans text-xs font-bold text-slateMid">
-                      {score}
-                    </div>
-                  </div>
-                  <div className="w-full bg-sand rounded-full h-1.5">
-                    <div
-                      className={`${getScoreBarColor(score)} h-1.5 rounded-full transition-all`}
-                      style={{ width: `${score}%` }}
-                    />
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        </div>
 
         {/* Photo Prompt */}
         {parentProfile && !parentProfile.photoUrl && !photoPromptDismissed && (
