@@ -429,15 +429,6 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
-            <Link href="/profile" className="block">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">👤</div>
-                  <div className="font-sans text-sm text-slate">Parent profile &amp; details</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
           </div>
         </div>
       </div>

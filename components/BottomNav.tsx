@@ -28,9 +28,9 @@ const STATIC_NAV_ITEMS: NavItem[] = [
     icon: UploadIcon,
   },
   {
-    href: "/briefing",
-    label: "Briefing",
-    icon: BriefingIcon,
+    href: "/profile",
+    label: "Profile",
+    icon: ProfileIcon,
   },
 ];
 
@@ -82,7 +82,7 @@ export default function BottomNav() {
     STATIC_NAV_ITEMS[1], // Tasks
     { href: chatHref, label: "Chat", icon: ChatIcon },
     STATIC_NAV_ITEMS[2], // Upload
-    STATIC_NAV_ITEMS[3], // Briefing
+    STATIC_NAV_ITEMS[3], // Profile
   ];
 
   return (
@@ -198,7 +198,7 @@ function UploadIcon({ active }: { active: boolean }) {
   );
 }
 
-function BriefingIcon({ active }: { active: boolean }) {
+function ProfileIcon({ active }: { active: boolean }) {
   return (
     <svg
       width="22"
@@ -210,9 +210,8 @@ function BriefingIcon({ active }: { active: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z" />
-      <line x1="7" y1="9" x2="17" y2="9" stroke={active ? "white" : "currentColor"} />
-      <line x1="7" y1="13" x2="13" y2="13" stroke={active ? "white" : "currentColor"} />
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
