@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { saveTaskData } from "@/lib/utils/taskData";
+import FacilitySearch from "@/components/FacilitySearch";
 
 const LIVING_ARRANGEMENTS = [
   "Own home (no mortgage)",
@@ -42,6 +43,9 @@ const COMPLETION_CHECKLIST = [
 
 export default function HousingPlanPage() {
   const [parentName, setParentName] = useState("");
+  const [parentState, setParentState] = useState("");
+  const [parentCity, setParentCity] = useState("");
+  const [parentZip, setParentZip] = useState("");
   const [livingArrangement, setLivingArrangement] = useState("");
   const [housingCost, setHousingCost] = useState("");
   const [costFrequency, setCostFrequency] = useState("monthly");
@@ -60,6 +64,9 @@ export default function HousingPlanPage() {
     const profile = getParentProfile();
     if (profile) {
       setParentName(profile.name);
+      if (profile.state) setParentState(profile.state);
+      if (profile.city) setParentCity(profile.city);
+      if (profile.zip) setParentZip(profile.zip);
       if (profile.livingArrangement) {
         setLivingArrangement(profile.livingArrangement);
       }
@@ -368,6 +375,13 @@ export default function HousingPlanPage() {
             </a>
           </div>
         </div>
+
+        {/* Facility Search */}
+        <FacilitySearch
+          parentState={parentState}
+          parentCity={parentCity}
+          parentZip={parentZip}
+        />
 
         {/* Completion Checklist */}
         <div className="bg-white border-2 border-sage rounded-[14px] px-5 py-4">

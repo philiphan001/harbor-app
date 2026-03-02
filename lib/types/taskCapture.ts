@@ -98,6 +98,19 @@ export interface HousingCostInfo {
   frequency: string;
 }
 
+/** Facility shortlist entry */
+export interface FacilityShortlistInfo {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  overallRating: number;
+  beds: number;
+  distance: number;
+}
+
 /** Pet care plan */
 export interface PetCareInfo {
   petName: string;
@@ -135,6 +148,7 @@ export type TaskDataPayload =
   | PetCareInfo
   | HousingDetailsInfo
   | HousingCostInfo
+  | FacilityShortlistInfo
   | import("@/lib/ingestion/types").ExtractedData;
 
 // ==================== Task Completion Callback Types ====================
