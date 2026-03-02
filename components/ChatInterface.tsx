@@ -21,6 +21,9 @@ interface ChatInterfaceProps {
   conversationId?: string;
   // Data summary for crisis mode (injected into system prompt)
   dataSummary?: string;
+  // Show a CTA button to continue to the questionnaire
+  showHandoffCta?: boolean;
+  onHandoff?: () => void;
 }
 
 // --- Conversation persistence helpers (fire-and-forget) ---
@@ -130,6 +133,8 @@ export default function ChatInterface({
   onAnswersExtracted,
   conversationId: initialConversationId,
   dataSummary,
+  showHandoffCta,
+  onHandoff,
 }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -573,6 +578,22 @@ export default function ChatInterface({
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Handoff CTA */}
+      {showHandoffCta && onHandoff && (
+        <div className="border-t border-sandDark bg-gradient-to-r from-ocean/5 to-sage/5 px-5 py-4">
+          <button
+            onClick={onHandoff}
+            className="w-full bg-ocean text-white rounded-[14px] px-5 py-3.5 font-sans text-sm font-semibold hover:bg-ocean/90 transition-colors flex items-center justify-center gap-2"
+          >
+            Continue to questionnaire
+            <span className="text-white/80">&rarr;</span>
+          </button>
+          <p className="font-sans text-[11px] text-slateLight text-center mt-2">
+            Housing, Transportation &amp; Social — quick multiple choice
+          </p>
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t border-sandDark bg-white px-4 py-3">

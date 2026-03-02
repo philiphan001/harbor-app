@@ -146,6 +146,9 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
     return { completed, firstIncomplete };
   }, []);
 
+  // Show handoff CTA once financial domain questions start appearing in answers
+  const showHandoffCta = mode === "chat" && answers.some(a => a.questionId.startsWith("fin-"));
+
   // Auto-switch from chat to questionnaire when chat domains are complete
   useEffect(() => {
     if (mode !== "chat") return;
@@ -661,6 +664,8 @@ Let's start with Medical readiness. Does ${parentName} have a primary care docto
           onAnswersExtracted={handleAnswersExtracted}
           conversationId={conversationId}
           dataSummary={dataSummary}
+          showHandoffCta={showHandoffCta}
+          onHandoff={handleSwitchToQuestionnaire}
         />
       </div>
     );
