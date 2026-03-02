@@ -25,10 +25,9 @@ interface ReadinessAssessmentProps {
 export default function ReadinessAssessment({ conversationId, startDomain }: ReadinessAssessmentProps = {}) {
   const router = useRouter();
   const [mode, setMode] = useState<AssessmentMode>(() => {
-    // Deep-link: jump directly to the requested domain
+    // Deep-link: jump directly to the requested domain (always questionnaire)
     if (startDomain) {
-      if (CHAT_DOMAINS.includes(startDomain)) return "chat";
-      if (QUESTIONNAIRE_DOMAINS.includes(startDomain)) return "questionnaire";
+      return "questionnaire";
     }
     if (conversationId) return "chat";
     // If returning with persisted answers, auto-resume
