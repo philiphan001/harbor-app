@@ -135,6 +135,15 @@ function isNudgeSuppressed(nudge: NudgeDefinition, instances: NudgeInstance[], p
   return false;
 }
 
+export function reactivateNudge(nudgeDefinitionId: string): void {
+  const parentId = getActiveParentId() || "";
+  const instances = getNudgeInstances();
+  const filtered = instances.filter(
+    (i) => !(i.nudgeDefinitionId === nudgeDefinitionId && i.parentId === parentId)
+  );
+  saveNudgeInstances(filtered);
+}
+
 export interface VisibleNudge {
   definition: NudgeDefinition;
   urgent: boolean;
