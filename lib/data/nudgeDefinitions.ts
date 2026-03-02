@@ -30,6 +30,8 @@ export const CALENDAR_NUDGES: NudgeDefinition[] = [
     endMonth: 3,
     endDay: 31,
     leadTimeDays: 7,
+    actionUrl: "https://www.medicare.gov/plan-compare",
+    actionLabel: "Compare plans",
   },
   {
     id: "flu_shot_season",
@@ -44,6 +46,8 @@ export const CALENDAR_NUDGES: NudgeDefinition[] = [
     endMonth: 10,
     endDay: 31,
     leadTimeDays: 7,
+    actionUrl: "https://www.vaccines.gov/",
+    actionLabel: "Find vaccines nearby",
   },
   {
     id: "annual_wellness_visit",
@@ -74,6 +78,8 @@ export const CALENDAR_NUDGES: NudgeDefinition[] = [
     endMonth: 4,
     endDay: 15,
     leadTimeDays: 30,
+    actionUrl: "https://www.irs.gov/filing/free-file-do-your-federal-taxes-for-free",
+    actionLabel: "IRS Free File",
   },
 ];
 
