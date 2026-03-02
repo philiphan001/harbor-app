@@ -27,7 +27,14 @@ export default function NudgeBanner({ nudges, onUpdate }: NudgeBannerProps) {
       <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-2">
         Reminders
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+      <div
+        className="flex gap-3 pb-2 -mx-5 px-5"
+        style={{
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         {nudges.map((nudge) => {
           const { definition, urgent } = nudge;
           const borderColor = urgent ? "border-coral" : "border-amber";
