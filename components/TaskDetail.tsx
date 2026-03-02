@@ -197,37 +197,58 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
 
   const isHipaaTask = (() => {
     const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
     return (
       (task.domain === "medical" || task.domain === "legal") &&
-      (t.includes("hipaa") || t.includes("medical record access"))
+      (text.includes("hipaa") || text.includes("medical record access") ||
+        text.includes("medical records") || text.includes("patient portal") ||
+        text.includes("health record"))
     );
   })();
 
   const isAdvanceDirectiveTask = (() => {
     const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
     return (
       task.domain === "legal" &&
-      (t.includes("advance directive") ||
-        t.includes("living will") ||
-        t.includes("healthcare directive") ||
-        t.includes("proxy") ||
-        (t.includes("healthcare") && (t.includes("poa") || t.includes("power of attorney"))))
+      (text.includes("advance directive") ||
+        text.includes("living will") ||
+        text.includes("healthcare directive") ||
+        text.includes("healthcare proxy") ||
+        text.includes("health care proxy") ||
+        text.includes("end-of-life") ||
+        text.includes("end of life") ||
+        text.includes("medical decision") ||
+        text.includes("healthcare wishes") ||
+        text.includes("dnr") ||
+        (text.includes("healthcare") && (text.includes("poa") || text.includes("power of attorney"))))
     );
   })();
 
   const isPoaTask = (() => {
     const t = task.title.toLowerCase();
-    const hasPoaKeyword = t.includes("power of attorney") || t.includes("poa");
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
+    const hasPoaKeyword = text.includes("power of attorney") || text.includes("poa") ||
+      text.includes("legal authority") || text.includes("financial authority") ||
+      text.includes("manage finances") || text.includes("legal document");
     const isHealthcare =
-      t.includes("healthcare power") ||
-      t.includes("health care power") ||
-      t.includes("medical power") ||
-      t.includes("healthcare poa") ||
-      t.includes("health care poa") ||
-      t.includes("proxy") ||
-      t.includes("advance directive") ||
-      t.includes("living will") ||
-      t.includes("healthcare directive");
+      text.includes("healthcare power") ||
+      text.includes("health care power") ||
+      text.includes("medical power") ||
+      text.includes("healthcare poa") ||
+      text.includes("health care poa") ||
+      text.includes("healthcare proxy") ||
+      text.includes("health care proxy") ||
+      text.includes("advance directive") ||
+      text.includes("living will") ||
+      text.includes("healthcare directive") ||
+      text.includes("end-of-life") ||
+      text.includes("end of life") ||
+      text.includes("medical decision") ||
+      text.includes("dnr");
     return task.domain === "legal" && hasPoaKeyword && !isHealthcare;
   })();
 
@@ -350,7 +371,7 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
             Suggested Next Steps
           </div>
           <div className="space-y-2">
-            {task.suggestedActions.map((action, index) => (
+            {(task.suggestedActions || []).map((action, index) => (
               <div key={index} className="flex gap-3 items-start">
                 <div className="w-6 h-6 rounded-full bg-ocean text-white flex items-center justify-center font-sans text-xs font-semibold shrink-0">
                   {index + 1}

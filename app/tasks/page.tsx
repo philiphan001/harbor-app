@@ -455,7 +455,7 @@ function TaskCard({
               </span>
             )}
             <span className="font-sans text-xs text-slateMid">
-              {task.suggestedActions.length} steps →
+              {(task.suggestedActions || []).length} steps →
             </span>
           </div>
         </div>
