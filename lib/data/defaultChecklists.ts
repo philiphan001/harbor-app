@@ -41,6 +41,16 @@ const CHECKLIST_MATCHERS: Array<{
     ],
   },
   {
+    pattern: /housing plan|living arrangement|housing cost|rent.*mortgage|assisted living|senior living/i,
+    checklist: [
+      { id: "hp-1", label: "Document current living arrangement", completed: false, linkTo: "/housing-plan" },
+      { id: "hp-2", label: "Record housing costs (rent/mortgage/fees)", completed: false, linkTo: "/housing-plan" },
+      { id: "hp-3", label: "Assess home services and support needs", completed: false, linkTo: "/housing-plan" },
+      { id: "hp-4", label: "Research transition options and costs", completed: false, linkTo: "/housing-plan" },
+      { id: "hp-5", label: "Discuss long-term housing preferences with parent", completed: false },
+    ],
+  },
+  {
     pattern: /home safety|fall prevention|grab bar|aging in place/i,
     checklist: [
       { id: "hs-1", label: "Complete a room-by-room safety walkthrough", completed: false, linkTo: "/home-safety" },

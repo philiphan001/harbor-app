@@ -85,6 +85,19 @@ export interface EmergencyContactsInfo {
   contacts: Array<{ name: string; relationship: string; phone: string }>;
 }
 
+/** Housing details */
+export interface HousingDetailsInfo {
+  livingArrangement: string;
+  ownershipNotes?: string;
+  landlordOrHoa?: { name: string; phone: string };
+}
+
+/** Housing cost */
+export interface HousingCostInfo {
+  amount: string;
+  frequency: string;
+}
+
 /** Pet care plan */
 export interface PetCareInfo {
   petName: string;
@@ -120,6 +133,8 @@ export type TaskDataPayload =
   | CheckInScheduleInfo
   | EmergencyContactsInfo
   | PetCareInfo
+  | HousingDetailsInfo
+  | HousingCostInfo
   | import("@/lib/ingestion/types").ExtractedData;
 
 // ==================== Task Completion Callback Types ====================

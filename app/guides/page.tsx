@@ -56,6 +56,16 @@ const GUIDES: Guide[] = [
     completionKey: "harbor_home_safety_complete",
   },
   {
+    id: "housing-plan",
+    title: "Housing & Living",
+    subtitle: "Costs, arrangement & transition plan",
+    icon: "\ud83c\udfe1",
+    color: "amber",
+    bgClass: "bg-amber/15",
+    href: "/housing-plan",
+    completionKey: "harbor_housing_plan_complete",
+  },
+  {
     id: "transportation-plan",
     title: "Transportation Plan",
     subtitle: "Getting to appointments & errands",

@@ -154,6 +154,32 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           },
         ],
       };
+    } else if (title.includes("housing") || title.includes("living arrangement") || title.includes("assisted living") || title.includes("senior living") || title.includes("nursing home")) {
+      return {
+        type: "Action Guide",
+        icon: "🏡",
+        content: [
+          {
+            heading: "Key things to document:",
+            items: [
+              "Current living arrangement (own, rent, with family, facility)",
+              "Monthly housing costs (mortgage/rent, property tax, HOA, insurance)",
+              "Home services in place (cleaning, meals, home care aide)",
+              "Landlord or property manager contact information",
+              "Use Harbor's Housing & Living Plan to capture everything in one place",
+            ],
+          },
+          {
+            heading: "Planning ahead:",
+            items: [
+              "Research facility options before a crisis — waitlists can be 6-18 months",
+              "Know the average costs: assisted living ~$5,350/mo, nursing home ~$9,000/mo",
+              "Check if long-term care insurance or Medicaid covers facility stays",
+              "Discuss with your parent what would trigger a move",
+            ],
+          },
+        ],
+      };
     } else if (title.includes("home safety") || title.includes("fall prevention") || title.includes("grab bar") || title.includes("aging in place")) {
       return {
         type: "Action Guide",
@@ -314,6 +340,21 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
         text.includes("grab bar") || text.includes("aging in place") ||
         text.includes("safety assessment") || text.includes("fall risk") ||
         text.includes("home modification"))
+    );
+  })();
+
+  const isHousingPlanTask = (() => {
+    const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
+    return (
+      task.domain === "housing" &&
+      !isHomeSafetyTask &&
+      (text.includes("housing") || text.includes("living arrangement") ||
+        text.includes("rent") || text.includes("mortgage") ||
+        text.includes("assisted living") || text.includes("senior living") ||
+        text.includes("nursing home") || text.includes("housing cost") ||
+        text.includes("move") || text.includes("facility"))
     );
   })();
 
@@ -643,6 +684,30 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                   </div>
                   <div className="font-sans text-xs text-slateMid mt-0.5">
                     Room-by-room checklist with emergency contact capture
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* Housing Plan CTA */}
+        {isHousingPlanTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/housing-plan"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-amber/5"
+              style={{ borderColor: "#C4943A" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏡</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Open Housing & Living Plan
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Document costs, arrangement & plan for transitions
                   </div>
                 </div>
                 <span className="ml-auto text-slateMid text-lg">→</span>

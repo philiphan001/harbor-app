@@ -146,10 +146,10 @@ export default function HomeSafetyPage() {
         <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
         <div className="relative">
           <Link
-            href="/dashboard"
+            href="/guides"
             className="inline-flex items-center gap-1 font-sans text-xs text-white/70 hover:text-white/90 transition-colors mb-3"
           >
-            &larr; Dashboard
+            &larr; Guides
           </Link>
           <h1 className="font-serif text-[26px] font-semibold text-white tracking-tight">
             Home Safety Assessment
