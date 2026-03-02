@@ -45,10 +45,10 @@ export default function FacilitySearch({
   const [minRating, setMinRating] = useState(1);
   const [sortBy, setSortBy] = useState<"distance" | "rating">("distance");
 
-  const canSearch = !!parentState;
+  const canSearch = !!parentState && !!parentZip;
 
   const handleSearch = async () => {
-    if (!parentState) return;
+    if (!parentState || !parentZip) return;
 
     setLoading(true);
     setError("");
@@ -57,11 +57,11 @@ export default function FacilitySearch({
     try {
       const params = new URLSearchParams({
         state: parentState,
+        zip: parentZip,
         radius: String(radius),
         minRating: String(minRating),
         limit: "30",
       });
-      if (parentZip) params.set("zip", parentZip);
 
       const res = await fetch(`/api/facility-search?${params}`);
       if (!res.ok) {
@@ -115,7 +115,7 @@ export default function FacilitySearch({
 
       {!canSearch && (
         <p className="font-sans text-xs text-coral">
-          Add your parent&apos;s state in their profile to enable facility search.
+          Add your parent&apos;s state and zip code in their profile to enable facility search.
         </p>
       )}
 

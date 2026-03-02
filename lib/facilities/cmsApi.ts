@@ -1,5 +1,6 @@
 // CMS Provider Data API client for nursing home facility search
 // Uses the free public API (no key required) — ~14,700 nursing homes with quality ratings
+// Queries by zip prefix (3 digits) to get a regional set, then filters by Haversine distance
 
 const CMS_API_URL =
   "https://data.cms.gov/provider-data/api/1/datastore/query/4pq5-n9py/0";
@@ -71,29 +72,32 @@ export interface FacilityResult {
   longitude: number;
 }
 
-// --- In-memory cache (per state, 24hr TTL) ---
+// --- In-memory cache (per zip prefix, 24hr TTL) ---
 
 interface CacheEntry {
   data: CmsFacility[];
   fetchedAt: number;
 }
 
-const stateCache = new Map<string, CacheEntry>();
+const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-export async function fetchFacilitiesByState(
-  state: string
-): Promise<CmsFacility[]> {
-  const key = state.toUpperCase();
-  const cached = stateCache.get(key);
+/**
+ * Fetch facilities from CMS by 3-digit zip prefix.
+ * A 3-digit prefix typically covers a ~50-mile regional area (50–200 facilities).
+ */
+async function fetchByZipPrefix(zipPrefix: string): Promise<CmsFacility[]> {
+  const cached = cache.get(zipPrefix);
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return cached.data;
   }
 
   const body = {
-    conditions: [{ property: "state", value: key, operator: "=" }],
+    conditions: [
+      { property: "zip_code", value: `${zipPrefix}%`, operator: "LIKE" },
+    ],
     properties: CMS_FIELDS,
-    limit: 5000,
+    limit: 500,
     offset: 0,
   };
 
@@ -111,7 +115,7 @@ export async function fetchFacilitiesByState(
   const json = await res.json();
   const results: CmsFacility[] = json.results ?? [];
 
-  stateCache.set(key, { data: results, fetchedAt: Date.now() });
+  cache.set(zipPrefix, { data: results, fetchedAt: Date.now() });
   return results;
 }
 
@@ -135,16 +139,24 @@ function haversineDistance(
   return R * c;
 }
 
-// --- Zip-based approximate geocoding from cached data ---
+// --- Get center coordinates from a facility matching the exact zip ---
 
-export function getCoordinatesForZip(
+function getCenterFromFacilities(
   zip: string,
-  stateFacilities: CmsFacility[]
+  facilities: CmsFacility[]
 ): { lat: number; lng: number } | null {
-  const match = stateFacilities.find(
-    (f) => f.zip_code?.substring(0, 5) === zip.substring(0, 5)
+  const zip5 = zip.substring(0, 5);
+  const match = facilities.find(
+    (f) => f.zip_code?.substring(0, 5) === zip5
   );
-  if (!match) return null;
+  if (!match) {
+    // Fall back to first facility with valid coordinates
+    const fallback = facilities.find(
+      (f) => !isNaN(parseFloat(f.latitude)) && !isNaN(parseFloat(f.longitude))
+    );
+    if (!fallback) return null;
+    return { lat: parseFloat(fallback.latitude), lng: parseFloat(fallback.longitude) };
+  }
 
   const lat = parseFloat(match.latitude);
   const lng = parseFloat(match.longitude);
@@ -201,14 +213,18 @@ export interface SearchParams {
 export async function searchNearby(
   params: SearchParams
 ): Promise<{ facilities: FacilityResult[]; total: number }> {
-  const { state, zip, radius = 25, minRating = 1, limit = 20 } = params;
+  const { zip, radius = 25, minRating = 1, limit = 20 } = params;
 
-  const facilities = await fetchFacilitiesByState(state);
+  if (!zip || zip.length < 3) {
+    return { facilities: [], total: 0 };
+  }
 
-  // If zip provided, compute distances; otherwise return all in state
-  let centerCoords: { lat: number; lng: number } | null = null;
-  if (zip) {
-    centerCoords = getCoordinatesForZip(zip, facilities);
+  const zipPrefix = zip.substring(0, 3);
+  const facilities = await fetchByZipPrefix(zipPrefix);
+
+  const centerCoords = getCenterFromFacilities(zip, facilities);
+  if (!centerCoords) {
+    return { facilities: [], total: 0 };
   }
 
   let results: FacilityResult[] = [];
@@ -221,11 +237,8 @@ export async function searchNearby(
     const rating = parseInt(f.overall_rating) || 0;
     if (rating < minRating) continue;
 
-    let dist = 0;
-    if (centerCoords) {
-      dist = haversineDistance(centerCoords.lat, centerCoords.lng, lat, lng);
-      if (dist > radius) continue;
-    }
+    const dist = haversineDistance(centerCoords.lat, centerCoords.lng, lat, lng);
+    if (dist > radius) continue;
 
     results.push(normalize(f, dist));
   }

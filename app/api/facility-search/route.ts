@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = request.nextUrl;
   const state = searchParams.get("state");
+  const zip = searchParams.get("zip");
 
-  if (!state) {
+  if (!state || !zip) {
     return NextResponse.json(
-      { error: "state parameter is required" },
+      { error: "state and zip parameters are required" },
       { status: 400 }
     );
   }
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await searchNearby({
       state,
-      zip: searchParams.get("zip") || undefined,
+      zip,
       radius: searchParams.get("radius") ? Number(searchParams.get("radius")) : undefined,
       minRating: searchParams.get("minRating") ? Number(searchParams.get("minRating")) : undefined,
       limit: searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined,
