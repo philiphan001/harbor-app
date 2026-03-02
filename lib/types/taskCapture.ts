@@ -56,6 +56,45 @@ export interface ManualNotes {
   notes: string;
 }
 
+/** Emergency contact information */
+export interface EmergencyContactInfo {
+  name: string;
+  relationship?: string;
+  phone?: string;
+}
+
+/** Transportation plan data */
+export interface TransportPlanInfo {
+  currentMethods?: string[];
+  primaryTransport?: string;
+  backupTransport?: string;
+}
+
+/** Delivery services setup */
+export interface DeliveryServicesInfo {
+  services: string[];
+}
+
+/** Check-in schedule */
+export interface CheckInScheduleInfo {
+  schedule: Array<{ name: string; frequency: string; method: string }>;
+}
+
+/** Emergency contacts list */
+export interface EmergencyContactsInfo {
+  contacts: Array<{ name: string; relationship: string; phone: string }>;
+}
+
+/** Pet care plan */
+export interface PetCareInfo {
+  petName: string;
+  petType?: string;
+  vetName?: string;
+  vetPhone?: string;
+  emergencySitter?: string;
+  dailyCareNotes?: string;
+}
+
 // ==================== Discriminated Union for Task Data ====================
 
 /** All possible captured data shapes, discriminated by toolName */
@@ -75,6 +114,12 @@ export type TaskDataPayload =
   | LegalDocumentInfo
   | TaskNotes
   | ManualNotes
+  | EmergencyContactInfo
+  | TransportPlanInfo
+  | DeliveryServicesInfo
+  | CheckInScheduleInfo
+  | EmergencyContactsInfo
+  | PetCareInfo
   | import("@/lib/ingestion/types").ExtractedData;
 
 // ==================== Task Completion Callback Types ====================

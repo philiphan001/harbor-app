@@ -154,6 +154,83 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
           },
         ],
       };
+    } else if (title.includes("home safety") || title.includes("fall prevention") || title.includes("grab bar") || title.includes("aging in place")) {
+      return {
+        type: "Action Guide",
+        icon: "🏠",
+        content: [
+          {
+            heading: "Quick wins you can do today:",
+            items: [
+              "Install grab bars in the bathroom — most falls happen there",
+              "Add non-slip mats in the tub/shower and on bathroom floors",
+              "Remove throw rugs or secure them with non-slip backing",
+              "Ensure good lighting in hallways, stairs, and bathrooms (nightlights help)",
+              "Clear walkways of cords, clutter, and low furniture",
+            ],
+          },
+          {
+            heading: "Bigger improvements to plan:",
+            items: [
+              "Consider a walk-in shower or tub if mobility is declining",
+              "Install handrails on both sides of stairs",
+              "Look into a medical alert system (especially if they live alone)",
+              "Use Harbor's Home Safety Assessment for a room-by-room walkthrough",
+            ],
+          },
+        ],
+      };
+    } else if (title.includes("transportation") || title.includes("medical transport") || title.includes("ride service")) {
+      return {
+        type: "Action Guide",
+        icon: "🚗",
+        content: [
+          {
+            heading: "How to set up reliable transport:",
+            items: [
+              "Identify a primary way to get to medical appointments",
+              "Set up at least one backup option (ride service, family, volunteer driver)",
+              "Check if they qualify for Medicaid NEMT (free medical rides)",
+              "Try GoGoGrandparent — order rides by phone, no smartphone needed",
+              "Use Harbor's Transportation Plan guide to organize everything",
+            ],
+          },
+          {
+            heading: "Reduce the need for trips:",
+            items: [
+              "Set up pharmacy delivery (CVS, Walgreens, Amazon Pharmacy)",
+              "Arrange grocery delivery (Instacart, Walmart+)",
+              "Ask about telehealth options for routine check-ups",
+            ],
+          },
+        ],
+      };
+    } else if (title.includes("social") || title.includes("isolation") || title.includes("loneliness") || title.includes("check-in") || title.includes("pet care")) {
+      return {
+        type: "Action Guide",
+        icon: "🤝",
+        content: [
+          {
+            heading: "Build a support network:",
+            items: [
+              "Identify 2-3 people who can check in regularly (neighbors, friends, family)",
+              "Set up a check-in schedule — even a weekly phone call helps",
+              "Look into local senior centers for social activities",
+              "Consider a friendly caller or volunteer visitor program",
+              "Use Harbor's Social & Pet Care Plan to organize contacts and schedules",
+            ],
+          },
+          {
+            heading: "Watch for warning signs:",
+            items: [
+              "Declining interest in activities they used to enjoy",
+              "Changes in eating, sleeping, or personal hygiene",
+              "Not answering the phone or returning calls",
+              "Increased irritability or talking about being a burden",
+            ],
+          },
+        ],
+      };
     } else if (title.includes("insurance") || title.includes("medicare") || title.includes("medicaid")) {
       return {
         type: "Script Generator",
@@ -224,6 +301,45 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
         text.includes("healthcare wishes") ||
         text.includes("dnr") ||
         (text.includes("healthcare") && (text.includes("poa") || text.includes("power of attorney"))))
+    );
+  })();
+
+  const isHomeSafetyTask = (() => {
+    const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
+    return (
+      task.domain === "housing" &&
+      (text.includes("home safety") || text.includes("fall prevention") ||
+        text.includes("grab bar") || text.includes("aging in place") ||
+        text.includes("safety assessment") || text.includes("fall risk") ||
+        text.includes("home modification"))
+    );
+  })();
+
+  const isTransportTask = (() => {
+    const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
+    return (
+      task.domain === "transportation" &&
+      (text.includes("transportation") || text.includes("medical transport") ||
+        text.includes("ride service") || text.includes("getting to appointments") ||
+        text.includes("driving") || text.includes("uber") || text.includes("lyft") ||
+        text.includes("paratransit"))
+    );
+  })();
+
+  const isSocialCareTask = (() => {
+    const t = task.title.toLowerCase();
+    const w = task.why?.toLowerCase() || "";
+    const text = t + " " + w;
+    return (
+      task.domain === "social" &&
+      (text.includes("social") || text.includes("isolation") ||
+        text.includes("loneliness") || text.includes("check-in") || text.includes("check in") ||
+        text.includes("pet care") || text.includes("companion") ||
+        text.includes("community"))
     );
   })();
 
@@ -503,6 +619,78 @@ export default function TaskDetail({ task, onClose, onMarkComplete, userContext 
                   </div>
                   <div className="font-sans text-xs text-slateMid mt-0.5">
                     Universal federal form with a guided walkthrough
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* Home Safety CTA */}
+        {isHomeSafetyTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/home-safety"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-amber/5"
+              style={{ borderColor: "#C4943A" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏠</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Open Home Safety Assessment
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Room-by-room checklist with emergency contact capture
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* Transportation CTA */}
+        {isTransportTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/transportation-plan"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-ocean/5"
+              style={{ borderColor: "#1B6B7D" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🚗</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Open Transportation Plan Guide
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Set up primary and backup transport with local resources
+                  </div>
+                </div>
+                <span className="ml-auto text-slateMid text-lg">→</span>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {/* Social Care CTA */}
+        {isSocialCareTask && (
+          <div className="px-5 py-4 border-b border-sand">
+            <Link
+              href="/social-care"
+              className="block border-2 rounded-xl px-4 py-4 transition-colors hover:bg-sage/5"
+              style={{ borderColor: "#6B8F71" }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🤝</span>
+                <div>
+                  <div className="font-sans text-sm font-semibold text-slate">
+                    Open Social & Pet Care Plan
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mt-0.5">
+                    Emergency contacts, check-ins, community resources & pet care
                   </div>
                 </div>
                 <span className="ml-auto text-slateMid text-lg">→</span>

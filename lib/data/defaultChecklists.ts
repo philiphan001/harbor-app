@@ -41,6 +41,35 @@ const CHECKLIST_MATCHERS: Array<{
     ],
   },
   {
+    pattern: /home safety|fall prevention|grab bar|aging in place/i,
+    checklist: [
+      { id: "hs-1", label: "Complete a room-by-room safety walkthrough", completed: false, linkTo: "/home-safety" },
+      { id: "hs-2", label: "Install grab bars and non-slip mats", completed: false, linkTo: "/home-safety" },
+      { id: "hs-3", label: "Set up smoke detectors and emergency alert system", completed: false, linkTo: "/home-safety" },
+      { id: "hs-4", label: "Record emergency contact information", completed: false, linkTo: "/home-safety" },
+      { id: "hs-5", label: "Discuss aging in place vs. moving options", completed: false },
+    ],
+  },
+  {
+    pattern: /transportation|medical transport|ride service|getting to appointments/i,
+    checklist: [
+      { id: "tp-1", label: "Review current transportation options", completed: false, linkTo: "/transportation-plan" },
+      { id: "tp-2", label: "Set up primary and backup transport plan", completed: false, linkTo: "/transportation-plan" },
+      { id: "tp-3", label: "Research local ride services and NEMT", completed: false, linkTo: "/transportation-plan" },
+      { id: "tp-4", label: "Set up delivery services for essentials", completed: false, linkTo: "/transportation-plan" },
+      { id: "tp-5", label: "Discuss driving safety if applicable", completed: false },
+    ],
+  },
+  {
+    pattern: /social care|social isolation|pet care|check.?in|loneliness/i,
+    checklist: [
+      { id: "sc-1", label: "Record emergency contacts for social support", completed: false, linkTo: "/social-care" },
+      { id: "sc-2", label: "Set up a regular check-in schedule", completed: false, linkTo: "/social-care" },
+      { id: "sc-3", label: "Explore community resources and programs", completed: false, linkTo: "/social-care" },
+      { id: "sc-4", label: "Create a pet care plan (if applicable)", completed: false, linkTo: "/social-care" },
+    ],
+  },
+  {
     pattern: /primary care doctor|pcp|find.*doctor/i,
     checklist: [
       { id: "doc-1", label: "Ask parent for their doctor's name", completed: false },

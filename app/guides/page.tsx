@@ -45,6 +45,36 @@ const GUIDES: Guide[] = [
     href: "/hipaa-authorization",
     completionKey: "harbor_hipaa_complete",
   },
+  {
+    id: "home-safety",
+    title: "Home Safety",
+    subtitle: "Room-by-room safety assessment",
+    icon: "\ud83c\udfe0",
+    color: "amber",
+    bgClass: "bg-amber/15",
+    href: "/home-safety",
+    completionKey: "harbor_home_safety_complete",
+  },
+  {
+    id: "transportation-plan",
+    title: "Transportation Plan",
+    subtitle: "Getting to appointments & errands",
+    icon: "\ud83d\ude97",
+    color: "ocean",
+    bgClass: "bg-ocean/15",
+    href: "/transportation-plan",
+    completionKey: "harbor_transportation_plan_complete",
+  },
+  {
+    id: "social-care",
+    title: "Social & Pet Care",
+    subtitle: "Connections, check-ins & pet plans",
+    icon: "\ud83e\udd1d",
+    color: "sage",
+    bgClass: "bg-sage/15",
+    href: "/social-care",
+    completionKey: "harbor_social_care_complete",
+  },
 ];
 
 const COMING_SOON = [
@@ -60,7 +90,8 @@ export default function GuidesPage() {
   useEffect(() => {
     const completed: Record<string, boolean> = {};
     for (const guide of GUIDES) {
-      completed[guide.id] = localStorage.getItem(guide.completionKey) === "true";
+      const val = localStorage.getItem(guide.completionKey);
+      completed[guide.id] = val === "true" || (val !== null && val !== "false" && val.startsWith("{"));
     }
     setCompletions(completed);
   }, []);
@@ -82,7 +113,7 @@ export default function GuidesPage() {
             Guides & Worksheets
           </h1>
           <p className="font-sans text-sm text-white/80 mt-1">
-            Step-by-step guides for critical caregiving documents
+            Step-by-step guides for caregiving essentials
           </p>
         </div>
       </div>
