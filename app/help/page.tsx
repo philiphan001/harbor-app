@@ -47,36 +47,16 @@ export default function HelpPage() {
             &larr; Dashboard
           </Link>
           <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mt-3 mb-1">
-            Ask Harbor
+            Help & Support
           </h1>
           <div className="font-sans text-sm text-white/70 leading-relaxed">
-            Get help with the app or reach out to our team
+            Learn how to use Harbor or reach out to our team
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
-        {/* AI Chat — coming soon */}
-        <div className="bg-ocean/5 border-2 border-dashed border-ocean/30 rounded-xl px-5 py-5 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-ocean rounded-xl flex items-center justify-center text-white text-lg">
-              💬
-            </div>
-            <div>
-              <div className="font-sans text-sm font-semibold text-slate">
-                AI Help Assistant
-              </div>
-              <div className="font-sans text-xs text-slateMid">
-                Coming soon
-              </div>
-            </div>
-          </div>
-          <div className="font-sans text-xs text-slateMid leading-relaxed">
-            Ask questions about the app, get guidance on next steps, or learn how to make the most of Harbor.
-          </div>
-        </div>
-
         {/* Help Topics */}
         <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
           Help Topics
