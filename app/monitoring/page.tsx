@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAgentActivity, markDetectionHandled as markLocalHandled } from "@/lib/utils/agentStorage";
 import { AgentActivity, AgentDetection, AGENT_METADATA } from "@/lib/types/agents";
-import { generateMockAgentData } from "@/lib/utils/mockAgentData";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import type { ScoredSignalResult } from "@/lib/types/taskCapture";
 
@@ -100,11 +99,6 @@ export default function MonitoringPage() {
     }
   };
 
-  const handleGenerateMockData = () => {
-    generateMockAgentData();
-    loadActivity();
-  };
-
   if (!activity) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-warmWhite">
@@ -172,16 +166,8 @@ export default function MonitoringPage() {
               disabled={runningAgents}
               className="flex-1 bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50"
             >
-              {runningAgents ? "Running Agents..." : "Run Agents Now (Testing Only)"}
+              {runningAgents ? "Running Agents..." : "Check for Updates"}
             </button>
-            {activity.recentDetections.length === 0 && (
-              <button
-                onClick={handleGenerateMockData}
-                className="bg-sand border border-sandDark text-slateMid rounded-xl px-4 py-3 font-sans text-xs font-medium hover:bg-sandDark transition-colors"
-              >
-                Demo Data
-              </button>
-            )}
           </div>
 
           {lastRunResult && (
