@@ -30,6 +30,7 @@ export interface Task {
     completed: boolean;
     linkTo?: string; // optional URL to a guided page
   }>;
+  source?: "readiness" | "chat" | "upload";
 }
 
 // Parent profile information extraction

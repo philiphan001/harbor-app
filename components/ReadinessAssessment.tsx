@@ -6,10 +6,11 @@ import DomainProgress from "./DomainProgress";
 import QuestionnaireForm from "./QuestionnaireForm";
 import ChatInterface from "./ChatInterface";
 import { Answer, DOMAIN_QUESTIONS } from "@/lib/types/readiness";
-import { addTasks, getTasks, removeTask } from "@/lib/utils/taskStorage";
+import { addTasks, getTasks, removeTask, getReadinessTasksForDomain, removeReadinessTasksForDomain } from "@/lib/utils/taskStorage";
 import { saveTaskData } from "@/lib/utils/taskData";
 import { getParentProfile, saveParentProfile } from "@/lib/utils/parentProfile";
 import { DOMAINS as DOMAIN_LIST, type Domain } from "@/lib/constants/domains";
+import type { Task } from "@/lib/ai/claude";
 import ParentInfoForm from "./ParentInfoForm";
 
 type AssessmentMode = "intro" | "parent-info" | "domain-select" | "chat" | "questionnaire";
@@ -100,6 +101,15 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
     return domains;
   });
 
+  // Retake confirmation modal state
+  const [retakeConfirmDomain, setRetakeConfirmDomain] = useState<Domain | null>(null);
+  const [retakeOldTasks, setRetakeOldTasks] = useState<Task[]>([]);
+  const [retakeReviewSelections, setRetakeReviewSelections] = useState<Set<string>>(new Set());
+  const [showReviewChecklist, setShowReviewChecklist] = useState(false);
+  const [retakePendingResolve, setRetakePendingResolve] = useState<{
+    resolve: (value: "replace" | "keep" | "review") => void;
+  } | null>(null);
+
   const domains = selectedDomains;
 
   // Persist answers to localStorage whenever they change
@@ -168,15 +178,15 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
         const merged = new Set([...prev, ...CHAT_DOMAINS]);
         return [...merged];
       });
-      // Generate tasks for completed chat domains, then deduplicate
-      const taskGenPromises: Promise<void>[] = [];
-      for (const domain of CHAT_DOMAINS) {
-        if (!completedDomains.includes(domain)) {
-          taskGenPromises.push(generateTasksForDomain(domain));
+      // Generate tasks for completed chat domains sequentially (so modals appear one at a time)
+      (async () => {
+        for (const domain of CHAT_DOMAINS) {
+          if (!completedDomains.includes(domain)) {
+            await generateTasksForDomain(domain);
+          }
         }
-      }
-      // After all chat-domain task generation completes, run dedup cleanup
-      Promise.all(taskGenPromises).then(() => deduplicateTasks());
+        deduplicateTasks();
+      })();
       // Switch to questionnaire starting at first selected non-chat domain
       const firstQuestionnaireDomain = selectedDomains.find(d => !CHAT_DOMAINS.includes(d));
       if (firstQuestionnaireDomain) {
@@ -271,6 +281,43 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
     }
   };
 
+  const checkForExistingReadinessTasks = (domain: Domain): Promise<"replace" | "keep" | "review"> => {
+    const oldTasks = getReadinessTasksForDomain(domain);
+    if (oldTasks.length === 0) return Promise.resolve("replace");
+
+    return new Promise((resolve) => {
+      setRetakeConfirmDomain(domain);
+      setRetakeOldTasks(oldTasks);
+      setRetakeReviewSelections(new Set());
+      setShowReviewChecklist(false);
+      setRetakePendingResolve({ resolve });
+    });
+  };
+
+  const handleRetakeChoice = (choice: "replace" | "keep" | "review") => {
+    if (choice === "review") {
+      setShowReviewChecklist(true);
+      return;
+    }
+    retakePendingResolve?.resolve(choice);
+    setRetakeConfirmDomain(null);
+    setRetakeOldTasks([]);
+    setRetakePendingResolve(null);
+  };
+
+  const handleRetakeReviewConfirm = () => {
+    // Remove only the selected tasks, then resolve as "review"
+    if (retakeConfirmDomain) {
+      removeReadinessTasksForDomain(retakeConfirmDomain, [...retakeReviewSelections]);
+    }
+    retakePendingResolve?.resolve("keep"); // "keep" so generateTasks doesn't also remove
+    setRetakeConfirmDomain(null);
+    setRetakeOldTasks([]);
+    setRetakeReviewSelections(new Set());
+    setShowReviewChecklist(false);
+    setRetakePendingResolve(null);
+  };
+
   const generateTasksForDomain = async (domain: Domain) => {
     // Don't generate if already generating for this domain
     if (generatingTasksFor.includes(domain)) return;
@@ -279,6 +326,13 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
     console.log(`🚀 Starting background task generation for ${domain} domain`);
 
     try {
+      // Check for existing readiness tasks and prompt user
+      const retakeChoice = await checkForExistingReadinessTasks(domain);
+      if (retakeChoice === "replace") {
+        removeReadinessTasksForDomain(domain);
+      }
+      // "keep" and "review" (already handled in confirm) — proceed to generate
+
       const parentProfile = getParentProfile();
 
       // Get answers for this domain based on question ID prefix
@@ -325,7 +379,8 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
 
       if (data.tasks && data.tasks.length > 0) {
         console.log(`✅ Generated ${data.tasks.length} tasks for ${domain}, adding to storage`);
-        addTasks(data.tasks);
+        const taggedTasks = data.tasks.map((t: Task) => ({ ...t, source: "readiness" as const }));
+        addTasks(taggedTasks);
       } else {
         console.log(`ℹ️ No tasks generated for ${domain} domain. Response:`, data);
       }
@@ -386,6 +441,119 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
     // When chat completes, redirect to results
     router.push("/readiness/results");
   };
+
+  const DOMAIN_LABELS: Record<Domain, string> = {
+    medical: "Medical",
+    legal: "Legal",
+    financial: "Financial",
+    housing: "Housing",
+    transportation: "Transportation",
+    social: "Social & Pets",
+  };
+
+  const retakeModal = retakeConfirmDomain ? (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40" />
+      {/* Bottom sheet */}
+      <div className="relative w-full max-w-[420px] bg-warmWhite rounded-t-[14px] px-5 pt-5 pb-8 animate-in slide-in-from-bottom duration-200">
+        {!showReviewChecklist ? (
+          <>
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-2">
+              Existing Tasks Found
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-slate mb-1">
+              {DOMAIN_LABELS[retakeConfirmDomain]} Tasks
+            </h3>
+            <p className="font-sans text-sm text-slateMid mb-5 leading-relaxed">
+              You have {retakeOldTasks.length} incomplete action item{retakeOldTasks.length !== 1 ? "s" : ""} from a previous assessment. What would you like to do?
+            </p>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleRetakeChoice("replace")}
+                className="w-full bg-ocean text-white rounded-[14px] px-5 py-3.5 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+              >
+                Replace with new tasks
+              </button>
+              <button
+                onClick={() => handleRetakeChoice("keep")}
+                className="w-full bg-white border-2 border-sandDark text-slate rounded-[14px] px-5 py-3.5 font-sans text-sm font-semibold hover:bg-sand transition-colors"
+              >
+                Keep both old and new
+              </button>
+              <button
+                onClick={() => handleRetakeChoice("review")}
+                className="w-full bg-white border-2 border-sandDark text-slate rounded-[14px] px-5 py-3.5 font-sans text-sm font-semibold hover:bg-sand transition-colors"
+              >
+                Review first
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-2">
+              Review Tasks
+            </div>
+            <p className="font-sans text-sm text-slateMid mb-4 leading-relaxed">
+              Check the tasks you want to remove. Unchecked tasks will be kept.
+            </p>
+            <div className="space-y-2 mb-5 max-h-[40vh] overflow-y-auto">
+              {retakeOldTasks.map((task) => {
+                const isSelected = retakeReviewSelections.has(task.title);
+                return (
+                  <button
+                    key={task.title}
+                    onClick={() =>
+                      setRetakeReviewSelections((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(task.title)) next.delete(task.title);
+                        else next.add(task.title);
+                        return next;
+                      })
+                    }
+                    className={`w-full flex items-center gap-3 rounded-[14px] px-4 py-3 text-left transition-colors ${
+                      isSelected
+                        ? "bg-coral/10 border-2 border-coral"
+                        : "bg-white border-2 border-sandDark"
+                    }`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected ? "bg-coral border-coral" : "bg-white border-sandDark"
+                      }`}
+                    >
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="font-sans text-sm text-slate leading-snug">{task.title}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="space-y-2.5">
+              <button
+                onClick={handleRetakeReviewConfirm}
+                className="w-full bg-ocean text-white rounded-[14px] px-5 py-3.5 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+              >
+                {retakeReviewSelections.size > 0
+                  ? `Remove ${retakeReviewSelections.size} task${retakeReviewSelections.size !== 1 ? "s" : ""} & continue`
+                  : "Keep all & continue"}
+              </button>
+              <button
+                onClick={() => setShowReviewChecklist(false)}
+                className="w-full font-sans text-sm text-slateMid hover:text-slate transition-colors py-2"
+              >
+                Back
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   // Intro screen
   if (mode === "intro") {
@@ -631,22 +799,23 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
       : undefined;
 
     return (
-      <div className="h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-        <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
+      <>
+        <div className="h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+          <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
 
-        {/* Mode switch button */}
-        <div className="bg-sand border-b border-sandDark px-5 py-2 flex justify-end">
-          <button
-            onClick={handleSwitchToQuestionnaire}
-            className="font-sans text-xs text-ocean hover:underline font-medium"
-          >
-            Switch to questionnaire →
-          </button>
-        </div>
+          {/* Mode switch button */}
+          <div className="bg-sand border-b border-sandDark px-5 py-2 flex justify-end">
+            <button
+              onClick={handleSwitchToQuestionnaire}
+              className="font-sans text-xs text-ocean hover:underline font-medium"
+            >
+              Switch to questionnaire →
+            </button>
+          </div>
 
-        <ChatInterface
-          mode="readiness"
-          initialMessage={`I'll help you assess your readiness across 6 key areas for ${parentName}'s care. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
+          <ChatInterface
+            mode="readiness"
+            initialMessage={`I'll help you assess your readiness across 6 key areas for ${parentName}'s care. The goal: if a crisis happens tomorrow, you'll be ready to handle it.
 
 1. **Medical** — Could you reach their doctor, list their meds, and navigate insurance at 2am?
 2. **Legal** — Do you have the authority and documents to make decisions?
@@ -658,61 +827,66 @@ export default function ReadinessAssessment({ conversationId, startDomain }: Rea
 We'll cover the first three in conversation, then switch to a quick form for the rest. For everything you already have in place, I'll capture the details in Harbor. For gaps, I'll build your action plan.
 
 Let's start with Medical readiness. Does ${parentName} have a primary care doctor — and if so, could you reach them at 2am in an emergency?`}
-          onComplete={handleChatComplete}
-          currentAnswers={answers}
-          onAnswersExtracted={handleAnswersExtracted}
-          conversationId={conversationId}
-          dataSummary={dataSummary}
-          showHandoffCta={showHandoffCta}
-          onHandoff={handleSwitchToQuestionnaire}
-        />
-      </div>
+            onComplete={handleChatComplete}
+            currentAnswers={answers}
+            onAnswersExtracted={handleAnswersExtracted}
+            conversationId={conversationId}
+            dataSummary={dataSummary}
+            showHandoffCta={showHandoffCta}
+            onHandoff={handleSwitchToQuestionnaire}
+          />
+        </div>
+        {retakeModal}
+      </>
     );
   }
 
   // Questionnaire mode
   return (
-    <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
-      <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
+    <>
+      <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
+        <DomainProgress currentDomain={currentDomain} completedDomains={completedDomains} activeDomains={selectedDomains} />
 
-      {/* Background task generation indicator */}
-      {generatingTasksFor.length > 0 && (
-        <div className="bg-ocean/5 border-b border-ocean/20 px-5 py-2">
-          <div className="flex items-center gap-2">
-            <div className="flex space-x-1">
-              <div
-                className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
-                style={{ animationDelay: "0ms" }}
-              />
-              <div
-                className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              />
-              <div
-                className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              />
-            </div>
-            <div className="font-sans text-xs text-ocean">
-              Generating action items in background...
+        {/* Background task generation indicator */}
+        {generatingTasksFor.length > 0 && (
+          <div className="bg-ocean/5 border-b border-ocean/20 px-5 py-2">
+            <div className="flex items-center gap-2">
+              <div className="flex space-x-1">
+                <div
+                  className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                />
+                <div
+                  className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                />
+                <div
+                  className="w-1.5 h-1.5 bg-ocean rounded-full animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                />
+              </div>
+              <div className="font-sans text-xs text-ocean">
+                Generating action items in background...
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <QuestionnaireForm
-        currentDomain={currentDomain}
-        answers={answers}
-        completedDomains={completedDomains}
-        onAnswer={handleAnswer}
-        onNext={handleNextDomain}
-        onBack={handleBackDomain}
-        onDomainSelect={handleDomainSelect}
-        isFirstDomain={currentDomain === domains[0]}
-        isLastDomain={currentDomain === domains[domains.length - 1]}
-        activeDomains={selectedDomains}
-      />
-    </div>
+        <QuestionnaireForm
+          currentDomain={currentDomain}
+          answers={answers}
+          completedDomains={completedDomains}
+          onAnswer={handleAnswer}
+          onNext={handleNextDomain}
+          onBack={handleBackDomain}
+          onDomainSelect={handleDomainSelect}
+          isFirstDomain={currentDomain === domains[0]}
+          isLastDomain={currentDomain === domains[domains.length - 1]}
+          activeDomains={selectedDomains}
+        />
+      </div>
+      {retakeModal}
+    </>
   );
 }
 

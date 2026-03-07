@@ -186,12 +186,15 @@ export default function ReadinessResultsPage() {
 
         {/* Retake Assessment */}
         <div className="mt-6 text-center">
-          <Link
-            href="/readiness"
+          <button
+            onClick={() => {
+              localStorage.removeItem("harbor_readiness_answers");
+              window.location.href = "/readiness";
+            }}
             className="font-sans text-sm text-ocean underline underline-offset-2 hover:text-oceanMid transition-colors"
           >
             Retake Assessment
-          </Link>
+          </button>
         </div>
       </div>
     </div>

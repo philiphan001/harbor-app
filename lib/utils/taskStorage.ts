@@ -1,5 +1,6 @@
 import { Task } from "@/lib/ai/claude";
 import { getActiveParentId } from "./parentProfile";
+import type { Domain } from "@/lib/constants/domains";
 
 // Task with parent association
 export interface TaskWithParent extends Task {
@@ -355,6 +356,52 @@ export function removeTask(taskTitle: string): void {
 
   // Write-through to Supabase
   if (activeParentId) removeTaskFromDb(activeParentId, taskTitle);
+}
+
+// Get incomplete readiness-sourced tasks for a domain (active parent only)
+export function getReadinessTasksForDomain(domain: Domain): Task[] {
+  const activeParentId = getActiveParentId();
+  const allTasks = getAllTasks();
+  return allTasks.filter(
+    (t) =>
+      t.source === "readiness" &&
+      t.domain === domain &&
+      !t.completedAt &&
+      (t.parentId === activeParentId || !t.parentId)
+  );
+}
+
+// Remove readiness tasks for a domain. If titlesToRemove is provided, only remove those titles.
+export function removeReadinessTasksForDomain(domain: Domain, titlesToRemove?: string[]): void {
+  const activeParentId = getActiveParentId();
+  const allTasks = getAllTasks();
+  const filtered = allTasks.filter((t) => {
+    // Only consider readiness-sourced tasks for this domain + parent
+    if (
+      t.source !== "readiness" ||
+      t.domain !== domain ||
+      t.completedAt ||
+      !(t.parentId === activeParentId || !t.parentId)
+    ) {
+      return true; // keep non-matching tasks
+    }
+    // If specific titles provided, only remove those
+    if (titlesToRemove) {
+      return !titlesToRemove.includes(t.title);
+    }
+    // Otherwise remove all matching
+    return false;
+  });
+
+  saveTasks(filtered);
+
+  // Sync deletions to Supabase
+  if (activeParentId) {
+    const removed = allTasks.filter((t) => !filtered.includes(t));
+    for (const t of removed) {
+      removeTaskFromDb(activeParentId, t.title);
+    }
+  }
 }
 
 // Clear all tasks
