@@ -86,6 +86,7 @@ export function getAgentActivity(): AgentActivity {
 
   // Calculate last run time for each agent (external agents only for monitoring page)
   const lastRunTimes: Record<AgentType, string> = {
+    drug_recall: "",
     policy_monitor: "",
     provider_monitor: "",
     financial_monitor: "",

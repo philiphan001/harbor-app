@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { getAgentActivity, markDetectionHandled as markLocalHandled } from "@/lib/utils/agentStorage";
-import { AgentActivity, AgentDetection, AGENT_METADATA } from "@/lib/types/agents";
+import { AgentActivity, AgentDetection, AGENT_METADATA, EXTERNAL_AGENT_METADATA, type ExternalAgentType } from "@/lib/types/agents";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import type { ScoredSignalResult } from "@/lib/types/taskCapture";
 
 export default function MonitoringPage() {
-  const router = useRouter();
   const [activity, setActivity] = useState<AgentActivity | null>(null);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [runningAgents, setRunningAgents] = useState(false);
@@ -123,12 +121,12 @@ export default function MonitoringPage() {
             </svg>
           </Link>
           <div>
-            <div className="font-sans text-[11px] text-white/60 tracking-[2px] uppercase">
-              Background Monitoring
-            </div>
             <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
-              Agent Activity
+              AI Agents
             </h1>
+            <div className="font-sans text-xs text-white/70">
+              Working behind the scenes for you
+            </div>
           </div>
         </div>
 
@@ -147,154 +145,191 @@ export default function MonitoringPage() {
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
-        {/* Run Agents / Empty State */}
-        <div className="mb-6 bg-sand rounded-xl px-5 py-4">
-          {activity.recentDetections.length === 0 ? (
-            <div className="font-sans text-sm text-slate mb-3">
-              No agent detections yet. Run agents to scan for policy changes and eldercare news.
-            </div>
-          ) : (
-            <div className="font-sans text-sm text-slate mb-3">
-              {activity.recentDetections.filter(d => !d.handled).length} unhandled detections.
-              Run agents again to check for new updates.
-            </div>
-          )}
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleRunAgents}
-              disabled={runningAgents}
-              className="flex-1 bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50"
-            >
-              {runningAgents ? "Running Agents..." : "Check for Updates"}
-            </button>
+        {/* ── WATCH Section (active) ── */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-block w-2 h-2 rounded-full bg-sage" />
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slate">
+              Watch
+            </div>
           </div>
 
-          {lastRunResult && (
-            <div className="mt-3 font-sans text-xs text-slateMid bg-white rounded-lg px-3 py-2">
-              {lastRunResult}
-            </div>
-          )}
-        </div>
+          {/* Compact agent cards */}
+          <div className="space-y-2 mb-4">
+            {activity.agents
+              .filter((a) => a.type in EXTERNAL_AGENT_METADATA)
+              .map((agent) => {
+                const metadata = AGENT_METADATA[agent.type];
+                const lastRunDate = agent.lastRun ? new Date(agent.lastRun) : null;
+                const timeAgo = lastRunDate ? getTimeAgo(lastRunDate) : "Never run";
 
-        {/* Agent Status */}
-        <div className="mb-6">
-          <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
-            Active Agents
-          </div>
-
-          <div className="space-y-3">
-            {activity.agents.map((agent) => {
-              const metadata = AGENT_METADATA[agent.type];
-              const lastRunDate = agent.lastRun ? new Date(agent.lastRun) : null;
-              const timeAgo = lastRunDate
-                ? getTimeAgo(lastRunDate)
-                : "Never run";
-
-              return (
-                <div
-                  key={agent.type}
-                  className="bg-white border border-sandDark rounded-xl p-4"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{metadata.icon}</div>
-                      <div>
-                        <div className="font-sans text-sm font-semibold text-slate">
-                          {agent.name}
-                        </div>
-                        <div className="font-sans text-xs text-slateMid">
-                          {metadata.schedule}
-                        </div>
+                return (
+                  <div
+                    key={agent.type}
+                    className="bg-white border border-sandDark rounded-xl px-4 py-3 flex items-center gap-3"
+                  >
+                    <div className="text-xl shrink-0">{metadata.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-sans text-sm font-semibold text-slate truncate">
+                        {agent.name}
+                      </div>
+                      <div className="font-sans text-[11px] text-slateMid">
+                        {timeAgo}
                       </div>
                     </div>
                     <div
-                      className={`px-2 py-1 rounded-full font-sans text-xs font-medium ${
+                      className={`px-2 py-1 rounded-full font-sans text-[10px] font-medium ${
                         agent.status === "running"
                           ? "bg-ocean/10 text-ocean"
-                          : agent.status === "active"
-                          ? "bg-sage/10 text-sage"
-                          : "bg-sand text-slateMid"
+                          : "bg-sage/10 text-sage"
                       }`}
                     >
-                      {agent.status === "running" ? "Running..." : agent.status}
+                      {agent.status === "running" ? "Running" : "On"}
                     </div>
                   </div>
-
-                  <div className="font-sans text-xs text-slateMid leading-relaxed mb-2">
-                    {agent.description}
-                  </div>
-
-                  {/* Data Source Badge */}
-                  {agent.dataSource && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="font-sans text-[10px] font-semibold tracking-[1px] uppercase text-slateLight">
-                        Data Source:
-                      </div>
-                      <div className="font-sans text-xs text-slate bg-sand px-2 py-0.5 rounded">
-                        {agent.dataSource}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-sand">
-                    <div className="font-sans text-xs text-slateMid">
-                      Last run: {timeAgo}
-                    </div>
-                    {agent.runsToday > 0 && (
-                      <div className="font-sans text-xs text-ocean font-medium">
-                        {agent.runsToday} {agent.runsToday === 1 ? "run" : "runs"} today
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
-        </div>
 
-        {/* Recent Detections */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight">
-              Recent Detections
-            </div>
-            {unhandledCount > 0 && (
-              <div className="px-2 py-1 bg-coral/10 text-coral rounded-full font-sans text-xs font-semibold">
-                {unhandledCount} new
+          {/* Check for Updates */}
+          <div className="bg-sand rounded-xl px-5 py-4 mb-4">
+            {activity.recentDetections.length === 0 ? (
+              <div className="font-sans text-sm text-slate mb-3">
+                No agent detections yet. Run agents to scan for policy changes and eldercare news.
+              </div>
+            ) : (
+              <div className="font-sans text-sm text-slate mb-3">
+                {activity.recentDetections.filter((d) => !d.handled).length} unhandled detections.
+                Run agents again to check for new updates.
+              </div>
+            )}
+
+            <button
+              onClick={handleRunAgents}
+              disabled={runningAgents}
+              className="w-full bg-ocean text-white rounded-xl px-4 py-3 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors disabled:opacity-50"
+            >
+              {runningAgents ? "Running Agents..." : "Check for Updates"}
+            </button>
+
+            {lastRunResult && (
+              <div className="mt-3 font-sans text-xs text-slateMid bg-white rounded-lg px-3 py-2">
+                {lastRunResult}
               </div>
             )}
           </div>
 
-          {activity.recentDetections.length === 0 ? (
-            <div className="bg-sand rounded-xl px-5 py-8 text-center">
-              <div className="text-4xl mb-2">🔍</div>
-              <div className="font-sans text-sm text-slateMid">
-                No detections yet. Agents will start monitoring soon.
+          {/* Recent Detections */}
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-4">
+              <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight">
+                Recent Detections
               </div>
+              {unhandledCount > 0 && (
+                <div className="px-2 py-1 bg-coral/10 text-coral rounded-full font-sans text-xs font-semibold">
+                  {unhandledCount} new
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {activity.recentDetections.map((detection) => (
-                <DetectionCard
-                  key={detection.id}
-                  detection={detection}
-                  onMarkHandled={handleMarkHandled}
-                  parentProfile={parentProfile}
-                />
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Info Box */}
-        <div className="bg-sand rounded-xl px-5 py-4">
-          <div className="font-sans text-xs text-slateMid leading-relaxed">
-            <span className="font-semibold">Note:</span> Agents run automatically in the
-            background to monitor deadlines, calendar events, and important dates. High-priority
-            detections may automatically create action items.
+            {activity.recentDetections.length === 0 ? (
+              <div className="bg-sand rounded-xl px-5 py-8 text-center">
+                <div className="text-4xl mb-2">🔍</div>
+                <div className="font-sans text-sm text-slateMid">
+                  No detections yet. Agents will start monitoring soon.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activity.recentDetections.map((detection) => (
+                  <DetectionCard
+                    key={detection.id}
+                    detection={detection}
+                    onMarkHandled={handleMarkHandled}
+                    parentProfile={parentProfile}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ── RESEARCH Section (coming soon) ── */}
+        <ComingSoonSection label="Research" agents={RESEARCH_AGENTS} />
+
+        {/* ── COORDINATE Section (coming soon) ── */}
+        <ComingSoonSection label="Coordinate" agents={COORDINATE_AGENTS} />
+
+        {/* ── ADVOCATE Section (coming soon, premium) ── */}
+        <ComingSoonSection label="Advocate" agents={ADVOCATE_AGENTS} premium />
+      </div>
+    </div>
+  );
+}
+
+// ── Coming Soon Agent Data ──
+
+const RESEARCH_AGENTS = [
+  { icon: "📊", name: "Plan Comparison", description: "Compare Medicare Advantage plans side by side" },
+  { icon: "🔎", name: "Provider Search", description: "Find home health aides, specialists, or facilities nearby" },
+  { icon: "📋", name: "Coverage Lookup", description: "Check what your parent's insurance covers" },
+];
+
+const COORDINATE_AGENTS = [
+  { icon: "👨‍👩‍👧‍👦", name: "Family Updates", description: "Auto-send weekly care summaries to family members" },
+  { icon: "📝", name: "Appointment Auto-Prep", description: "Generate prep sheets before each doctor visit" },
+  { icon: "🏠", name: "Care Transition Guide", description: "Step-by-step help when care setting changes" },
+];
+
+const ADVOCATE_AGENTS = [
+  { icon: "⚖️", name: "Claim Dispute Assistant", description: "Draft appeal letters for denied insurance claims" },
+  { icon: "🎯", name: "Benefits Optimizer", description: "Find programs your parent qualifies for but hasn't enrolled in" },
+  { icon: "💊", name: "Medication Cost Finder", description: "Find lower-cost alternatives and assistance programs" },
+];
+
+function ComingSoonSection({
+  label,
+  agents,
+  premium,
+}: {
+  label: string;
+  agents: { icon: string; name: string; description: string }[];
+  premium?: boolean;
+}) {
+  return (
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slate">
+          {label}
+        </div>
+        <div className="px-2 py-0.5 rounded-full bg-sand font-sans text-[10px] font-semibold text-slateMid">
+          Coming Soon
+        </div>
+        {premium && (
+          <div className="px-2 py-0.5 rounded-full bg-amber/15 font-sans text-[10px] font-semibold text-amber">
+            Premium
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {agents.map((agent) => (
+          <div
+            key={agent.name}
+            className="bg-white/60 border border-sandDark rounded-xl px-4 py-3 flex items-center gap-3 opacity-55"
+          >
+            <div className="text-xl shrink-0 grayscale">{agent.icon}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-sans text-sm font-semibold text-slateMid truncate">
+                {agent.name}
+              </div>
+              <div className="font-sans text-[11px] text-slateLight leading-snug">
+                {agent.description}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 // Agent types and activity tracking
 
 // External Intelligence Agents (fetch data from external sources)
-export type ExternalAgentType = "policy_monitor" | "provider_monitor" | "financial_monitor" | "news_monitor";
+export type ExternalAgentType = "drug_recall" | "policy_monitor" | "provider_monitor" | "financial_monitor" | "news_monitor";
 
 // Internal Utility Agents (monitor user's own data - future implementation)
 export type InternalAgentType = "calendar_reminder" | "deadline_tracker" | "task_prioritizer" | "weekly_summary";
@@ -68,6 +68,13 @@ export const EXTERNAL_AGENT_METADATA: Record<
   ExternalAgentType,
   { name: string; description: string; icon: string; schedule: string; dataSource: string }
 > = {
+  drug_recall: {
+    name: "Drug Recall Monitor",
+    description: "Monitors FDA drug recalls and safety alerts cross-referenced against your parent's saved medications",
+    icon: "💊",
+    schedule: "Daily at 3am PT",
+    dataSource: "FDA openFDA API",
+  },
   policy_monitor: {
     name: "Policy Monitor",
     description: "Monitors Medicare, Medicaid, and state policy changes for premium updates, coverage rule changes, and enrollment period reminders",
