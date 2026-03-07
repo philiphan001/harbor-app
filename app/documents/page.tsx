@@ -311,14 +311,20 @@ export default function DocumentsPage() {
           );
         })}
 
-        {/* Upload more button */}
+        {/* Actions */}
         {!isLoading && documents.length > 0 && (
-          <div className="pt-2">
+          <div className="pt-2 flex flex-col gap-3">
             <Link
               href="/upload"
               className="block w-full bg-ocean text-white text-center font-sans text-sm font-semibold py-3 px-4 rounded-xl hover:bg-ocean/90 transition-colors"
             >
               Upload Another Document
+            </Link>
+            <Link
+              href="/export"
+              className="block w-full bg-white border border-sandDark text-ocean text-center font-sans text-sm font-semibold py-3 px-4 rounded-xl hover:bg-sand/30 transition-colors"
+            >
+              Export & Share Care Info
             </Link>
           </div>
         )}

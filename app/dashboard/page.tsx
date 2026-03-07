@@ -277,7 +277,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
-          {/* Row 1: Ask Harbor, Guides, Documents */}
+          {/* Row 1: Ask Harbor, Guides, Medications */}
           <Link href="/help" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-ocean/15 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
@@ -306,35 +306,6 @@ export default function DashboardPage() {
             </div>
           </Link>
 
-          <Link href="/documents" className="block">
-            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-9 h-9 bg-sand rounded-xl flex items-center justify-center text-base mb-2.5">
-                📄
-              </div>
-              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
-                Documents
-              </div>
-              <div className="font-sans text-[10px] text-slateMid">
-                Uploaded files
-              </div>
-            </div>
-          </Link>
-
-          {/* Row 2: Export, Medications, Wallet Card */}
-          <Link href="/export" className="block">
-            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-9 h-9 bg-ocean/10 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
-                📤
-              </div>
-              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
-                Export
-              </div>
-              <div className="font-sans text-[10px] text-slateMid">
-                Share info
-              </div>
-            </div>
-          </Link>
-
           <Link href="/medications" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-sage/15 rounded-xl flex items-center justify-center text-base mb-2.5">
@@ -345,6 +316,21 @@ export default function DashboardPage() {
               </div>
               <div className="font-sans text-[10px] text-slateMid">
                 Rx tracking
+              </div>
+            </div>
+          </Link>
+
+          {/* Row 2: Documents, Wallet Card, AI Agents */}
+          <Link href="/documents" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-sand rounded-xl flex items-center justify-center text-base mb-2.5">
+                📄
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                Documents
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Files & export
               </div>
             </div>
           </Link>
@@ -363,28 +349,33 @@ export default function DashboardPage() {
             </div>
           </Link>
 
+          <Link href="/monitoring" className="block">
+            <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+              <div className="w-9 h-9 bg-ocean/10 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
+                🤖
+              </div>
+              <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
+                AI Agents
+              </div>
+              <div className="font-sans text-[10px] text-slateMid">
+                Monitoring
+              </div>
+            </div>
+          </Link>
+
         </div>
 
-        {/* Quick Actions — only items not linked elsewhere */}
+        {/* Quick Actions */}
         <div style={{ marginTop: "1.25rem" }}>
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
             Quick Actions
           </div>
           <div className="flex flex-col gap-3">
-            <Link href="/crisis?new=1" className="block">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🚨</div>
-                  <div className="font-sans text-sm text-slate">Report a new crisis event</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
             <Link href="/crisis/triage" className="block">
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-coral/10 rounded-lg flex items-center justify-center text-coral text-sm">🏥</div>
-                  <div className="font-sans text-sm text-slate">ER triage sheet &amp; playbooks</div>
+                  <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🚨</div>
+                  <div className="font-sans text-sm text-slate">Crisis & ER tools</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -393,7 +384,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-sage/10 rounded-lg flex items-center justify-center text-sage text-sm">🩺</div>
-                  <div className="font-sans text-sm text-slate">Doctor appointment prep sheet</div>
+                  <div className="font-sans text-sm text-slate">Doctor appointment prep</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -403,33 +394,6 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-amber/15 rounded-lg flex items-center justify-center text-amber text-sm">⚡</div>
                   <div className="font-sans text-sm text-slate">Report a life event</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
-            <Link href="/readiness" className="block">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-ocean/15 rounded-lg flex items-center justify-center text-ocean text-sm">✓</div>
-                  <div className="font-sans text-sm text-slate">{readiness && readiness.overall > 0 ? "Update readiness assessment" : "Check your readiness"}</div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
-            <Link href="/monitoring" className="block">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">🤖</div>
-                  <div className="font-sans text-sm text-slate">Agent monitoring <span className="text-slateLight text-xs">(beta)</span></div>
-                </div>
-                <div className="text-slateLight text-sm">&rarr;</div>
-              </div>
-            </Link>
-            <Link href="/activity" className="block">
-              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-sage/15 rounded-lg flex items-center justify-center text-sage text-sm">🕐</div>
-                  <div className="font-sans text-sm text-slate">Activity history</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
