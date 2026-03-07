@@ -26,7 +26,6 @@ import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
 import DomainStatusTiles from "@/components/dashboard/DomainStatusTiles";
 import NudgeBanner from "@/components/dashboard/NudgeBanner";
-import ConversationHistory from "@/components/dashboard/ConversationHistory";
 import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
@@ -278,17 +277,17 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
-          {/* Row 1: Help, Guides, Documents */}
+          {/* Row 1: Ask Harbor, Guides, Documents */}
           <Link href="/help" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
               <div className="w-9 h-9 bg-ocean/15 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
                 💬
               </div>
               <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
-                Help
+                Ask Harbor
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                Support
+                Chat & help
               </div>
             </div>
           </Link>
@@ -365,9 +364,6 @@ export default function DashboardPage() {
           </Link>
 
         </div>
-
-        {/* Recent Conversations */}
-        <ConversationHistory />
 
         {/* Quick Actions — only items not linked elsewhere */}
         <div style={{ marginTop: "1.25rem" }}>

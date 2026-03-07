@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ConversationHistory from "@/components/dashboard/ConversationHistory";
 
 const HELP_TOPICS = [
   {
@@ -47,16 +48,19 @@ export default function HelpPage() {
             &larr; Dashboard
           </Link>
           <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight mt-3 mb-1">
-            Help & Support
+            Ask Harbor
           </h1>
           <div className="font-sans text-sm text-white/70 leading-relaxed">
-            Learn how to use Harbor or reach out to our team
+            Your conversations, help topics, and support
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
+        {/* Recent Conversations */}
+        <ConversationHistory />
+
         {/* Help Topics */}
         <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
           Help Topics
