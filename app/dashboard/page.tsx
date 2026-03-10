@@ -398,6 +398,15 @@ export default function DashboardPage() {
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
             </Link>
+            <Link href="/export" className="block">
+              <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-ocean/10 rounded-lg flex items-center justify-center text-ocean text-sm">📤</div>
+                  <div className="font-sans text-sm text-slate">Export & share care info</div>
+                </div>
+                <div className="text-slateLight text-sm">&rarr;</div>
+              </div>
+            </Link>
           </div>
         </div>
       </div>

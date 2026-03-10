@@ -189,6 +189,45 @@ Surface relevant content based on parent's current profile. "Based on your paren
 
 ---
 
+## AI Agents — Current & Future
+
+### Active External Agents (Watch tier — built)
+| Agent | What it does | Schedule | Data Source |
+|-------|-------------|----------|-------------|
+| Drug Recall Monitor | FDA recalls cross-referenced against parent's meds | Daily 3am PT | FDA openFDA API |
+| Policy Monitor | Medicare/Medicaid/state policy changes, enrollment reminders | Daily 3am PT | Medicare.gov, Medicaid.gov, State DSHS |
+| Provider Monitor | CMS nursing home ratings, doctor changes, facility inspections | Daily 3am PT | CMS.gov, State Health Dept |
+| Financial Monitor | Spend-down trajectory, Medicaid eligibility, benefit qualifications | Daily 3am PT | Internal + eligibility APIs |
+| News & Alerts Monitor | Elder care news, recalls, safety alerts, state-specific announcements | Every 6 hours | FDA, CDC, State agencies, News APIs |
+
+### Active Internal Agents (built, client-side)
+- **Gap Detector** — Identifies missing critical info (doctor, meds, POA, emergency contacts)
+- **Freshness Monitor** — Flags outdated data (medication list stale 6+ months, etc.)
+- **Conflict Resolver** — Detects contradictory/inconsistent data (duplicate tasks, multiple PCPs)
+
+### Planned Internal Agents (defined in types, not yet built)
+- **Calendar Reminder** — Upcoming appointments and medical visits (daily 8am)
+- **Deadline Tracker** — Tasks with due dates, reminders as deadlines approach (every 6 hours)
+- **Task Prioritizer** — Surfaces most important items by urgency/impact (real-time)
+- **Weekly Summary** — Summary of care activities, tasks completed, progress (Sundays 8am)
+
+### Future: Research Agents (coming soon)
+- **Plan Comparison** — Compare Medicare Advantage plans side by side
+- **Provider Search** — Find home health aides, specialists, or facilities nearby
+- **Coverage Lookup** — Check what parent's insurance covers
+
+### Future: Coordinate Agents (coming soon)
+- **Family Updates** — Auto-send weekly care summaries to family members
+- **Appointment Auto-Prep** — Generate prep sheets before each doctor visit
+- **Care Transition Guide** — Step-by-step help when care setting changes
+
+### Future: Advocate Agents (coming soon, premium tier)
+- **Claim Dispute Assistant** — Draft appeal letters for denied insurance claims
+- **Benefits Optimizer** — Find programs parent qualifies for but hasn't enrolled in
+- **Medication Cost Finder** — Find lower-cost alternatives and assistance programs
+
+---
+
 ## Phase 5 — Collaboration & Scaling
 
 Priority: Multi-caregiver support and distribution beyond single-user.
