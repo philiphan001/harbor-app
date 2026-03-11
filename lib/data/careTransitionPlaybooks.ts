@@ -752,4 +752,153 @@ export const CARE_TRANSITION_PLAYBOOKS: CareTransitionPlaybook[] = [
       { title: "30-day post-discharge check-in", description: "Review recovery progress, medication adherence, and any ongoing concerns with PCP.", dueDaysAfterEvent: 14, priority: "medium", domain: "medical" },
     ],
   },
+
+  // ─── New Diagnosis ──────────────────────────────────────────────────
+  {
+    id: "new_diagnosis",
+    label: "New Diagnosis",
+    icon: "🔬",
+    overview:
+      "This playbook activates when a new medical diagnosis is logged. A new diagnosis can feel overwhelming — there's a sudden flood of information, decisions about treatment, insurance questions, and the emotional weight of uncertainty. This playbook breaks the process into manageable steps so nothing falls through the cracks during a critical time.",
+    trigger: {
+      lifeEventType: "new_diagnosis",
+      description: "New medical diagnosis reported for parent",
+    },
+    steps: [
+      {
+        stepNumber: 1,
+        title: "Understand the Diagnosis",
+        description:
+          "Get a clear, written explanation of the diagnosis from the doctor. Ask about staging or severity, prognosis, what to expect in the near term, and how the condition may progress over time.",
+        whyItMatters:
+          "Understanding the diagnosis is the foundation for every decision that follows — treatment choices, insurance planning, and family communication all depend on accurate information. Misunderstanding severity or prognosis can lead to under- or over-reaction.",
+        questionsToAsk: [
+          "What is the exact diagnosis, including stage or severity?",
+          "What is the typical prognosis for someone with this condition?",
+          "What symptoms should we expect, and what is the expected progression?",
+          "Are there any lifestyle changes that should start immediately?",
+          "Can you recommend reliable resources for learning more about this condition?",
+        ],
+      },
+      {
+        stepNumber: 2,
+        title: "Consider a Second Opinion",
+        description:
+          "For serious or life-altering diagnoses, a second opinion is standard medical practice. Ask the diagnosing physician to transfer records and imaging to another specialist. Most insurance plans cover second opinions.",
+        whyItMatters:
+          "Second opinions can confirm the diagnosis, suggest alternative treatments, or occasionally change the diagnosis entirely. Studies show that second opinions alter the diagnosis or treatment plan in up to 20% of cases for complex conditions.",
+        questionsToAsk: [
+          "Would you recommend a second opinion for this diagnosis?",
+          "Can you refer us to another specialist in this area?",
+          "How do we request a transfer of records and imaging?",
+          "Will our insurance cover a second opinion visit?",
+        ],
+      },
+      {
+        stepNumber: 3,
+        title: "Build the Care Team",
+        description:
+          "Identify which specialists {parent_name} will need, who will coordinate overall care, and how the PCP fits into the treatment plan. Get referrals early — specialist wait times can be weeks to months.",
+        whyItMatters:
+          "A new diagnosis often requires multiple providers working together. Without a clear care team and coordination plan, critical information can fall through the cracks between specialists, leading to conflicting advice or duplicated tests.",
+        questionsToAsk: [
+          "Which specialists should {parent_name} see for this condition?",
+          "Who will be the primary coordinator of {parent_name}'s care?",
+          "How will information be shared between providers?",
+          "Should we schedule all specialist appointments now or in stages?",
+        ],
+      },
+      {
+        stepNumber: 4,
+        title: "Understand Insurance Coverage",
+        description:
+          "Contact {parent_name}'s insurance to understand coverage for the anticipated treatment plan. Check pre-authorization requirements, in-network specialist availability, treatment cost estimates, and Part D formulary coverage for any new medications.",
+        whyItMatters:
+          "Unexpected medical costs are a leading cause of financial stress for families. Understanding coverage before treatment begins allows you to plan financially, appeal denials proactively, and choose in-network providers when possible.",
+        questionsToAsk: [
+          "Does the proposed treatment require pre-authorization?",
+          "Are the recommended specialists in-network?",
+          "What are the estimated out-of-pocket costs for the treatment plan?",
+          "Are new medications covered under the current Part D formulary?",
+          "Is there a case manager we can work with for ongoing care coordination?",
+        ],
+      },
+      {
+        stepNumber: 5,
+        title: "Organize Information",
+        description:
+          "Create a centralized record of the diagnosis details, treatment plan, medication changes, upcoming appointments, and a running questions log. Keep this updated as the care plan evolves.",
+        whyItMatters:
+          "A new diagnosis generates a huge volume of information in a short time. Without organized records, important details get lost, questions go unasked, and caregivers waste time reconstructing information at each appointment.",
+        questionsToAsk: [
+          "Can we get copies of all test results and imaging reports?",
+          "Is there a patient portal where we can access records online?",
+          "What is the best way to communicate questions between appointments?",
+          "Can you provide written treatment plan and medication instructions?",
+        ],
+      },
+      {
+        stepNumber: 6,
+        title: "Communicate with Family",
+        description:
+          "Decide what to share with family members, how to divide caregiving responsibilities, and where to find emotional support resources. Not everyone needs the same level of detail, and coordination prevents burnout.",
+        whyItMatters:
+          "A new diagnosis affects the entire family. Clear communication prevents misunderstandings, ensures responsibilities are shared rather than falling on one person, and creates space for emotional processing alongside practical planning.",
+        questionsToAsk: [
+          "Are there support groups for families dealing with this diagnosis?",
+          "Does the hospital or clinic have a social worker who can help?",
+          "What caregiving demands should we anticipate in the coming months?",
+          "Are there respite care options if the primary caregiver needs a break?",
+        ],
+      },
+    ],
+    insuranceConsiderations: [
+      {
+        item: "Specialist Visits",
+        coverage: "Covered under Medicare Part B or private insurance with applicable copay/coinsurance.",
+        keyDetails: "Some plans require referrals from PCP. Verify specialists are in-network to avoid higher out-of-pocket costs.",
+      },
+      {
+        item: "Pre-Authorization for Treatment",
+        coverage: "Many treatments, procedures, and advanced imaging require pre-authorization.",
+        keyDetails: "Submit pre-auth requests early — denials can delay treatment by weeks. Ask the specialist's office to handle this.",
+      },
+      {
+        item: "Out-of-Network Specialists",
+        coverage: "Coverage varies widely. Some plans have out-of-network benefits; others do not.",
+        keyDetails: "If the best specialist is out-of-network, request a gap exception or single case agreement from the insurance company.",
+      },
+      {
+        item: "Part D Formulary for New Medications",
+        coverage: "New medications must be on the plan's formulary for standard coverage.",
+        keyDetails: "If a prescribed medication is not on formulary, the doctor can submit a formulary exception request. Check for tier placement and prior authorization requirements.",
+      },
+      {
+        item: "Clinical Trials",
+        coverage: "Medicare covers routine costs of qualifying clinical trials. Private plans vary.",
+        keyDetails: "The trial sponsor typically covers the experimental treatment itself. Ask about travel and lodging assistance programs.",
+      },
+    ],
+    timelineBenchmarks: [
+      { timeframe: "Day 1", milestone: "Diagnosis received; initial questions asked; written summary obtained" },
+      { timeframe: "Days 2-3", milestone: "Research condition from reliable sources; begin organizing medical records" },
+      { timeframe: "Week 1", milestone: "Second opinion scheduled if appropriate; insurance coverage verified; specialist referrals initiated" },
+      { timeframe: "Week 2", milestone: "Care team identified; treatment plan discussed; family communication completed" },
+      { timeframe: "Day 30", milestone: "Treatment underway or scheduled; all pre-authorizations obtained; medication regimen stable" },
+      { timeframe: "Day 60", milestone: "First treatment progress assessment; care plan adjusted if needed; support systems in place" },
+      { timeframe: "Day 90", milestone: "Comprehensive review of treatment response; long-term care plan established; caregiver sustainability assessed" },
+    ],
+    taskTemplates: [
+      { title: "Get diagnosis in writing", description: "Request a written summary of the diagnosis including condition name, stage/severity, and initial treatment recommendations.", dueDaysAfterEvent: 0, priority: "high", domain: "medical" },
+      { title: "Research the condition", description: "Review reliable sources (NIH, Mayo Clinic, disease-specific organizations) to understand the diagnosis, treatment options, and what to expect.", dueDaysAfterEvent: 2, priority: "high", domain: "medical" },
+      { title: "Schedule specialist consultation", description: "Get referrals and schedule appointments with recommended specialists. Note: wait times may be long — book early.", dueDaysAfterEvent: 3, priority: "high", domain: "medical" },
+      { title: "Request second opinion", description: "If appropriate for the diagnosis severity, arrange a second opinion with another specialist. Request records transfer.", dueDaysAfterEvent: 5, priority: "medium", domain: "medical" },
+      { title: "Check insurance coverage for treatment plan", description: "Contact insurance to verify coverage for specialists, procedures, and medications. Check pre-authorization requirements.", dueDaysAfterEvent: 3, priority: "high", domain: "financial" },
+      { title: "Update medication list", description: "Record any new medications, dosage changes, or discontinued medications resulting from the diagnosis.", dueDaysAfterEvent: 1, priority: "high", domain: "medical" },
+      { title: "Review and update advance directive", description: "A new diagnosis is an important time to review or create an advance directive reflecting current wishes.", dueDaysAfterEvent: 14, priority: "medium", domain: "legal" },
+      { title: "Inform family members about diagnosis", description: "Share appropriate information with family. Discuss caregiving responsibilities and support plan.", dueDaysAfterEvent: 3, priority: "medium", domain: "social" },
+      { title: "Schedule PCP follow-up", description: "Schedule a follow-up with the primary care physician to ensure coordination between PCP and specialists.", dueDaysAfterEvent: 7, priority: "high", domain: "medical" },
+      { title: "30-day care plan review", description: "Review treatment progress, medication effectiveness, and adjust the care plan as needed. Assess caregiver needs.", dueDaysAfterEvent: 30, priority: "medium", domain: "medical" },
+    ],
+  },
 ];

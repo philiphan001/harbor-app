@@ -34,8 +34,13 @@ export default function ReadinessCard({ readiness, hasCompletedIntake, tasks = [
         <div className={`w-full ${colors.bg} border-2 ${colors.border} rounded-t-[14px] ${tasks.length === 0 ? "rounded-b-[14px]" : ""} px-5 py-4 cursor-pointer hover:scale-[1.01] transition-transform`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className={`w-14 h-14 ${colors.bgSolid} rounded-xl flex items-center justify-center text-white`}>
-                <div className="font-sans text-lg font-bold">{readiness.overall}%</div>
+              <div className={`w-14 h-14 ${colors.bgSolid} rounded-xl flex flex-col items-center justify-center text-white`}>
+                <div className="font-sans text-lg font-bold leading-tight">{readiness.overall}%</div>
+                {readiness.status === "critical" && readiness.criticalGaps.length > 0 && (
+                  <div className="font-sans text-[8px] font-semibold leading-none opacity-90">
+                    {readiness.criticalGaps.length} gap{readiness.criticalGaps.length !== 1 ? "s" : ""}
+                  </div>
+                )}
               </div>
               <div>
                 <div className={`font-sans text-xs font-semibold tracking-[1.5px] uppercase ${colors.text} mb-0.5`}>
@@ -54,13 +59,13 @@ export default function ReadinessCard({ readiness, hasCompletedIntake, tasks = [
               <div className="font-sans text-xs font-semibold text-slateMid mb-2">
                 Critical Gaps:
               </div>
-              {readiness.criticalGaps.slice(0, 2).map((gap, index) => (
+              {(readiness.status === "critical" ? readiness.criticalGaps : readiness.criticalGaps.slice(0, 2)).map((gap, index) => (
                 <div key={index} className="flex items-start gap-2 mb-1">
                   <div className="w-1 h-1 bg-coral rounded-full mt-1.5 shrink-0" />
                   <div className="font-sans text-xs text-slate">{gap}</div>
                 </div>
               ))}
-              {readiness.criticalGaps.length > 2 && (
+              {readiness.status !== "critical" && readiness.criticalGaps.length > 2 && (
                 <div className="font-sans text-xs text-slateMid mt-1">
                   +{readiness.criticalGaps.length - 2} more
                 </div>

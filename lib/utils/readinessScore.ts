@@ -81,6 +81,9 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   { id: "hipaa-authorization", label: "Complete HIPAA authorization", domain: "medical", localWeight: 10, isCritical: false,
     pendingKeywords: ["hipaa", "medical record access"],
     check: (ctx) => ctx.hasCompletedTask("hipaa") || ctx.hasTaskNoteFor("hipaa") || ctx.hasTaskNoteFor("medical record access") },
+  { id: "fall-risk", label: "Assess fall risk and prevention plan", domain: "medical", localWeight: 10, isCritical: false,
+    pendingKeywords: ["fall", "balance", "fall risk", "fall prevention"],
+    check: (ctx) => ctx.hasCompletedTask("fall") || ctx.hasCompletedTask("balance") || ctx.hasTaskNoteFor("fall risk") || ctx.hasTaskNoteFor("fall prevention") },
 
   // Legal domain
   { id: "poa", label: "Record Power of Attorney details", domain: "legal", localWeight: 35, isCritical: true, criticalLabel: "Power of Attorney location/holder",
@@ -126,6 +129,9 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   { id: "emergency-contact", label: "Add emergency contact besides you", domain: "housing", localWeight: 25, isCritical: true, criticalLabel: "Emergency contact besides you",
     pendingKeywords: ["emergency contact"],
     check: (ctx) => ctx.hasTaskNoteFor("emergency contact") || ctx.hasCompletedTask("emergency contact") },
+  { id: "home-safety", label: "Complete home safety assessment", domain: "housing", localWeight: 20, isCritical: false,
+    pendingKeywords: ["home safety", "grab bar", "fall hazard", "safety assessment"],
+    check: (ctx) => ctx.hasCompletedTask("home safety") || ctx.hasCompletedTask("grab bar") || ctx.hasTaskNoteFor("home safety") || ctx.hasTaskNoteFor("safety assessment") },
 
   // Transportation domain
   { id: "transport-plan", label: "Set up transportation plan", domain: "transportation", localWeight: 35, isCritical: false,
@@ -137,6 +143,9 @@ const SCOREABLE_ITEMS: ScoreableItem[] = [
   { id: "medical-transport", label: "Set up medical transport options", domain: "transportation", localWeight: 35, isCritical: true, criticalLabel: "Transportation plan for appointments",
     pendingKeywords: ["senior shuttle", "medical transport"],
     check: (ctx) => ctx.hasTaskNoteFor("senior shuttle") || ctx.hasTaskNoteFor("medical transport") || ctx.hasCompletedTask("senior shuttle") || ctx.hasCompletedTask("medical transport") },
+  { id: "mobility-aids", label: "Document mobility aids and accessibility needs", domain: "transportation", localWeight: 10, isCritical: false,
+    pendingKeywords: ["mobility", "walker", "wheelchair", "assistive device"],
+    check: (ctx) => ctx.hasCompletedTask("mobility") || ctx.hasCompletedTask("walker") || ctx.hasCompletedTask("wheelchair") || ctx.hasTaskNoteFor("mobility") || ctx.hasTaskNoteFor("assistive device") },
 
   // Social domain
   { id: "social-contacts", label: "Add key social contacts", domain: "social", localWeight: 35, isCritical: true, criticalLabel: "Key social contacts for parent",
@@ -288,6 +297,48 @@ export function getReadinessActions(): ReadinessAction[] {
     domain: item.domain,
     points: Math.round(item.localWeight * DOMAIN_WEIGHTS[item.domain]),
     completed: item.check(ctx),
+  }));
+}
+
+/**
+ * Get the single highest-value incomplete action per selected domain.
+ * Used by DomainStatusTiles to show "Do this next" prompts.
+ */
+export function getNextBestActions(): { domain: Domain; action: string; id: string; points: number }[] {
+  const ctx = buildCheckContext();
+  if (!ctx) return [];
+
+  const profile = getParentProfile();
+  const selected: Domain[] = profile?.selectedDomains || (Object.keys(DOMAIN_WEIGHTS) as Domain[]);
+
+  const bestByDomain = new Map<Domain, { id: string; action: string; points: number; localWeight: number }>();
+
+  for (const item of SCOREABLE_ITEMS) {
+    if (!selected.includes(item.domain)) continue;
+    if (item.check(ctx)) continue;
+
+    // Skip items that have a pending task (partial credit = in progress)
+    const hasPending = item.pendingKeywords
+      ? item.pendingKeywords.some((kw) => ctx.hasPendingTask(kw))
+      : false;
+    if (hasPending) continue;
+
+    const existing = bestByDomain.get(item.domain);
+    if (!existing || item.localWeight > existing.localWeight) {
+      bestByDomain.set(item.domain, {
+        id: item.id,
+        action: item.label,
+        points: Math.round(item.localWeight * DOMAIN_WEIGHTS[item.domain]),
+        localWeight: item.localWeight,
+      });
+    }
+  }
+
+  return Array.from(bestByDomain.entries()).map(([domain, entry]) => ({
+    domain,
+    action: entry.action,
+    id: entry.id,
+    points: entry.points,
   }));
 }
 
