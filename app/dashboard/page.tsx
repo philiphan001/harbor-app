@@ -20,7 +20,8 @@ import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/re
 import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
-import { computeVisibleNudges, type VisibleNudge } from "@/lib/utils/nudgeStorage";
+import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNudge } from "@/lib/utils/nudgeStorage";
+import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   const [domainStatuses, setDomainStatuses] = useState<DomainStatus[]>([]);
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
-  const [nudges, setNudges] = useState<VisibleNudge[]>([]);
+  const [nudgeResult, setNudgeResult] = useState<PrioritizedNudgeResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -115,12 +116,19 @@ export default function DashboardPage() {
     const unhandled = activity.recentDetections.filter(d => !d.handled).length;
     setUnhandledDetections(unhandled);
 
-    setNudges(computeVisibleNudges());
+    setNudgeResult(computePrioritizedNudges());
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
+
+    // 15-minute refresh for nudge prioritization
+    const nudgeInterval = setInterval(() => {
+      setNudgeResult(computePrioritizedNudges());
+    }, 15 * 60 * 1000);
+
+    return () => clearInterval(nudgeInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -263,7 +271,17 @@ export default function DashboardPage() {
         </Link>
 
         {/* Calendar-Aware Nudges */}
-        <NudgeBanner nudges={nudges} onUpdate={() => setNudges(computeVisibleNudges())} />
+        <NudgeBanner
+          result={nudgeResult}
+          onDismiss={(id) => {
+            dismissPrioritizedNudge(id);
+            setNudgeResult(computePrioritizedNudges());
+          }}
+          onSnooze={(id, tier) => {
+            snoozePrioritizedNudge(id, tier);
+            setNudgeResult(computePrioritizedNudges());
+          }}
+        />
 
         {/* Readiness Score + Action Items (consolidated) */}
         {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} tasks={tasks} />}

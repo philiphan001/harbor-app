@@ -1,7 +1,14 @@
-import type { NudgeDefinition, NudgeInstance } from "@/lib/types/nudges";
+import type { NudgeDefinition, NudgeInstance, NudgeState, PriorityTier, PrioritizedNudgeResult } from "@/lib/types/nudges";
 import { CALENDAR_NUDGES, generateMedicationRefillNudges } from "@/lib/data/nudgeDefinitions";
 import { getActiveParentId } from "./parentProfile";
 import { getMedicationsNeedingRefill, getEnrichedMedications } from "./medicationHelpers";
+import { getAllDetections } from "./agentStorage";
+import {
+  calendarNudgeToState,
+  detectionToNudge,
+  prioritizeNudges,
+  SNOOZE_BY_TIER,
+} from "./nudgePriority";
 
 const NUDGE_INSTANCES_KEY = "harbor_nudge_instances";
 
@@ -195,4 +202,119 @@ export function computeVisibleNudges(): VisibleNudge[] {
   }
 
   return visible;
+}
+
+// --- Prioritized Nudge State Storage ---
+
+const NUDGE_STATES_KEY = "harbor_nudge_states";
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+
+export function getNudgeStates(): NudgeState[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(NUDGE_STATES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveNudgeStates(states: NudgeState[]): void {
+  if (typeof window === "undefined") return;
+  // Clean up states older than 90 days
+  const cutoff = new Date(Date.now() - NINETY_DAYS_MS).toISOString();
+  const cleaned = states.filter((s) => s.createdAt > cutoff);
+  localStorage.setItem(NUDGE_STATES_KEY, JSON.stringify(cleaned));
+}
+
+export function dismissPrioritizedNudge(nudgeId: string): void {
+  const states = getNudgeStates();
+  const updated = states.map((s) =>
+    s.id === nudgeId ? { ...s, status: "dismissed" as const } : s
+  );
+  saveNudgeStates(updated);
+}
+
+export function snoozePrioritizedNudge(nudgeId: string, tier: PriorityTier): void {
+  const states = getNudgeStates();
+  const config = SNOOZE_BY_TIER[tier];
+
+  const updated = states.map((s) => {
+    if (s.id !== nudgeId) return s;
+
+    const newCount = s.snoozeCount + 1;
+
+    // If max snoozes reached, handle based on tier config
+    if (newCount > config.maxSnoozes) {
+      if (config.afterMax === "dismiss") {
+        return { ...s, status: "dismissed" as const, snoozeCount: newCount };
+      }
+      // "lock" — keep as active (pinned), don't snooze
+      return s;
+    }
+
+    const snoozeUntil = new Date(Date.now() + config.durationMs).toISOString();
+    return {
+      ...s,
+      status: "snoozed" as const,
+      snoozeUntil,
+      snoozeCount: newCount,
+    };
+  });
+
+  saveNudgeStates(updated);
+}
+
+export function computePrioritizedNudges(): PrioritizedNudgeResult {
+  const parentId = getActiveParentId() || "";
+  const now = new Date();
+
+  // 1. Generate calendar NudgeState[]
+  const allDefinitions: NudgeDefinition[] = [...CALENDAR_NUDGES];
+  try {
+    const meds = getEnrichedMedications();
+    const medNudges = generateMedicationRefillNudges(
+      meds.map((m) => ({
+        name: m.name,
+        refillsRemaining: m.refillsRemaining,
+        expirationDate: m.expirationDate,
+      }))
+    );
+    allDefinitions.push(...medNudges);
+  } catch {
+    // Medication data may not be available
+  }
+
+  const calendarNudges: NudgeState[] = allDefinitions
+    .filter((def) => isInActiveWindow(def))
+    .map((def) => calendarNudgeToState(def, parentId, now));
+
+  // 2. Generate agent NudgeState[] from unhandled detections
+  const agentNudges: NudgeState[] = [];
+  try {
+    const detections = getAllDetections();
+    const unhandled = detections.filter((d) => !d.handled);
+    for (const det of unhandled) {
+      agentNudges.push(detectionToNudge(det, parentId));
+    }
+  } catch {
+    // Agent data may not be available
+  }
+
+  // 3. Load existing NudgeState[] from storage
+  const existingStates = getNudgeStates();
+
+  // 4. Prioritize
+  const result = prioritizeNudges(calendarNudges, agentNudges, existingStates, now);
+
+  // 5. Save updated states (all nudges, not just display)
+  const allStates = [...result.display, ...result.queued];
+  // Also preserve dismissed/snoozed/expired states from existing
+  const resultIds = new Set(allStates.map((s) => s.id));
+  const preservedStates = existingStates.filter(
+    (s) => !resultIds.has(s.id) && (s.status === "dismissed" || s.status === "snoozed" || s.status === "expired")
+  );
+  saveNudgeStates([...allStates, ...preservedStates]);
+
+  return result;
 }
