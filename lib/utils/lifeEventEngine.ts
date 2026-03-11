@@ -4,6 +4,7 @@ import { saveLifeEvent } from "./lifeEventStorage";
 import { getTasks, addTask } from "./taskStorage";
 import { getActiveParentId } from "./parentProfile";
 import type { Task } from "@/lib/ai/claude";
+import { getPlaybooksForLifeEvent, activatePlaybook } from "./careTransitionEngine";
 
 const SEVERITY_ORDER: Record<LifeEventSeverity, number> = {
   mild: 0,
@@ -65,7 +66,7 @@ export function reportLifeEvent(
   type: LifeEventType,
   severity: LifeEventSeverity,
   notes?: string
-): { event: LifeEvent; tasks: Task[] } {
+): { event: LifeEvent; tasks: Task[]; playbooksActivated?: string[] } {
   const parentId = getActiveParentId() || "unknown";
   const generatedTasks = generateTasksForEvent(type, severity);
 
@@ -89,5 +90,15 @@ export function reportLifeEvent(
 
   saveLifeEvent(event);
 
-  return { event, tasks: generatedTasks };
+  // Activate matching care transition playbooks
+  const matchingPlaybooks = getPlaybooksForLifeEvent(type);
+  const playbooksActivated: string[] = [];
+  for (const playbook of matchingPlaybooks) {
+    // Hospital → SNF requires discharge destination; skip auto-activation
+    if (playbook.id === "hospital_to_snf") continue;
+    const result = activatePlaybook(playbook.id, "life_event", event.id);
+    if (!result.alreadyActivated) playbooksActivated.push(playbook.id);
+  }
+
+  return { event, tasks: generatedTasks, playbooksActivated };
 }

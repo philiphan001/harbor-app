@@ -12,6 +12,7 @@ import { getAllTaskData } from "./taskData";
 import { getSituationContextFromProfile } from "./situationContext";
 import { getAllDetections, saveDetection, saveAgentRun } from "./agentStorage";
 import { renderTemplate } from "./templateRenderer";
+import { getPlaybooksForMilestone, activatePlaybook } from "./careTransitionEngine";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -304,6 +305,12 @@ export function generateMilestoneDetections(
       handled: false,
       dataSource: "Internal calculations",
     });
+
+    // Activate matching care transition playbooks (idempotent)
+    const matchingPlaybooks = getPlaybooksForMilestone(milestone.milestoneId);
+    for (const playbook of matchingPlaybooks) {
+      activatePlaybook(playbook.id, "milestone", milestone.milestoneId);
+    }
   }
 
   return detections;
