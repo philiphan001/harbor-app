@@ -3,12 +3,18 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
+import { getEnrichedMedications } from "@/lib/utils/medicationHelpers";
+import { getRecentLifeEvents } from "@/lib/utils/lifeEventStorage";
 import {
   gatherExportData,
   exportAsText,
   type ExportData,
   type ExportSection,
 } from "@/lib/utils/exportCareSummary";
+import {
+  generateContextualQuestions,
+  type SuggestedQuestion,
+} from "@/lib/utils/appointmentQuestions";
 
 const APPT_SECTIONS: ExportSection[] = [
   "patient-info",
@@ -32,6 +38,7 @@ export default function AppointmentPrepPage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [questions, setQuestions] = useState<string[]>(DEFAULT_QUESTIONS);
   const [newQuestion, setNewQuestion] = useState("");
+  const [suggestedQuestions, setSuggestedQuestions] = useState<SuggestedQuestion[]>([]);
 
   useEffect(() => {
     const profile = getParentProfile();
@@ -39,6 +46,18 @@ export default function AppointmentPrepPage() {
 
     const exportData = gatherExportData();
     setData(exportData);
+
+    // Generate contextual questions
+    try {
+      const meds = getEnrichedMedications();
+      const conditions = exportData?.conditions || [];
+      const recentEvents = getRecentLifeEvents(60);
+      const eventTypes = recentEvents.map((e) => e.type);
+      const suggested = generateContextualQuestions(meds, conditions, profile, eventTypes);
+      setSuggestedQuestions(suggested);
+    } catch {
+      // Data may not be available
+    }
   }, []);
 
   const buildFullText = () => {
@@ -199,6 +218,34 @@ export default function AppointmentPrepPage() {
             <div className="font-sans text-sm text-slateMid">Insurance not recorded</div>
           )}
         </div>
+
+        {/* Suggested Questions */}
+        {suggestedQuestions.filter((sq) => !questions.includes(sq.question)).length > 0 && (
+          <div className="bg-ocean/5 border border-ocean/20 rounded-[14px] px-5 py-4">
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-ocean mb-3">
+              Suggested for {parentName || "Your Parent"}
+            </div>
+            <ul className="flex flex-col gap-2">
+              {suggestedQuestions
+                .filter((sq) => !questions.includes(sq.question))
+                .map((sq) => (
+                  <li key={sq.id} className="flex items-start gap-2">
+                    <span className="flex-1 font-sans text-sm text-slate">
+                      <span className="text-[10px] font-semibold text-ocean/60 uppercase tracking-wide">{sq.category}</span>
+                      <br />
+                      {sq.question}
+                    </span>
+                    <button
+                      onClick={() => setQuestions((prev) => [...prev, sq.question])}
+                      className="flex-shrink-0 text-ocean font-sans text-xs font-semibold px-2.5 py-1 rounded-full bg-ocean/10 hover:bg-ocean/20 transition-colors mt-1"
+                    >
+                      + Add
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
 
         {/* Questions to Ask */}
         <div className="bg-white border-2 border-sage rounded-[14px] px-5 py-4">

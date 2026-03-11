@@ -608,4 +608,148 @@ export const CARE_TRANSITION_PLAYBOOKS: CareTransitionPlaybook[] = [
       { title: "90-day comprehensive assessment", description: "Full assessment of adjustment, care quality, weight/hydration, behavioral changes. Decide if the placement is the right long-term fit.", dueDaysAfterEvent: 160, priority: "high", domain: "medical" },
     ],
   },
+
+  // ─── Discharge Navigator ──────────────────────────────────────────
+  {
+    id: "discharge_navigator",
+    label: "Discharge Navigator",
+    icon: "🏥",
+    overview:
+      "This playbook activates when discharge is happening in 24-48 hours. It provides a focused, time-pressured checklist for ensuring nothing falls through the cracks during the transition from hospital to home. Unlike the broader Hospital → Home playbook, this is a rapid-action guide for the final discharge window.",
+    trigger: {
+      lifeEventType: "hospitalization",
+      description: "Discharge is happening within 24-48 hours",
+    },
+    steps: [
+      {
+        stepNumber: 1,
+        title: "Understand Discharge Instructions",
+        description:
+          "Get a written discharge summary from the care team. Review the diagnosis, treatment provided, and any activity restrictions. Ask questions about anything unclear before leaving the hospital.",
+        whyItMatters:
+          "Studies show that patients who don't understand their discharge instructions are 30% more likely to be readmitted within 30 days. Getting clarity now prevents confusion and dangerous mistakes at home.",
+        questionsToAsk: [
+          "Can I get a printed copy of the discharge summary?",
+          "What activity restrictions does {parent_name} have?",
+          "What symptoms should trigger a return to the ER?",
+          "When can {parent_name} resume normal activities (bathing, driving, stairs)?",
+        ],
+      },
+      {
+        stepNumber: 2,
+        title: "Medication Reconciliation",
+        description:
+          "Compare the discharge medication list with {parent_name}'s pre-admission medications. Identify any new medications, stopped medications, or dosage changes. Confirm which old medications to resume and which to stop.",
+        whyItMatters:
+          "Medication errors during transitions cause 66% of adverse drug events after hospitalization. Even a single missed change — like continuing a blood thinner that was stopped — can be dangerous.",
+        questionsToAsk: [
+          "Which medications are new?",
+          "Which pre-admission medications should be stopped?",
+          "Were any dosages changed?",
+          "Are any of these medications temporary? When should they stop?",
+          "Can these prescriptions be sent to our regular pharmacy?",
+        ],
+      },
+      {
+        stepNumber: 3,
+        title: "Schedule Follow-Up Appointments",
+        description:
+          "Schedule a follow-up with {parent_name}'s primary care physician within 7 days. Schedule any specialist follow-ups as ordered. Get the appointment dates in writing before leaving the hospital.",
+        whyItMatters:
+          "A PCP follow-up within 7 days of discharge reduces 30-day readmission by 20%. Scheduling before leaving the hospital prevents the appointment from falling through the cracks.",
+        questionsToAsk: [
+          "Who should {parent_name} follow up with?",
+          "How soon should the PCP visit happen?",
+          "Are any specialist appointments needed?",
+          "What tests or labs are needed before the follow-up?",
+        ],
+      },
+      {
+        stepNumber: 4,
+        title: "Arrange Home Support",
+        description:
+          "Determine if {parent_name} needs home health services (skilled nursing, physical therapy, occupational therapy). Get the referral from the hospital and confirm the first visit date and agency contact information.",
+        whyItMatters:
+          "Patients discharged without adequate home support are at high risk for falls, medication errors, and deterioration. Home health is often covered by Medicare for a limited period after hospitalization.",
+        questionsToAsk: [
+          "Does {parent_name} qualify for home health services?",
+          "Has a referral been submitted?",
+          "Which agency will provide services?",
+          "When will the first home visit occur?",
+          "What is the agency's after-hours phone number?",
+        ],
+      },
+      {
+        stepNumber: 5,
+        title: "Prepare the Home",
+        description:
+          "Do a safety check of the home before {parent_name} arrives. Ensure any ordered durable medical equipment (walker, hospital bed, commode) has been delivered. Stock necessary supplies (medications, wound care, nutritional items).",
+        whyItMatters:
+          "The first 48 hours at home are the highest-risk period. A prepared home environment prevents falls, ensures medications are available, and reduces caregiver stress.",
+        questionsToAsk: [
+          "What equipment does {parent_name} need at home?",
+          "Has the DME order been placed? When will it be delivered?",
+          "Are there any home modifications needed (grab bars, ramp)?",
+          "What supplies should we have on hand?",
+        ],
+      },
+      {
+        stepNumber: 6,
+        title: "Know the Warning Signs",
+        description:
+          "Get a clear list of red flags that should trigger a call to the doctor or a return to the emergency department. Post this list in a visible location at home.",
+        whyItMatters:
+          "Knowing when to seek help vs. when to wait prevents both unnecessary ER visits and dangerous delays. Caregivers who have a clear action plan feel more confident and catch problems earlier.",
+        questionsToAsk: [
+          "What specific symptoms mean we should call the doctor?",
+          "What symptoms mean we should call 911 or go to the ER?",
+          "Is there a nurse line we can call with questions?",
+          "What is normal recovery vs. a sign of a problem?",
+        ],
+      },
+    ],
+    insuranceConsiderations: [
+      {
+        item: "Home Health Services",
+        coverage: "Medicare covers skilled home health if homebound and ordered by a physician.",
+        keyDetails: "Must be from a Medicare-certified agency. No copay for covered services.",
+      },
+      {
+        item: "Durable Medical Equipment (DME)",
+        coverage: "Medicare Part B covers 80% of DME (walker, hospital bed, oxygen).",
+        keyDetails: "Must be from a Medicare-approved supplier. 20% coinsurance applies.",
+      },
+      {
+        item: "Follow-Up Appointments",
+        coverage: "Standard office visit copays apply.",
+        keyDetails: "Some Medicare Advantage plans waive copays for post-discharge visits.",
+      },
+      {
+        item: "Prescription Medications",
+        coverage: "Covered under Part D or Medicare Advantage plan formulary.",
+        keyDetails: "New discharge medications may need prior authorization. Ask the hospital to check formulary coverage before discharge.",
+      },
+    ],
+    timelineBenchmarks: [
+      { timeframe: "24 hours before discharge", milestone: "Discharge instructions reviewed, medications reconciled, home support arranged" },
+      { timeframe: "Day of discharge", milestone: "Equipment delivered, prescriptions filled, home safety checked" },
+      { timeframe: "First 48 hours home", milestone: "First home health visit, medication regimen established, caregiver comfortable" },
+      { timeframe: "Day 3-5", milestone: "Settling into routine, monitoring for complications" },
+      { timeframe: "Day 7", milestone: "PCP follow-up visit completed" },
+      { timeframe: "Day 14", milestone: "Specialist follow-ups as ordered, initial recovery assessment" },
+      { timeframe: "Day 30", milestone: "Full recovery assessment, readmission risk window closing" },
+    ],
+    taskTemplates: [
+      { title: "Get written discharge summary", description: "Obtain printed discharge instructions including diagnosis, medications, activity restrictions, and warning signs.", dueDaysAfterEvent: -1, priority: "high", domain: "medical" },
+      { title: "Reconcile discharge medications with current list", description: "Compare discharge med list to pre-admission medications. Note new, stopped, and changed medications.", dueDaysAfterEvent: 0, priority: "high", domain: "medical" },
+      { title: "Fill new prescriptions", description: "Get all new or changed prescriptions filled before leaving the hospital or immediately after arriving home.", dueDaysAfterEvent: 0, priority: "high", domain: "medical" },
+      { title: "Schedule PCP follow-up within 7 days", description: "Call PCP to schedule a post-discharge visit. Bring discharge summary and updated medication list.", dueDaysAfterEvent: 0, priority: "high", domain: "medical" },
+      { title: "Schedule specialist follow-ups", description: "Schedule any specialist appointments ordered at discharge.", dueDaysAfterEvent: 1, priority: "high", domain: "medical" },
+      { title: "Confirm home health first visit", description: "Call the home health agency to confirm the date and time of the first visit.", dueDaysAfterEvent: 1, priority: "high", domain: "medical" },
+      { title: "Home safety check", description: "Walk through the home and remove tripping hazards, install grab bars if needed, ensure adequate lighting, and set up a recovery area.", dueDaysAfterEvent: 0, priority: "high", domain: "housing" },
+      { title: "Confirm DME delivery", description: "Verify that all ordered durable medical equipment has been delivered and set up correctly.", dueDaysAfterEvent: 0, priority: "high", domain: "housing" },
+      { title: "Post warning signs list", description: "Print and post the list of red flag symptoms in a visible location. Include doctor and ER phone numbers.", dueDaysAfterEvent: 0, priority: "medium", domain: "medical" },
+      { title: "30-day post-discharge check-in", description: "Review recovery progress, medication adherence, and any ongoing concerns with PCP.", dueDaysAfterEvent: 14, priority: "medium", domain: "medical" },
+    ],
+  },
 ];

@@ -5,7 +5,8 @@ export type CareTransitionType =
   | "hospital_to_home"
   | "hospital_to_snf"
   | "home_to_assisted_living"
-  | "al_to_memory_care";
+  | "al_to_memory_care"
+  | "discharge_navigator";
 
 export interface CareTransitionStep {
   stepNumber: number;
