@@ -6,6 +6,7 @@ import { getBriefingsForParent, saveBriefing } from "@/lib/utils/briefingStorage
 import { formatWeekOf } from "@/lib/utils/dateUtils";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllDetections } from "@/lib/utils/agentStorage";
+import { computeProgressSummary } from "@/lib/utils/progressSummary";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 
 export default function BriefingPage() {
@@ -13,9 +14,11 @@ export default function BriefingPage() {
   const [selectedBriefing, setSelectedBriefing] = useState<WeeklyBriefing | null>(null);
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState<ReturnType<typeof computeProgressSummary> | null>(null);
 
   useEffect(() => {
     loadBriefings();
+    setProgress(computeProgressSummary());
   }, []);
 
   const loadBriefings = () => {
@@ -187,6 +190,40 @@ export default function BriefingPage() {
                     Signals
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Your Progress */}
+        {progress && (progress.tasksCompleted > 0 || progress.documentsCaptured > 0 || progress.detectionsSurfaced > 0) && (
+          <div className="bg-white rounded-xl border border-sandDark px-6 py-6 mb-6">
+            <h2 className="font-sans text-base font-semibold text-slate mb-4">Your Progress This Week</h2>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <div className="font-sans text-2xl font-bold text-sage">{progress.tasksCompleted}</div>
+                <div className="font-sans text-xs text-slateMid">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="font-sans text-2xl font-bold text-ocean">{progress.documentsCaptured}</div>
+                <div className="font-sans text-xs text-slateMid">Docs Captured</div>
+              </div>
+              <div className="text-center">
+                <div className="font-sans text-2xl font-bold text-amber">{progress.detectionsSurfaced}</div>
+                <div className="font-sans text-xs text-slateMid">Alerts</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-sand">
+              <div className="font-sans text-sm text-slate">
+                Readiness: <span className="font-semibold">{progress.readinessScore}%</span>
+                {progress.readinessDelta !== null && progress.readinessDelta !== 0 && (
+                  <span className={progress.readinessDelta > 0 ? "text-sage ml-1" : "text-coral ml-1"}>
+                    {progress.readinessDelta > 0 ? "+" : ""}{progress.readinessDelta}
+                  </span>
+                )}
+              </div>
+              <div className="font-sans text-xs text-slateMid">
+                {progress.tasksPending} pending
               </div>
             </div>
           </div>

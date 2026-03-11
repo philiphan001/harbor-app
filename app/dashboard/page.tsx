@@ -21,6 +21,7 @@ import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
 import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNudge } from "@/lib/utils/nudgeStorage";
+import { computeValueStats, type ValueStats } from "@/lib/utils/valueTracking";
 import { runBenefitEligibilityScan } from "@/lib/utils/benefitEligibility";
 import { runLifecycleMilestoneScan } from "@/lib/utils/lifecycleMilestones";
 import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
   const [nudgeResult, setNudgeResult] = useState<PrioritizedNudgeResult | null>(null);
+  const [valueStats, setValueStats] = useState<ValueStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -139,6 +141,7 @@ export default function DashboardPage() {
     }
 
     setNudgeResult(computePrioritizedNudges());
+    setValueStats(computeValueStats());
     setIsLoading(false);
   };
 
@@ -404,6 +407,41 @@ export default function DashboardPage() {
           </Link>
 
         </div>
+
+        {/* Harbor Working for You */}
+        {valueStats && (valueStats.totalDetections > 0 || valueStats.tasksCompleted > 0 || valueStats.documentsCaptured > 0) && (
+          <div className="mb-5">
+            <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
+              Harbor Working for You
+            </div>
+            <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-ocean">{valueStats.totalDetections}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Alerts Surfaced</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-sage">{valueStats.tasksCompleted}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Tasks Done</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-coral">{valueStats.documentsCaptured}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Docs Captured</div>
+                </div>
+              </div>
+              {valueStats.estimatedSavings > 0 && (
+                <div className="mt-3 pt-3 border-t border-sand text-center">
+                  <div className="font-sans text-sm text-sage font-semibold">
+                    ~${valueStats.estimatedSavings.toLocaleString()} potential savings identified
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid">
+                    From {valueStats.totalDetections > 0 ? "benefit eligibility matches" : "program matching"}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div style={{ marginTop: "1.25rem" }}>

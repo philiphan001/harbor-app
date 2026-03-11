@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getAgentActivity, markDetectionHandled as markLocalHandled } from "@/lib/utils/agentStorage";
+import { getAgentActivity, markDetectionHandled as markLocalHandled, detectionToTask, markDetectionConvertedToTask } from "@/lib/utils/agentStorage";
+import { addTask } from "@/lib/utils/taskStorage";
 import { AgentActivity, AgentDetection, AGENT_METADATA, EXTERNAL_AGENT_METADATA, type ExternalAgentType } from "@/lib/types/agents";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import type { ScoredSignalResult } from "@/lib/types/taskCapture";
@@ -347,6 +348,7 @@ function DetectionCard({
   const [scoring, setScoring] = useState(false);
   const [scored, setScored] = useState<ScoredSignalResult | null>(null);
   const [showScoreDetails, setShowScoreDetails] = useState(false);
+  const [converted, setConverted] = useState(detection.convertedToTask ?? false);
 
   const metadata = AGENT_METADATA[detection.agentType];
   const detectedDate = new Date(detection.detectedAt);
@@ -414,10 +416,21 @@ function DetectionCard({
           <div className="font-sans text-xs text-slateMid leading-relaxed mb-2">
             {detection.description}
           </div>
+          {detection.matchReason && (
+            <div className="font-sans text-[11px] text-ocean italic leading-relaxed mb-2">
+              Why this matters: {detection.matchReason}
+            </div>
+          )}
           <div className="flex items-center gap-3 font-sans text-[10px] text-slateLight mb-2">
             <span>{metadata.name}</span>
             <span>•</span>
             <span>{getTimeAgo(detectedDate)}</span>
+            {detection.sourcePublicationDate && (
+              <>
+                <span>•</span>
+                <span>Published: {new Date(detection.sourcePublicationDate).toLocaleDateString()}</span>
+              </>
+            )}
             {detection.dueDate && (
               <>
                 <span>•</span>
@@ -517,10 +530,23 @@ function DetectionCard({
           {scoring ? "Scoring..." : scored ? "Re-score" : "Score Relevance"}
         </button>
 
-        {detection.actionable && !detection.convertedToTask && (
-          <button className="flex-1 bg-ocean text-white rounded-lg px-3 py-2 font-sans text-xs font-semibold hover:bg-oceanMid transition-colors">
+        {detection.actionable && !converted && (
+          <button
+            onClick={() => {
+              const task = detectionToTask(detection);
+              addTask(task);
+              markDetectionConvertedToTask(detection.id);
+              setConverted(true);
+            }}
+            className="flex-1 bg-ocean text-white rounded-lg px-3 py-2 font-sans text-xs font-semibold hover:bg-oceanMid transition-colors"
+          >
             Create Task
           </button>
+        )}
+        {detection.actionable && converted && (
+          <div className="flex-1 bg-sage/10 text-sage rounded-lg px-3 py-2 font-sans text-xs font-semibold text-center">
+            Task Created ✓
+          </div>
         )}
       </div>
     </div>

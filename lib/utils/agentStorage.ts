@@ -2,6 +2,7 @@
 import { AgentRun, AgentDetection, AgentActivity, AgentType, AGENT_METADATA } from "@/lib/types/agents";
 import { getParentProfile } from "./parentProfile";
 import { getTasks } from "./taskStorage";
+import type { Task } from "@/lib/ai/claude";
 
 const AGENT_RUNS_KEY = "harbor_agent_runs";
 const AGENT_DETECTIONS_KEY = "harbor_agent_detections";
@@ -152,6 +153,41 @@ export function getAgentActivity(): AgentActivity {
       lastRunTimes,
     },
   };
+}
+
+// Convert a detection into a Task
+export function detectionToTask(detection: AgentDetection): Task {
+  const priorityMap: Record<string, "high" | "medium" | "low"> = {
+    high: "high",
+    medium: "medium",
+    low: "low",
+  };
+
+  return {
+    title: detection.title,
+    priority: priorityMap[detection.relevanceScore] || "medium",
+    domain: detection.domain === "caregiving" ? "medical" : detection.domain,
+    why: detection.description,
+    suggestedActions: detection.matchReason
+      ? [`Review: ${detection.matchReason}`]
+      : ["Review this alert and take appropriate action"],
+    source: "chat" as const,
+  };
+}
+
+// Mark a detection as converted to a task
+export function markDetectionConvertedToTask(detectionId: string): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    const detections = getAllDetections();
+    const updated = detections.map((d) =>
+      d.id === detectionId ? { ...d, convertedToTask: true } : d
+    );
+    localStorage.setItem(AGENT_DETECTIONS_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error("Error marking detection as converted:", error);
+  }
 }
 
 // Clear all agent data

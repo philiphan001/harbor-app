@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Task } from "@/lib/ai/claude";
 import { getTasks, completeTask, getCompletedTasks, clearTasksForActiveParent } from "@/lib/utils/taskStorage";
 import { getParentProfile } from "@/lib/utils/parentProfile";
+import { reprioritizeTasks } from "@/lib/utils/taskPrioritizer";
+import { getAllDetections } from "@/lib/utils/agentStorage";
 import TaskDetail from "@/components/TaskDetail";
 import { DOMAIN_COLORS, DOMAIN_ICONS, type ExtendedDomain } from "@/lib/constants/domains";
 
@@ -23,7 +25,9 @@ export default function TasksPage() {
   });
 
   const loadTasks = () => {
-    const storedTasks = getTasks();
+    const rawTasks = getTasks();
+    const detections = getAllDetections();
+    const storedTasks = reprioritizeTasks(rawTasks, { detections });
     const completed = getCompletedTasks();
     setTasks(storedTasks);
     setCompletedTasks(completed);

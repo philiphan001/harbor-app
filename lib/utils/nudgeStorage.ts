@@ -9,6 +9,7 @@ import {
   prioritizeNudges,
   SNOOZE_BY_TIER,
 } from "./nudgePriority";
+import { scanTaskDeadlines, deadlineNudgesToNudgeStates } from "./deadlineTracker";
 
 const NUDGE_INSTANCES_KEY = "harbor_nudge_instances";
 
@@ -299,6 +300,15 @@ export function computePrioritizedNudges(): PrioritizedNudgeResult {
     }
   } catch {
     // Agent data may not be available
+  }
+
+  // 2b. Merge deadline nudges into agent nudges
+  try {
+    const deadlines = scanTaskDeadlines(now);
+    const deadlineStates = deadlineNudgesToNudgeStates(deadlines, parentId);
+    agentNudges.push(...deadlineStates);
+  } catch {
+    // Deadline data may not be available
   }
 
   // 3. Load existing NudgeState[] from storage

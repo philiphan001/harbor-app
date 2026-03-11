@@ -36,6 +36,8 @@ export interface AgentDetection {
   convertedToTask?: boolean; // Auto-created task
   sourceUrl?: string; // Link to source data
   dataSource?: string; // Where it came from
+  sourcePublicationDate?: string; // ISO date — when the source material was published
+  matchReason?: string; // Why this detection matched this parent's profile
 }
 
 export interface AgentContext {
