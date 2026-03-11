@@ -137,3 +137,39 @@ export function generateMedicationRefillNudges(
 
   return nudges;
 }
+
+/**
+ * Generate polypharmacy warning nudges based on medication count.
+ * ≥8 meds → warning (fall risk), 5-7 → notice (consider simplifying), <5 → none.
+ */
+export function generatePolypharmacyNudge(medCount: number): NudgeDefinition[] {
+  if (medCount >= 8) {
+    return [
+      {
+        id: "polypharmacy_warning",
+        type: "polypharmacy_warning",
+        title: "Polypharmacy Warning",
+        description: `${medCount} medications \u2014 patients on 8+ have 2.5x fall risk. Ask about simplifying.`,
+        icon: "\u26a0\ufe0f",
+        domain: "medical",
+        recurrence: "once",
+        leadTimeDays: 0,
+      },
+    ];
+  }
+  if (medCount >= 5) {
+    return [
+      {
+        id: "polypharmacy_warning",
+        type: "polypharmacy_warning",
+        title: "Medication Review Suggested",
+        description: `${medCount} medications \u2014 consider asking about simplifying the regimen.`,
+        icon: "\ud83d\udc8a",
+        domain: "medical",
+        recurrence: "once",
+        leadTimeDays: 0,
+      },
+    ];
+  }
+  return [];
+}

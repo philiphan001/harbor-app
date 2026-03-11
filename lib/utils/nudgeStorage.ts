@@ -1,5 +1,5 @@
 import type { NudgeDefinition, NudgeInstance, NudgeState, PriorityTier, PrioritizedNudgeResult } from "@/lib/types/nudges";
-import { CALENDAR_NUDGES, generateMedicationRefillNudges } from "@/lib/data/nudgeDefinitions";
+import { CALENDAR_NUDGES, generateMedicationRefillNudges, generatePolypharmacyNudge } from "@/lib/data/nudgeDefinitions";
 import { getActiveParentId } from "./parentProfile";
 import { getMedicationsNeedingRefill, getEnrichedMedications } from "./medicationHelpers";
 import { getAllDetections } from "./agentStorage";
@@ -178,6 +178,7 @@ export function computeVisibleNudges(): VisibleNudge[] {
       }))
     );
     allDefinitions.push(...medNudges);
+    allDefinitions.push(...generatePolypharmacyNudge(meds.length));
   } catch {
     // Medication data may not be available
   }
@@ -282,6 +283,7 @@ export function computePrioritizedNudges(): PrioritizedNudgeResult {
       }))
     );
     allDefinitions.push(...medNudges);
+    allDefinitions.push(...generatePolypharmacyNudge(meds.length));
   } catch {
     // Medication data may not be available
   }

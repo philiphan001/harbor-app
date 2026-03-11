@@ -9,6 +9,7 @@ export type NudgeType =
   | "annual_wellness_visit"
   | "flu_shot"
   | "tax_deadline"
+  | "polypharmacy_warning"
   | "custom";
 
 export interface NudgeDefinition {
@@ -63,6 +64,7 @@ export type NudgeSourceType =
   | "spend_down_threshold"
   | "benefit_opportunity"
   | "lifecycle_milestone"
+  | "polypharmacy_warning"
   | "custom";
 
 export type NudgeStatus = "active" | "snoozed" | "dismissed" | "expired" | "queued";

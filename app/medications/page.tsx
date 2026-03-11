@@ -77,6 +77,24 @@ export default function MedicationsPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        {/* Polypharmacy Warning */}
+        {medications.length >= 8 && (
+          <div className="bg-coral/10 border border-coral/30 rounded-[14px] px-5 py-3.5 flex items-start gap-3">
+            <span className="text-lg flex-shrink-0">{"\u26a0\ufe0f"}</span>
+            <div className="font-sans text-sm text-slate">
+              Your parent takes <span className="font-semibold">{medications.length}</span> medications. Patients on 8+ have <span className="font-semibold">2.5x fall risk</span>. Consider discussing simplification with their doctor.
+            </div>
+          </div>
+        )}
+        {medications.length >= 5 && medications.length < 8 && (
+          <div className="bg-amber/10 border border-amber/30 rounded-[14px] px-5 py-3.5 flex items-start gap-3">
+            <span className="text-lg flex-shrink-0">{"\ud83d\udc8a"}</span>
+            <div className="font-sans text-sm text-slate">
+              Your parent takes <span className="font-semibold">{medications.length}</span> medications. Consider discussing simplification with their doctor.
+            </div>
+          </div>
+        )}
+
         {/* Sort + Actions */}
         <div className="flex items-center justify-between">
           <div className="flex gap-2">

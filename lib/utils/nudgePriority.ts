@@ -26,6 +26,7 @@ export const NUDGE_TYPE_TIER: Record<NudgeSourceType, PriorityTier> = {
   spend_down_threshold: "P2",
   benefit_opportunity: "P2",
   lifecycle_milestone: "P2",
+  polypharmacy_warning: "P2",
   flu_shot: "P3",
   tax_deadline: "P3",
   drivers_license_renewal: "P3",
@@ -199,6 +200,7 @@ function nudgeTypeToSourceType(type: string): NudgeSourceType {
     annual_wellness_visit: "annual_wellness_visit",
     flu_shot: "flu_shot",
     tax_deadline: "tax_deadline",
+    polypharmacy_warning: "polypharmacy_warning",
     custom: "custom",
   };
   return directMap[type] || "custom";

@@ -24,6 +24,7 @@ export interface ParentProfile {
   livingArrangement?: "independent" | "with_family" | "assisted_living" | "nursing_home" | "other";
   phoneNumber?: string;
   email?: string;
+  whatMattersMost?: string;
 }
 
 // ==================== Medical Domain ====================
@@ -318,7 +319,7 @@ LEGAL:
 CAREGIVING:
 - Current Support: ${caregiving.currentSupport.length} services
 - Burnout Risk: ${caregiving.burnoutRisk}
-- Gaps: ${caregiving.gaps.length}`;
+- Gaps: ${caregiving.gaps.length}${profile.whatMattersMost ? `\n\nGOALS & VALUES: ${profile.whatMattersMost}` : ""}`;
 
   if (extras) {
     if (extras.readinessScore != null) {

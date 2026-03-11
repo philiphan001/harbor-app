@@ -48,6 +48,8 @@ function ProfilePageContent() {
   const [spouseAgeInput, setSpouseAgeInput] = useState("");
   const [spouseLivingInput, setSpouseLivingInput] = useState(true);
   const [editingVeteran, setEditingVeteran] = useState(false);
+  const [editingGoals, setEditingGoals] = useState(false);
+  const [goalsInput, setGoalsInput] = useState("");
 
   useEffect(() => {
     const profile = getParentProfile();
@@ -57,6 +59,7 @@ function ProfilePageContent() {
     setSpouseNameInput(profile?.spouse?.name || "");
     setSpouseAgeInput(profile?.spouse?.age?.toString() || "");
     setSpouseLivingInput(profile?.spouse?.living ?? true);
+    setGoalsInput(profile?.whatMattersMost || "");
     setTaskData(getAllTaskData());
 
     // Hydrate from DB if available (merges into localStorage, then re-read)
@@ -93,6 +96,12 @@ function ProfilePageContent() {
     setParentProfile(getParentProfile());
     setEditingVeteran(false);
   }, []);
+
+  const saveGoals = useCallback(() => {
+    updateParentProfile({ whatMattersMost: goalsInput.trim() || undefined });
+    setParentProfile(getParentProfile());
+    setEditingGoals(false);
+  }, [goalsInput]);
 
   const handleSave = useCallback((taskTitle: string, toolName: string, updatedData: TaskDataPayload) => {
     saveTaskData(taskTitle, toolName, updatedData);
@@ -317,7 +326,7 @@ function ProfilePageContent() {
             </div>
 
             {/* Veteran Status */}
-            <div className="px-4 py-3">
+            <div className="px-4 py-3 border-b border-sand">
               {editingVeteran ? (
                 <div className="space-y-2">
                   <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide block">
@@ -362,6 +371,67 @@ function ProfilePageContent() {
                     </div>
                   </div>
                   <span className="text-slateLight text-sm">›</span>
+                </button>
+              )}
+            </div>
+
+            {/* What Matters Most */}
+            <div className="px-4 py-3">
+              {editingGoals ? (
+                <div className="space-y-2">
+                  <label className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide block">
+                    What Matters Most
+                  </label>
+                  <textarea
+                    value={goalsInput}
+                    onChange={(e) => setGoalsInput(e.target.value)}
+                    placeholder="What are your parent's goals and priorities?"
+                    rows={3}
+                    className="w-full border border-sandDark rounded-lg px-3 py-2 font-sans text-sm text-slate focus:outline-none focus:ring-1 focus:ring-ocean resize-none"
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Stay at home as long as possible", "Maintain independence", "Minimize medications", "Stay close to family"].map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => setGoalsInput((prev) => prev ? `${prev.trimEnd()}, ${chip.toLowerCase()}` : chip)}
+                        className="px-2.5 py-1 rounded-full font-sans text-[11px] bg-sand/60 text-slateMid hover:bg-sand transition-colors"
+                      >
+                        + {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={saveGoals}
+                      className="bg-ocean text-white rounded-lg px-4 py-1.5 font-sans text-sm font-semibold hover:bg-oceanMid transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGoalsInput(parentProfile?.whatMattersMost || "");
+                        setEditingGoals(false);
+                      }}
+                      className="text-slateMid hover:text-slate font-sans text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditingGoals(true)}
+                  className="w-full text-left flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-sans text-xs font-semibold text-slateMid uppercase tracking-wide mb-0.5">
+                      What Matters Most
+                    </div>
+                    <div className="font-sans text-sm text-slate">
+                      {parentProfile?.whatMattersMost || "Add goals & priorities"}
+                    </div>
+                  </div>
+                  <span className="text-slateLight text-sm">{"\u203a"}</span>
                 </button>
               )}
             </div>
