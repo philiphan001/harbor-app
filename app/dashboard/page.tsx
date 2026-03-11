@@ -236,7 +236,7 @@ export default function DashboardPage() {
       {isLoading || !parentProfile ? (
         <DashboardSkeleton />
       ) : (
-      <div className="flex-1 px-5 py-6">
+      <div className="flex-1 px-5 py-6 overflow-hidden">
         {/* Weekly Briefing — with alert count folded in */}
         <Link href="/briefing" className="block mb-5">
           <div className="bg-white border-2 border-ocean rounded-[14px] overflow-hidden cursor-pointer hover:scale-[1.01] transition-transform">

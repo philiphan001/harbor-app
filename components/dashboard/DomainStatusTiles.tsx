@@ -23,16 +23,16 @@ export default function DomainStatusTiles({ statuses }: DomainStatusTilesProps) 
       <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
         Domain Status
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }} className="w-full overflow-hidden">
         {statuses.map((status) => {
           const colors = STATUS_COLORS[status.status];
           const nextAction = (status.status === "missing" || status.status === "partial")
             ? actionByDomain.get(status.domain)
             : undefined;
           return (
-            <Link key={status.domain} href={`/profile?domain=${status.domain}`} className="block">
+            <Link key={status.domain} href={`/profile?domain=${status.domain}`} className="block min-w-0">
               <div
-                className={`${colors.bg} border ${colors.border} rounded-[12px] px-3.5 py-3 cursor-pointer hover:scale-[1.01] transition-transform h-full`}
+                className={`${colors.bg} border ${colors.border} rounded-[12px] px-3.5 py-3 cursor-pointer hover:scale-[1.01] transition-transform h-full overflow-hidden`}
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div className="text-base">{status.icon}</div>
