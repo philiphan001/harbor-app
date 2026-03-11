@@ -62,6 +62,7 @@ export type NudgeSourceType =
   | "tax_deadline"
   | "spend_down_threshold"
   | "benefit_opportunity"
+  | "lifecycle_milestone"
   | "custom";
 
 export type NudgeStatus = "active" | "snoozed" | "dismissed" | "expired" | "queued";

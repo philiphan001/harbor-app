@@ -25,6 +25,7 @@ export const NUDGE_TYPE_TIER: Record<NudgeSourceType, PriorityTier> = {
   annual_wellness_visit: "P2",
   spend_down_threshold: "P2",
   benefit_opportunity: "P2",
+  lifecycle_milestone: "P2",
   flu_shot: "P3",
   tax_deadline: "P3",
   drivers_license_renewal: "P3",
@@ -271,6 +272,7 @@ function agentTypeToSourceType(agentType: string): NudgeSourceType {
     provider_monitor: "safety_alert",
     financial_monitor: "spend_down_threshold",
     benefit_eligibility: "benefit_opportunity",
+    lifecycle_milestone: "lifecycle_milestone",
     news_monitor: "custom",
   };
   return map[agentType] || "custom";
@@ -303,7 +305,7 @@ export function detectionToNudge(
     tier,
     title: detection.title,
     description: detection.description,
-    icon: sourceType === "drug_recall" ? "💊" : sourceType === "safety_alert" ? "🏥" : sourceType === "policy_change" ? "🔍" : sourceType === "spend_down_threshold" ? "💰" : "📰",
+    icon: sourceType === "drug_recall" ? "💊" : sourceType === "safety_alert" ? "🏥" : sourceType === "policy_change" ? "🔍" : sourceType === "spend_down_threshold" ? "💰" : sourceType === "lifecycle_milestone" ? "📅" : "📰",
     domain: detection.domain as NudgeState["domain"],
     status: "active",
     relevanceScore,

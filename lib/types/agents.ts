@@ -1,7 +1,7 @@
 // Agent types and activity tracking
 
 // External Intelligence Agents (fetch data from external sources)
-export type ExternalAgentType = "drug_recall" | "policy_monitor" | "provider_monitor" | "financial_monitor" | "news_monitor" | "benefit_eligibility";
+export type ExternalAgentType = "drug_recall" | "policy_monitor" | "provider_monitor" | "financial_monitor" | "news_monitor" | "benefit_eligibility" | "lifecycle_milestone";
 
 // Internal Utility Agents (monitor user's own data - future implementation)
 export type InternalAgentType = "calendar_reminder" | "deadline_tracker" | "task_prioritizer" | "weekly_summary";
@@ -107,6 +107,13 @@ export const EXTERNAL_AGENT_METADATA: Record<
     name: "Benefit Eligibility Scanner",
     description: "Cross-references your parent's profile against 17 federal and state benefit programs to surface programs they may qualify for",
     icon: "🎯",
+    schedule: "On profile update",
+    dataSource: "Internal calculations",
+  },
+  lifecycle_milestone: {
+    name: "Lifecycle Milestone Tracker",
+    description: "Evaluates age-based, calendar, event, threshold, and document expiry triggers to surface upcoming milestones and deadlines for your parent",
+    icon: "📅",
     schedule: "On profile update",
     dataSource: "Internal calculations",
   },

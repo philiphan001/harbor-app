@@ -22,6 +22,7 @@ import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
 import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNudge } from "@/lib/utils/nudgeStorage";
 import { runBenefitEligibilityScan } from "@/lib/utils/benefitEligibility";
+import { runLifecycleMilestoneScan } from "@/lib/utils/lifecycleMilestones";
 import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
@@ -124,6 +125,16 @@ export default function DashboardPage() {
         sessionStorage.setItem("harbor_benefit_scan_last", Date.now().toString());
       } catch (err) {
         console.warn("Benefit eligibility scan failed:", err);
+      }
+    }
+
+    // Run lifecycle milestone scan once per session
+    if (!sessionStorage.getItem("harbor_lifecycle_scan_last")) {
+      try {
+        runLifecycleMilestoneScan();
+        sessionStorage.setItem("harbor_lifecycle_scan_last", Date.now().toString());
+      } catch (err) {
+        console.warn("Lifecycle milestone scan failed:", err);
       }
     }
 
