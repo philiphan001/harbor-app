@@ -1,7 +1,7 @@
 // Judgment Agent - Scores signal relevance based on parent's specific context
 
 import Anthropic from "@anthropic-ai/sdk";
-import { SituationContext, getSituationSummary } from "@/lib/types/situationContext";
+import { SituationContext, SituationSummaryExtras, getSituationSummary } from "@/lib/types/situationContext";
 import { AgentDetection } from "@/lib/types/agents";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type Priority } from "@/lib/constants/domains";
@@ -25,10 +25,11 @@ export interface ScoredSignal extends Omit<AgentDetection, "relevanceScore"> {
 
 export async function scoreSignal(
   signal: AgentDetection,
-  context: SituationContext
+  context: SituationContext,
+  extras?: SituationSummaryExtras
 ): Promise<ScoredSignal> {
   try {
-    const situationSummary = getSituationSummary(context);
+    const situationSummary = getSituationSummary(context, extras);
 
     const prompt = `${situationSummary}
 

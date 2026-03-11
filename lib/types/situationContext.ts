@@ -282,6 +282,7 @@ export interface SituationSummaryExtras {
   readinessScore?: number;
   pendingTaskCount?: number;
   overdueTasks?: string[];
+  profileCompleteness?: number;
 }
 
 export function getSituationSummary(
@@ -328,6 +329,9 @@ CAREGIVING:
     }
     if (extras.overdueTasks && extras.overdueTasks.length > 0) {
       summary += `\nOVERDUE: ${extras.overdueTasks.join("; ")}`;
+    }
+    if (extras.profileCompleteness != null) {
+      summary += `\nPROFILE COMPLETENESS: ${Math.round(extras.profileCompleteness * 100)}%`;
     }
   }
 

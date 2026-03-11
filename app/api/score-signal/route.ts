@@ -19,9 +19,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { signal, parentProfile } = body as {
+    const { signal, parentProfile, profileCompleteness } = body as {
       signal: AgentDetection;
       parentProfile?: { id: string; name: string; age?: number; state?: string };
+      profileCompleteness?: number;
     };
 
     if (!signal) {
@@ -55,8 +56,9 @@ export async function POST(request: NextRequest) {
       parentState: context.profile.state
     });
 
-    // Score the signal
-    const scored = await scoreSignal(signal, context);
+    // Score the signal (pass profileCompleteness as extras for context)
+    const extras = profileCompleteness != null ? { profileCompleteness } : undefined;
+    const scored = await scoreSignal(signal, context, extras);
 
     log.info("Signal scored", {
       score: scored.relevanceScore,
