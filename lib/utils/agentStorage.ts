@@ -91,6 +91,7 @@ export function getAgentActivity(): AgentActivity {
     provider_monitor: "",
     financial_monitor: "",
     news_monitor: "",
+    benefit_eligibility: "",
     calendar_reminder: "",
     deadline_tracker: "",
     task_prioritizer: "",

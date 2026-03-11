@@ -21,6 +21,7 @@ import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
 import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNudge } from "@/lib/utils/nudgeStorage";
+import { runBenefitEligibilityScan } from "@/lib/utils/benefitEligibility";
 import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
@@ -115,6 +116,16 @@ export default function DashboardPage() {
     const activity = getAgentActivity();
     const unhandled = activity.recentDetections.filter(d => !d.handled).length;
     setUnhandledDetections(unhandled);
+
+    // Run benefit eligibility scan once per session
+    if (!sessionStorage.getItem("harbor_benefit_scan_last")) {
+      try {
+        runBenefitEligibilityScan();
+        sessionStorage.setItem("harbor_benefit_scan_last", Date.now().toString());
+      } catch (err) {
+        console.warn("Benefit eligibility scan failed:", err);
+      }
+    }
 
     setNudgeResult(computePrioritizedNudges());
     setIsLoading(false);

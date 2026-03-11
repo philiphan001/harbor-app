@@ -24,6 +24,7 @@ export const NUDGE_TYPE_TIER: Record<NudgeSourceType, PriorityTier> = {
   insurance_renewal: "P2",
   annual_wellness_visit: "P2",
   spend_down_threshold: "P2",
+  benefit_opportunity: "P2",
   flu_shot: "P3",
   tax_deadline: "P3",
   drivers_license_renewal: "P3",
@@ -269,6 +270,7 @@ function agentTypeToSourceType(agentType: string): NudgeSourceType {
     policy_monitor: "policy_change",
     provider_monitor: "safety_alert",
     financial_monitor: "spend_down_threshold",
+    benefit_eligibility: "benefit_opportunity",
     news_monitor: "custom",
   };
   return map[agentType] || "custom";

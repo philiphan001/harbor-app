@@ -61,6 +61,7 @@ export type NudgeSourceType =
   | "flu_shot"
   | "tax_deadline"
   | "spend_down_threshold"
+  | "benefit_opportunity"
   | "custom";
 
 export type NudgeStatus = "active" | "snoozed" | "dismissed" | "expired" | "queued";
