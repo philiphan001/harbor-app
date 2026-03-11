@@ -3,7 +3,7 @@ import { Message } from "@/lib/types/situation";
 import { getAnthropicApiKey } from "@/lib/utils/env";
 import { type ExtendedDomain, type Priority } from "@/lib/constants/domains";
 import type { ChatResponse, ClaudeResponseMetadata, TaskDataPayload } from "@/lib/types/taskCapture";
-import { AI_CONFIG, CRISIS_INTAKE_PROMPT, READINESS_PROMPT } from "@/lib/config/prompts";
+import { AI_CONFIG, CRISIS_INTAKE_PROMPT, READINESS_PROMPT, HOSPITAL_COMPANION_PROMPT } from "@/lib/config/prompts";
 import { createLogger } from "@/lib/utils/logger";
 
 const log = createLogger("Chat");
@@ -96,11 +96,13 @@ const taskCreationTool = {
 
 export async function chat(
   messages: Message[],
-  mode: "crisis" | "readiness",
+  mode: "crisis" | "readiness" | "hospital",
   options?: { useTools?: boolean } // NEW: Option to disable tools for continuous extraction
 ): Promise<ChatResponse> {
   const systemPrompt =
-    mode === "crisis" ? CRISIS_INTAKE_PROMPT : READINESS_PROMPT;
+    mode === "crisis" ? CRISIS_INTAKE_PROMPT
+    : mode === "hospital" ? HOSPITAL_COMPANION_PROMPT
+    : READINESS_PROMPT;
 
   // Convert our Message format to Anthropic's format
   const anthropicMessages = messages.map((msg) => ({

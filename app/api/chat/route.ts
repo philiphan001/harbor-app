@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { messages, mode } = body as {
       messages: Message[];
-      mode: "crisis" | "readiness";
+      mode: "crisis" | "readiness" | "hospital";
     };
 
     if (!messages || !Array.isArray(messages)) {
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!mode || !["crisis", "readiness"].includes(mode)) {
+    if (!mode || !["crisis", "readiness", "hospital"].includes(mode)) {
       return NextResponse.json(
-        { error: "Invalid mode. Must be 'crisis' or 'readiness'" },
+        { error: "Invalid mode. Must be 'crisis', 'readiness', or 'hospital'" },
         { status: 400 }
       );
     }

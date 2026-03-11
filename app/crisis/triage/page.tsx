@@ -134,6 +134,24 @@ export default function TriagePage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        {/* Redirect Banner */}
+        <Link
+          href="/hospital"
+          className="block bg-ocean/10 border-2 border-ocean rounded-[14px] px-5 py-3.5"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-sans text-sm font-semibold text-ocean">
+                This page has moved
+              </div>
+              <div className="font-sans text-xs text-slateMid mt-0.5">
+                Try the new Hospital Companion for notes, chat, and discharge planning
+              </div>
+            </div>
+            <div className="text-ocean text-sm">&rarr;</div>
+          </div>
+        </Link>
+
         {/* Critical Gaps Banner */}
         {criticalGaps.length > 0 && (
           <div className="bg-coral/10 border-2 border-coral rounded-[14px] px-5 py-4">

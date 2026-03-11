@@ -4,21 +4,61 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { getEnrichedMedications, type EnrichedMedication } from "@/lib/utils/medicationHelpers";
+import type { MedicationFinding, MedicationReviewResult } from "@/lib/ai/medicationReview";
 
 type SortMode = "name" | "urgency";
+
+const SEVERITY_STYLES: Record<string, { border: string; bg: string; badge: string }> = {
+  high: { border: "border-coral", bg: "bg-coral/5", badge: "bg-coral/15 text-coral" },
+  medium: { border: "border-amber", bg: "bg-amber/5", badge: "bg-amber/15 text-amber" },
+  info: { border: "border-ocean", bg: "bg-ocean/5", badge: "bg-ocean/15 text-ocean" },
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  high: "Discuss Urgently",
+  medium: "Next Appointment",
+  info: "Good to Know",
+};
 
 export default function MedicationsPage() {
   const [medications, setMedications] = useState<EnrichedMedication[]>([]);
   const [parentName, setParentName] = useState("");
+  const [parentAge, setParentAge] = useState<number | undefined>();
   const [sortMode, setSortMode] = useState<SortMode>("urgency");
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewResult, setReviewResult] = useState<MedicationReviewResult | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   useEffect(() => {
     const profile = getParentProfile();
-    if (profile) setParentName(profile.name);
+    if (profile) {
+      setParentName(profile.name);
+      if (profile.age) setParentAge(profile.age);
+    }
 
     const meds = getEnrichedMedications();
     setMedications(meds);
   }, []);
+
+  const handleReview = async () => {
+    setIsReviewing(true);
+    setReviewError(null);
+    setReviewResult(null);
+    try {
+      const res = await fetch("/api/medication-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ medications, parentAge }),
+      });
+      if (!res.ok) throw new Error("Review failed");
+      const result: MedicationReviewResult = await res.json();
+      setReviewResult(result);
+    } catch {
+      setReviewError("Unable to complete the medication review. Please try again.");
+    } finally {
+      setIsReviewing(false);
+    }
+  };
 
   const sorted = [...medications].sort((a, b) => {
     if (sortMode === "name") {
@@ -126,6 +166,103 @@ export default function MedicationsPage() {
             + Upload Rx
           </Link>
         </div>
+
+        {/* AI Medication Review */}
+        {medications.length >= 2 && (
+          <button
+            onClick={handleReview}
+            disabled={isReviewing}
+            className={`w-full rounded-[12px] px-4 py-3.5 flex items-center justify-center gap-2 transition-all font-sans text-sm font-semibold ${
+              isReviewing
+                ? "bg-sand border-2 border-sandDark text-slateMid"
+                : "bg-ocean text-white border-2 border-ocean hover:bg-ocean/90"
+            }`}
+          >
+            {isReviewing ? (
+              <>
+                <span className="animate-spin">{"⏳"}</span>
+                <span>Reviewing medications...</span>
+              </>
+            ) : (
+              <>
+                <span>{"🔍"}</span>
+                <span>Review My Medications</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Review Error */}
+        {reviewError && (
+          <div className="bg-coral/10 border border-coral/30 rounded-[14px] px-5 py-3.5">
+            <div className="font-sans text-sm text-coral">{reviewError}</div>
+          </div>
+        )}
+
+        {/* Review Results */}
+        {reviewResult && (
+          <div className="flex flex-col gap-3">
+            {/* Disclaimer */}
+            <div className="bg-amber/10 border border-amber/30 rounded-[14px] px-4 py-3">
+              <div className="font-sans text-[10px] font-semibold tracking-[1px] uppercase text-amber mb-1">
+                Important Disclaimer
+              </div>
+              <div className="font-sans text-xs text-slate">{reviewResult.disclaimer}</div>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
+              <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-2">
+                Review Summary
+              </div>
+              <div className="font-sans text-sm text-slate">{reviewResult.summary}</div>
+              <div className="font-sans text-[10px] text-slateLight mt-2">
+                {reviewResult.medicationCount} medications reviewed · {new Date(reviewResult.reviewedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </div>
+            </div>
+
+            {/* Findings */}
+            {reviewResult.findings.map((finding: MedicationFinding, i: number) => {
+              const styles = SEVERITY_STYLES[finding.severity] || SEVERITY_STYLES.info;
+              return (
+                <div
+                  key={i}
+                  className={`bg-white border-l-[3px] ${styles.border} ${styles.bg} border border-sandDark rounded-[14px] px-4 py-4`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`font-sans text-[10px] font-semibold px-2 py-0.5 rounded-full ${styles.badge}`}>
+                      {SEVERITY_LABELS[finding.severity]}
+                    </span>
+                  </div>
+                  <div className="font-sans text-sm font-semibold text-slate mb-1">{finding.title}</div>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {finding.medications.map((med: string) => (
+                      <span key={med} className="font-sans text-[10px] font-semibold bg-sand px-2 py-0.5 rounded-full text-slateMid">
+                        {med}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="font-sans text-xs text-slateMid mb-3">{finding.description}</div>
+                  <div className="bg-ocean/5 border border-ocean/20 rounded-[10px] px-3 py-2.5">
+                    <div className="font-sans text-[10px] font-semibold tracking-[1px] uppercase text-ocean mb-1">
+                      Question for Doctor
+                    </div>
+                    <div className="font-sans text-xs text-slate">{finding.questionForDoctor}</div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {reviewResult.findings.length === 0 && (
+              <div className="bg-sage/10 border border-sage/30 rounded-[14px] px-5 py-4 text-center">
+                <div className="font-sans text-sm text-sage font-semibold">No concerns identified</div>
+                <div className="font-sans text-xs text-slateMid mt-1">
+                  No significant medication interactions or concerns were found. Continue regular check-ins with your pharmacist.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Medication List */}
         {sorted.length > 0 ? (
