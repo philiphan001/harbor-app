@@ -65,6 +65,8 @@ export async function generateBriefingForSituation(
   }
 
   // 5. Generate briefing with enriched summary
+  // Note: cognitiveTrendSummary and wellnessTrendSummary are populated client-side
+  // when the briefing is generated from localStorage data via the dashboard.
   return generateWeeklyBriefing(context, relevantSignals, extras);
 }
 

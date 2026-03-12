@@ -13,6 +13,7 @@ import { getSituationContextFromProfile } from "./situationContext";
 import { getAllDetections, saveDetection, saveAgentRun } from "./agentStorage";
 import { renderTemplate } from "./templateRenderer";
 import { getPlaybooksForMilestone, activatePlaybook } from "./careTransitionEngine";
+import { computeCognitiveTrend } from "./cognitiveStorage";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -106,7 +107,14 @@ export function buildMilestoneProfile(): MilestoneProfile {
     hasLtcInsurance,
     insuranceCoverageType,
     adlDeclineDetected: false, // Future: derived from reported events
-    cognitiveDeclineDetected: false, // Future: derived from reported events
+    cognitiveDeclineDetected: (() => {
+      try {
+        const trend = computeCognitiveTrend();
+        return trend.shouldAlert;
+      } catch {
+        return false;
+      }
+    })(),
     documentTimestamps,
   };
 }

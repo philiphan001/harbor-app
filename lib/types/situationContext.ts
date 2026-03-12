@@ -284,6 +284,8 @@ export interface SituationSummaryExtras {
   pendingTaskCount?: number;
   overdueTasks?: string[];
   profileCompleteness?: number;
+  cognitiveTrendSummary?: string;
+  wellnessTrendSummary?: string;
 }
 
 export function getSituationSummary(
@@ -333,6 +335,12 @@ CAREGIVING:
     }
     if (extras.profileCompleteness != null) {
       summary += `\nPROFILE COMPLETENESS: ${Math.round(extras.profileCompleteness * 100)}%`;
+    }
+    if (extras.cognitiveTrendSummary) {
+      summary += `\nCOGNITIVE TREND: ${extras.cognitiveTrendSummary}`;
+    }
+    if (extras.wellnessTrendSummary) {
+      summary += `\nCAREGIVER WELLNESS: ${extras.wellnessTrendSummary}`;
     }
   }
 

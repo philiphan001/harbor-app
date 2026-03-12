@@ -65,6 +65,10 @@ export type NudgeSourceType =
   | "benefit_opportunity"
   | "lifecycle_milestone"
   | "polypharmacy_warning"
+  | "cognitive_checkin_due"
+  | "cognitive_decline_alert"
+  | "caregiver_wellness_due"
+  | "caregiver_burnout_alert"
   | "custom";
 
 export type NudgeStatus = "active" | "snoozed" | "dismissed" | "expired" | "queued";

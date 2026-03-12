@@ -27,9 +27,13 @@ export const NUDGE_TYPE_TIER: Record<NudgeSourceType, PriorityTier> = {
   benefit_opportunity: "P2",
   lifecycle_milestone: "P2",
   polypharmacy_warning: "P2",
+  cognitive_decline_alert: "P2",
+  cognitive_checkin_due: "P3",
   flu_shot: "P3",
   tax_deadline: "P3",
   drivers_license_renewal: "P3",
+  caregiver_wellness_due: "P3",
+  caregiver_burnout_alert: "P1",
   custom: "P4",
 };
 

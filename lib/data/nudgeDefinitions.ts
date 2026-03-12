@@ -1,4 +1,7 @@
-import type { NudgeDefinition } from "@/lib/types/nudges";
+import type { NudgeDefinition, NudgeState } from "@/lib/types/nudges";
+import type { CognitiveTrend } from "@/lib/types/cognitiveCheckin";
+import type { WellnessTrend } from "@/lib/types/wellnessCheckin";
+import { NUDGE_TYPE_TIER } from "@/lib/utils/nudgePriority";
 
 export const CALENDAR_NUDGES: NudgeDefinition[] = [
   {
@@ -172,4 +175,134 @@ export function generatePolypharmacyNudge(medCount: number): NudgeDefinition[] {
     ];
   }
   return [];
+}
+
+/**
+ * Generate a cognitive check-in reminder nudge.
+ * Fires if never done or last observation > 30 days ago.
+ */
+export function generateCognitiveCheckInNudge(
+  lastDate: string | null,
+  parentId: string
+): NudgeState[] {
+  const now = new Date();
+  if (lastDate) {
+    const daysSince = (now.getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince < 30) return [];
+  }
+
+  return [
+    {
+      id: "cognitive_checkin_due",
+      sourceType: "cognitive_checkin_due",
+      tier: NUDGE_TYPE_TIER.cognitive_checkin_due,
+      title: "Cognitive Check-In Due",
+      description: lastDate
+        ? "It's been over 30 days since your last cognitive observation. Track any changes you've noticed."
+        : "Start tracking cognitive changes to catch early warning signs.",
+      icon: "\uD83E\uDDE0",
+      domain: "medical",
+      status: "active",
+      relevanceScore: 55,
+      createdAt: now.toISOString(),
+      snoozeCount: 0,
+      actionUrl: "/cognitive-checkin",
+      actionLabel: "Start check-in",
+      parentId,
+    },
+  ];
+}
+
+/**
+ * Generate a cognitive decline alert nudge when trend indicates concern.
+ */
+export function generateCognitiveAlertNudge(
+  trend: CognitiveTrend,
+  parentId: string
+): NudgeState[] {
+  if (!trend.shouldAlert) return [];
+
+  return [
+    {
+      id: "cognitive_decline_alert",
+      sourceType: "cognitive_decline_alert",
+      tier: NUDGE_TYPE_TIER.cognitive_decline_alert,
+      title: "Cognitive Changes Detected",
+      description: `Score: ${trend.currentScore}/24. The pattern of observations suggests discussing these changes with a doctor.`,
+      icon: "\u26A0\uFE0F",
+      domain: "medical",
+      status: "active",
+      relevanceScore: 80,
+      createdAt: new Date().toISOString(),
+      snoozeCount: 0,
+      actionUrl: "/cognitive-checkin",
+      actionLabel: "View details",
+      parentId,
+    },
+  ];
+}
+
+/**
+ * Generate a wellness check-in reminder nudge.
+ * Fires if never done or last check-in > 14 days ago.
+ */
+export function generateWellnessCheckInNudge(
+  lastDate: string | null,
+  parentId: string
+): NudgeState[] {
+  const now = new Date();
+  if (lastDate) {
+    const daysSince = (now.getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince < 14) return [];
+  }
+
+  return [
+    {
+      id: "caregiver_wellness_due",
+      sourceType: "caregiver_wellness_due",
+      tier: NUDGE_TYPE_TIER.caregiver_wellness_due,
+      title: "Caregiver Wellness Check-In",
+      description: lastDate
+        ? "It's been over 2 weeks. How are you holding up?"
+        : "Take a moment to check in on your own wellbeing.",
+      icon: "\uD83D\uDC9A",
+      domain: "social",
+      status: "active",
+      relevanceScore: 50,
+      createdAt: now.toISOString(),
+      snoozeCount: 0,
+      actionUrl: "/wellness-checkin",
+      actionLabel: "Check in",
+      parentId,
+    },
+  ];
+}
+
+/**
+ * Generate a caregiver burnout alert when risk is high.
+ */
+export function generateBurnoutAlertNudge(
+  trend: WellnessTrend,
+  parentId: string
+): NudgeState[] {
+  if (trend.burnoutRisk !== "high") return [];
+
+  return [
+    {
+      id: "caregiver_burnout_alert",
+      sourceType: "caregiver_burnout_alert",
+      tier: NUDGE_TYPE_TIER.caregiver_burnout_alert,
+      title: "Caregiver Burnout Risk: High",
+      description: `Your wellness score (${trend.currentScore}/15) indicates high burnout risk. You deserve support.`,
+      icon: "\u2764\uFE0F",
+      domain: "social",
+      status: "active",
+      relevanceScore: 90,
+      createdAt: new Date().toISOString(),
+      snoozeCount: 0,
+      actionUrl: "/wellness-checkin",
+      actionLabel: "Get support",
+      parentId,
+    },
+  ];
 }

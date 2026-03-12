@@ -1,5 +1,13 @@
 import type { NudgeDefinition, NudgeInstance, NudgeState, PriorityTier, PrioritizedNudgeResult } from "@/lib/types/nudges";
-import { CALENDAR_NUDGES, generateMedicationRefillNudges, generatePolypharmacyNudge } from "@/lib/data/nudgeDefinitions";
+import {
+  CALENDAR_NUDGES,
+  generateMedicationRefillNudges,
+  generatePolypharmacyNudge,
+  generateCognitiveCheckInNudge,
+  generateCognitiveAlertNudge,
+  generateWellnessCheckInNudge,
+  generateBurnoutAlertNudge,
+} from "@/lib/data/nudgeDefinitions";
 import { getActiveParentId } from "./parentProfile";
 import { getMedicationsNeedingRefill, getEnrichedMedications } from "./medicationHelpers";
 import { getAllDetections } from "./agentStorage";
@@ -10,6 +18,8 @@ import {
   SNOOZE_BY_TIER,
 } from "./nudgePriority";
 import { scanTaskDeadlines, deadlineNudgesToNudgeStates } from "./deadlineTracker";
+import { getLatestCognitiveObservation, computeCognitiveTrend } from "./cognitiveStorage";
+import { getLatestWellnessCheckin, computeWellnessTrend } from "./wellnessStorage";
 
 const NUDGE_INSTANCES_KEY = "harbor_nudge_instances";
 
@@ -183,6 +193,22 @@ export function computeVisibleNudges(): VisibleNudge[] {
     // Medication data may not be available
   }
 
+  // Cognitive + wellness check-in nudges (converted to NudgeDefinition for legacy path)
+  try {
+    const latestCog = getLatestCognitiveObservation();
+    const cogDue = generateCognitiveCheckInNudge(latestCog?.observedAt ?? null, parentId);
+    for (const n of cogDue) {
+      allDefinitions.push({ id: n.id, type: "custom", title: n.title, description: n.description, icon: n.icon, domain: n.domain, recurrence: "once", leadTimeDays: 0, actionUrl: n.actionUrl, actionLabel: n.actionLabel });
+    }
+    const latestWell = getLatestWellnessCheckin();
+    const wellDue = generateWellnessCheckInNudge(latestWell?.checkedInAt ?? null, parentId);
+    for (const n of wellDue) {
+      allDefinitions.push({ id: n.id, type: "custom", title: n.title, description: n.description, icon: n.icon, domain: n.domain, recurrence: "once", leadTimeDays: 0, actionUrl: n.actionUrl, actionLabel: n.actionLabel });
+    }
+  } catch {
+    // Cognitive/wellness data may not be available
+  }
+
   const visible: VisibleNudge[] = [];
 
   for (const nudge of allDefinitions) {
@@ -311,6 +337,21 @@ export function computePrioritizedNudges(): PrioritizedNudgeResult {
     agentNudges.push(...deadlineStates);
   } catch {
     // Deadline data may not be available
+  }
+
+  // 2c. Cognitive + wellness check-in nudges
+  try {
+    const latestCog = getLatestCognitiveObservation();
+    agentNudges.push(...generateCognitiveCheckInNudge(latestCog?.observedAt ?? null, parentId));
+    const cogTrend = computeCognitiveTrend();
+    agentNudges.push(...generateCognitiveAlertNudge(cogTrend, parentId));
+
+    const latestWell = getLatestWellnessCheckin();
+    agentNudges.push(...generateWellnessCheckInNudge(latestWell?.checkedInAt ?? null, parentId));
+    const wellTrend = computeWellnessTrend();
+    agentNudges.push(...generateBurnoutAlertNudge(wellTrend, parentId));
+  } catch {
+    // Cognitive/wellness data may not be available
   }
 
   // 3. Load existing NudgeState[] from storage
