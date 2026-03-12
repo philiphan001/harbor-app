@@ -9,6 +9,7 @@ import { CARE_TRANSITION_PLAYBOOKS } from "@/lib/data/careTransitionPlaybooks";
 import { getTasks, addTasks } from "./taskStorage";
 import { getActiveParentId, getParentProfile } from "./parentProfile";
 import { getAllDetections } from "./agentStorage";
+import { createCascade } from "./cascadeStorage";
 
 // ---------------------------------------------------------------------------
 // Storage
@@ -169,6 +170,9 @@ export function activatePlaybook(
     generatedTaskTitles: tasks.map((t) => t.title),
   };
   saveActivation(activation);
+
+  // Create cascade instance for the presentation layer
+  createCascade(activation.id, playbookId, playbook.steps.length);
 
   // Link milestone detections to playbook URL
   if (playbook.trigger.milestoneIds) {

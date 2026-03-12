@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import type { NudgeState, PriorityTier, PrioritizedNudgeResult, ConsolidatedNudge } from "@/lib/types/nudges";
+import type { CascadeInstance } from "@/lib/types/cascade";
+import { CARE_TRANSITION_PLAYBOOKS } from "@/lib/data/careTransitionPlaybooks";
 import { SNOOZE_LABELS } from "@/lib/utils/nudgePriority";
 
 interface NudgeBannerProps {
   result: PrioritizedNudgeResult | null;
+  activeCascades?: CascadeInstance[];
   onDismiss: (id: string) => void;
   onSnooze: (id: string, tier: PriorityTier) => void;
 }
@@ -154,10 +157,75 @@ function SummaryCard({ count }: { count: number }) {
   );
 }
 
-export default function NudgeBanner({ result, onDismiss, onSnooze }: NudgeBannerProps) {
-  if (!result || result.display.length === 0) return null;
+function CascadeCard({ cascade }: { cascade: CascadeInstance }) {
+  const playbook = CARE_TRANSITION_PLAYBOOKS.find(
+    (p) => p.id === cascade.playbookId,
+  );
+  if (!playbook) return null;
 
-  const { display, queued, degradation, consolidated } = result;
+  const steps = Object.values(cascade.stepProgress);
+  const completedCount = steps.filter((s) => s === "completed").length;
+  const totalCount = steps.length;
+
+  // Find next actionable step title
+  const stepNumbers = Object.keys(cascade.stepProgress)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const nextActionableNum = stepNumbers.find(
+    (sn) => cascade.stepProgress[sn] === "actionable",
+  );
+  const nextStep = nextActionableNum
+    ? playbook.steps.find((s) => s.stepNumber === nextActionableNum)
+    : null;
+
+  return (
+    <div
+      className="flex-shrink-0 w-[300px] bg-amber/5 border-2 border-amber rounded-[14px] px-4 py-3"
+      role="article"
+      aria-label={`Response plan: ${playbook.label}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 bg-amber/15 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+          {playbook.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-sans text-xs font-semibold text-slate mb-0.5 truncate">
+            {playbook.label}
+          </div>
+          <div className="font-sans text-[10px] text-slateMid leading-tight">
+            {completedCount} of {totalCount} steps
+          </div>
+          {nextStep && (
+            <div className="font-sans text-[10px] text-amber font-medium mt-1 truncate">
+              Next: {nextStep.title}
+            </div>
+          )}
+          <Link
+            href={`/playbooks/${cascade.playbookId}`}
+            className="inline-block mt-1.5 font-sans text-[10px] font-semibold text-ocean hover:underline"
+          >
+            View response plan &rarr;
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function NudgeBanner({ result, activeCascades, onDismiss, onSnooze }: NudgeBannerProps) {
+  const cascades = activeCascades ?? [];
+  const hasNudges = result && result.display.length > 0;
+  const hasCascades = cascades.length > 0;
+
+  if (!hasNudges && !hasCascades) return null;
+
+  const display = result?.display ?? [];
+  const queued = result?.queued ?? [];
+  const degradation = result?.degradation;
+  const consolidated = result?.consolidated;
+
+  // Cascade cards take visual budget from nudge cards (8-card total)
+  const nudgeBudget = Math.max(0, 8 - cascades.length);
 
   return (
     <div className="mb-5" role="region" aria-label="Priority notifications">
@@ -172,14 +240,18 @@ export default function NudgeBanner({ result, onDismiss, onSnooze }: NudgeBanner
           WebkitOverflowScrolling: "touch",
         }}
       >
+        {/* Cascade cards first (leftmost) */}
+        {cascades.map((cascade) => (
+          <CascadeCard key={cascade.id} cascade={cascade} />
+        ))}
+
+        {/* Nudge cards */}
         {degradation === "consolidation" && consolidated ? (
-          // Consolidation mode: render consolidated cards
           consolidated.map((card) => (
             <ConsolidatedCard key={`cons_${card.sourceType}`} card={card} />
           ))
         ) : (
-          // Normal or summary mode: render individual cards
-          display.map((nudge) => (
+          display.slice(0, nudgeBudget).map((nudge) => (
             <NudgeCard
               key={nudge.id}
               nudge={nudge}

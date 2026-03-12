@@ -24,6 +24,8 @@ import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNud
 import { computeValueStats, type ValueStats } from "@/lib/utils/valueTracking";
 import { runBenefitEligibilityScan } from "@/lib/utils/benefitEligibility";
 import { runLifecycleMilestoneScan } from "@/lib/utils/lifecycleMilestones";
+import { getActiveCascades } from "@/lib/utils/cascadeStorage";
+import type { CascadeInstance } from "@/lib/types/cascade";
 import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [unhandledDetections, setUnhandledDetections] = useState(0);
   const [nudgeResult, setNudgeResult] = useState<PrioritizedNudgeResult | null>(null);
   const [valueStats, setValueStats] = useState<ValueStats | null>(null);
+  const [activeCascades, setActiveCascades] = useState<CascadeInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -140,6 +143,7 @@ export default function DashboardPage() {
       }
     }
 
+    setActiveCascades(getActiveCascades());
     setNudgeResult(computePrioritizedNudges());
     setValueStats(computeValueStats());
     setIsLoading(false);
@@ -298,6 +302,7 @@ export default function DashboardPage() {
         {/* Calendar-Aware Nudges */}
         <NudgeBanner
           result={nudgeResult}
+          activeCascades={activeCascades}
           onDismiss={(id) => {
             dismissPrioritizedNudge(id);
             setNudgeResult(computePrioritizedNudges());
