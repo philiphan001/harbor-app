@@ -3,86 +3,39 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getActiveCascades } from "@/lib/utils/cascadeStorage";
+import { computePrioritizedNudges } from "@/lib/utils/nudgeStorage";
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ active: boolean }>;
+  badge?: boolean;
 }
-
-const STATIC_NAV_ITEMS: NavItem[] = [
-  {
-    href: "/dashboard",
-    label: "Home",
-    icon: HomeIcon,
-  },
-  {
-    href: "/tasks",
-    label: "Tasks",
-    icon: TasksIcon,
-  },
-  // Chat is dynamic — inserted at runtime
-  {
-    href: "/upload",
-    label: "Upload",
-    icon: UploadIcon,
-  },
-  {
-    href: "/profile",
-    label: "Profile",
-    icon: ProfileIcon,
-  },
-];
 
 // Pages where the bottom nav should NOT appear
 const HIDDEN_PATHS = ["/", "/login", "/signup"];
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [chatHref, setChatHref] = useState("/crisis");
+  const [hasReminders, setHasReminders] = useState(false);
 
-  // Determine the right chat destination based on most recent conversation
   useEffect(() => {
-    // If user is currently on a chat page, keep that as the target
-    if (pathname.startsWith("/crisis") || pathname.startsWith("/readiness")) {
-      return;
-    }
-
-    async function resolveChat() {
-      try {
-        const res = await fetch("/api/conversations");
-        if (!res.ok) return;
-        const data = await res.json();
-        const conversations = data.conversations || [];
-
-        // Find the most recent conversation with messages
-        const recent = conversations.find(
-          (c: { conversationType: string; messages: unknown[] }) =>
-            c.messages && c.messages.length > 0
-        );
-
-        if (recent) {
-          const base = recent.conversationType === "readiness" ? "/readiness" : "/crisis";
-          setChatHref(`${base}?conversationId=${recent.id}`);
-        }
-      } catch {
-        // Default to /crisis
-      }
-    }
-
-    resolveChat();
+    const cascadeCount = getActiveCascades().length;
+    const nudgeResult = computePrioritizedNudges();
+    const nudgeCount = nudgeResult.display.length + nudgeResult.queued.length;
+    setHasReminders(cascadeCount + nudgeCount > 0);
   }, [pathname]);
 
   // Hide on landing, login, signup
   if (HIDDEN_PATHS.includes(pathname)) return null;
 
-  // Build nav items with dynamic chat href
   const navItems: NavItem[] = [
-    STATIC_NAV_ITEMS[0], // Home
-    STATIC_NAV_ITEMS[1], // Tasks
-    { href: chatHref, label: "Chat", icon: ChatIcon },
-    STATIC_NAV_ITEMS[2], // Upload
-    STATIC_NAV_ITEMS[3], // Profile
+    { href: "/dashboard", label: "Home", icon: HomeIcon },
+    { href: "/tasks", label: "Tasks", icon: TasksIcon },
+    { href: "/help", label: "Help", icon: ChatIcon },
+    { href: "/reminders", label: "Reminders", icon: RemindersIcon, badge: hasReminders },
+    { href: "/profile", label: "Profile", icon: ProfileIcon },
   ];
 
   return (
@@ -93,12 +46,13 @@ export default function BottomNav() {
     >
       <div className="max-w-[420px] mx-auto flex items-center justify-around px-2 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
-          // For chat, highlight if on any chat-related page
-          const isChatItem = item.label === "Chat";
-          const isActive = isChatItem
-            ? pathname.startsWith("/crisis") || pathname.startsWith("/readiness")
-            : pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const isActive =
+            item.href === "/help"
+              ? pathname.startsWith("/help")
+              : item.href === "/reminders"
+                ? pathname.startsWith("/reminders")
+                : pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
           return (
             <Link
@@ -111,7 +65,12 @@ export default function BottomNav() {
               }`}
               aria-current={isActive ? "page" : undefined}
             >
-              <item.icon active={isActive} />
+              <div className="relative">
+                <item.icon active={isActive} />
+                {item.badge && (
+                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-coral rounded-full" />
+                )}
+              </div>
               <span className="font-sans text-[10px] font-semibold tracking-wide">
                 {item.label}
               </span>
@@ -179,21 +138,20 @@ function ChatIcon({ active }: { active: boolean }) {
   );
 }
 
-function UploadIcon({ active }: { active: boolean }) {
+function RemindersIcon({ active }: { active: boolean }) {
   return (
     <svg
       width="22"
       height="22"
       viewBox="0 0 24 24"
-      fill="none"
+      fill={active ? "currentColor" : "none"}
       stroke="currentColor"
-      strokeWidth={active ? 2 : 1.75}
+      strokeWidth={active ? 1.5 : 1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 01-3.46 0" />
     </svg>
   );
 }

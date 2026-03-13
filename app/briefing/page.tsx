@@ -7,6 +7,7 @@ import { formatWeekOf } from "@/lib/utils/dateUtils";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { getAllDetections } from "@/lib/utils/agentStorage";
 import { computeProgressSummary } from "@/lib/utils/progressSummary";
+import { computeValueStats, type ValueStats } from "@/lib/utils/valueTracking";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 
 export default function BriefingPage() {
@@ -15,10 +16,12 @@ export default function BriefingPage() {
   const [parentProfile, setParentProfile] = useState<ParentProfile | null>(null);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState<ReturnType<typeof computeProgressSummary> | null>(null);
+  const [valueStats, setValueStats] = useState<ValueStats | null>(null);
 
   useEffect(() => {
     loadBriefings();
     setProgress(computeProgressSummary());
+    setValueStats(computeValueStats());
   }, []);
 
   const loadBriefings = () => {
@@ -251,6 +254,41 @@ export default function BriefingPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Harbor Working for You */}
+        {valueStats && (valueStats.totalDetections > 0 || valueStats.tasksCompleted > 0 || valueStats.documentsCaptured > 0) && (
+          <div className="mb-6">
+            <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
+              Harbor Working for You
+            </div>
+            <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-ocean">{valueStats.totalDetections}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Alerts Surfaced</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-sage">{valueStats.tasksCompleted}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Tasks Done</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-sans text-2xl font-bold text-coral">{valueStats.documentsCaptured}</div>
+                  <div className="font-sans text-[10px] text-slateMid">Docs Captured</div>
+                </div>
+              </div>
+              {valueStats.estimatedSavings > 0 && (
+                <div className="mt-3 pt-3 border-t border-sand text-center">
+                  <div className="font-sans text-sm text-sage font-semibold">
+                    ~${valueStats.estimatedSavings.toLocaleString()} potential savings identified
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid">
+                    From {valueStats.totalDetections > 0 ? "benefit eligibility matches" : "program matching"}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

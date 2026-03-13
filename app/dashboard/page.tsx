@@ -20,18 +20,15 @@ import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/re
 import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
 import { buildDomainStatuses, type DomainStatus } from "@/lib/utils/careSummary";
-import { computePrioritizedNudges, dismissPrioritizedNudge, snoozePrioritizedNudge } from "@/lib/utils/nudgeStorage";
-import { computeValueStats, type ValueStats } from "@/lib/utils/valueTracking";
+import { getActiveCascades } from "@/lib/utils/cascadeStorage";
 import { runBenefitEligibilityScan } from "@/lib/utils/benefitEligibility";
 import { runLifecycleMilestoneScan } from "@/lib/utils/lifecycleMilestones";
-import { getActiveCascades } from "@/lib/utils/cascadeStorage";
 import type { CascadeInstance } from "@/lib/types/cascade";
-import type { PrioritizedNudgeResult, PriorityTier } from "@/lib/types/nudges";
+import { CARE_TRANSITION_PLAYBOOKS } from "@/lib/data/careTransitionPlaybooks";
 import type { WeeklyBriefing } from "@/lib/ai/briefingAgent";
 import ParentSwitcher from "@/components/dashboard/ParentSwitcher";
 import ReadinessCard from "@/components/dashboard/ReadinessCard";
 import DomainStatusTiles from "@/components/dashboard/DomainStatusTiles";
-import NudgeBanner from "@/components/dashboard/NudgeBanner";
 import UserNav from "@/components/auth/UserNav";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
@@ -46,8 +43,6 @@ export default function DashboardPage() {
   const [domainStatuses, setDomainStatuses] = useState<DomainStatus[]>([]);
   const [latestBriefing, setLatestBriefing] = useState<WeeklyBriefing | null>(null);
   const [unhandledDetections, setUnhandledDetections] = useState(0);
-  const [nudgeResult, setNudgeResult] = useState<PrioritizedNudgeResult | null>(null);
-  const [valueStats, setValueStats] = useState<ValueStats | null>(null);
   const [activeCascades, setActiveCascades] = useState<CascadeInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -144,20 +139,11 @@ export default function DashboardPage() {
     }
 
     setActiveCascades(getActiveCascades());
-    setNudgeResult(computePrioritizedNudges());
-    setValueStats(computeValueStats());
     setIsLoading(false);
   };
 
   useEffect(() => {
     loadData();
-
-    // 15-minute refresh for nudge prioritization
-    const nudgeInterval = setInterval(() => {
-      setNudgeResult(computePrioritizedNudges());
-    }, 15 * 60 * 1000);
-
-    return () => clearInterval(nudgeInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -299,19 +285,46 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* Calendar-Aware Nudges */}
-        <NudgeBanner
-          result={nudgeResult}
-          activeCascades={activeCascades}
-          onDismiss={(id) => {
-            dismissPrioritizedNudge(id);
-            setNudgeResult(computePrioritizedNudges());
-          }}
-          onSnooze={(id, tier) => {
-            snoozePrioritizedNudge(id, tier);
-            setNudgeResult(computePrioritizedNudges());
-          }}
-        />
+        {/* Crisis Banner — only when cascades active */}
+        {activeCascades.length > 0 && activeCascades.map((cascade) => {
+          const playbook = CARE_TRANSITION_PLAYBOOKS.find((p) => p.id === cascade.playbookId);
+          if (!playbook) return null;
+          const steps = Object.values(cascade.stepProgress);
+          const completedCount = steps.filter((s) => s === "completed").length;
+          const totalCount = steps.length;
+          const stepNumbers = Object.keys(cascade.stepProgress).map(Number).sort((a, b) => a - b);
+          const nextActionableNum = stepNumbers.find((sn) => cascade.stepProgress[sn] === "actionable");
+          const nextStep = nextActionableNum ? playbook.steps.find((s) => s.stepNumber === nextActionableNum) : null;
+
+          return (
+            <div key={cascade.id} className="mb-5">
+              <div className="bg-amber/5 border-2 border-amber rounded-[14px] px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-amber/15 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                    {playbook.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-sans text-sm font-semibold text-slate">{playbook.label}</div>
+                    <div className="font-sans text-xs text-slateMid mt-0.5">
+                      Step {completedCount} of {totalCount}
+                    </div>
+                    {nextStep && (
+                      <div className="font-sans text-xs text-amber font-medium mt-1">
+                        Next: {nextStep.title}
+                      </div>
+                    )}
+                    <Link
+                      href={`/playbooks/${cascade.playbookId}`}
+                      className="inline-block mt-2 font-sans text-xs font-semibold text-ocean hover:underline"
+                    >
+                      View response plan &rarr;
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Readiness Score + Action Items (consolidated) */}
         {readiness && <ReadinessCard readiness={readiness} hasCompletedIntake={!!parentProfile} tasks={tasks} />}
@@ -325,17 +338,17 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.625rem", marginBottom: "1.25rem" }}>
-          {/* Row 1: Ask Harbor, Guides, Medications */}
-          <Link href="/help" className="block">
+          {/* Row 1: Reminders, Guides, Medications */}
+          <Link href="/reminders" className="block">
             <div className="bg-white border border-sandDark rounded-[14px] px-3.5 py-3.5 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-              <div className="w-9 h-9 bg-ocean/15 rounded-xl flex items-center justify-center text-ocean text-base mb-2.5">
-                💬
+              <div className="w-9 h-9 bg-amber/15 rounded-xl flex items-center justify-center text-base mb-2.5">
+                🔔
               </div>
               <div className="font-sans text-[11px] font-semibold text-slate mb-0.5">
-                Ask Harbor
+                Reminders
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                Chat & help
+                Alerts & nudges
               </div>
             </div>
           </Link>
@@ -413,41 +426,6 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Harbor Working for You */}
-        {valueStats && (valueStats.totalDetections > 0 || valueStats.tasksCompleted > 0 || valueStats.documentsCaptured > 0) && (
-          <div className="mb-5">
-            <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-              Harbor Working for You
-            </div>
-            <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="font-sans text-2xl font-bold text-ocean">{valueStats.totalDetections}</div>
-                  <div className="font-sans text-[10px] text-slateMid">Alerts Surfaced</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-sans text-2xl font-bold text-sage">{valueStats.tasksCompleted}</div>
-                  <div className="font-sans text-[10px] text-slateMid">Tasks Done</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-sans text-2xl font-bold text-coral">{valueStats.documentsCaptured}</div>
-                  <div className="font-sans text-[10px] text-slateMid">Docs Captured</div>
-                </div>
-              </div>
-              {valueStats.estimatedSavings > 0 && (
-                <div className="mt-3 pt-3 border-t border-sand text-center">
-                  <div className="font-sans text-sm text-sage font-semibold">
-                    ~${valueStats.estimatedSavings.toLocaleString()} potential savings identified
-                  </div>
-                  <div className="font-sans text-[10px] text-slateMid">
-                    From {valueStats.totalDetections > 0 ? "benefit eligibility matches" : "program matching"}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Quick Actions */}
         <div style={{ marginTop: "1.25rem" }}>
           <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
@@ -476,7 +454,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-amber/15 rounded-lg flex items-center justify-center text-amber text-sm">⚡</div>
-                  <div className="font-sans text-sm text-slate">Report a life event</div>
+                  <div className="font-sans text-sm text-slate">Report a crisis or life event</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
