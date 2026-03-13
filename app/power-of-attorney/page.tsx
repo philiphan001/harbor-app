@@ -10,6 +10,7 @@ import {
   getPoaFormComplexity,
 } from "@/lib/data/statePoaForms";
 import { US_STATES, normalizeStateCode } from "@/lib/constants/usStates";
+import Disclaimer from "@/components/Disclaimer";
 
 const COMPLETION_CHECKLIST = [
   { id: "signed", label: "Signed by your parent" },
@@ -110,6 +111,8 @@ export default function PowerOfAttorneyPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="legal" />
+
         {/* State Selector (if no state set) */}
         {!stateCode && (
           <div className="bg-white border-2 border-ocean rounded-[14px] px-5 py-4">

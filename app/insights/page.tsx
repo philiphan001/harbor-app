@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile, type ParentProfile } from "@/lib/utils/parentProfile";
 import { runAllInternalAgents, type InternalAgentDetection } from "@/lib/ai/internalAgents";
+import Disclaimer from "@/components/Disclaimer";
 
 export default function InsightsPage() {
   const [detections, setDetections] = useState<InternalAgentDetection[]>([]);
@@ -65,6 +66,8 @@ export default function InsightsPage() {
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
+        <Disclaimer type="general" className="mb-4" />
+
         {loading ? (
           <div className="text-center py-12">
             <div className="font-sans text-sm text-slateMid">Analyzing your data...</div>

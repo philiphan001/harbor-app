@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { gatherExportData, type ExportData } from "@/lib/utils/exportCareSummary";
 import { US_STATES, normalizeStateCode } from "@/lib/constants/usStates";
+import Disclaimer from "@/components/Disclaimer";
 import {
   HIPAA_FORM,
   HIPAA_COMPLETION_CHECKLIST,
@@ -97,6 +98,8 @@ export default function HipaaAuthorizationPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="legal" />
+
         {/* State Selector (if no state set) */}
         {!stateCode && (
           <div className="bg-white border-2 border-amber rounded-[14px] px-5 py-4">

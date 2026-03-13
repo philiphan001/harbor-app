@@ -14,6 +14,7 @@ import type {
   ObservationResponse,
   CognitiveTrend,
 } from "@/lib/types/cognitiveCheckin";
+import Disclaimer from "@/components/Disclaimer";
 
 const RESPONSE_OPTIONS: { value: ObservationResponse; label: string }[] = [
   { value: "not_noticed", label: "Not noticed" },
@@ -94,17 +95,7 @@ export default function CognitiveCheckinPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
-        {/* Disclaimer */}
-        <div className="bg-amber/10 border border-amber/30 rounded-[14px] px-5 py-4">
-          <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-amber mb-2">
-            Important
-          </div>
-          <p className="font-sans text-sm text-slate leading-relaxed">
-            This is <strong>not</strong> a diagnosis. It helps you track behavioral patterns over time
-            so you can share observations with a doctor. Only a medical professional can diagnose
-            cognitive conditions.
-          </p>
-        </div>
+        <Disclaimer type="medical" />
 
         {/* Previous trend */}
         {trend && trend.observations.length > 0 && (

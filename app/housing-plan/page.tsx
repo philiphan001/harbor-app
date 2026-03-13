@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { saveTaskData } from "@/lib/utils/taskData";
 import FacilitySearch from "@/components/FacilitySearch";
+import Disclaimer from "@/components/Disclaimer";
 
 const LIVING_ARRANGEMENTS = [
   "Own home (no mortgage)",
@@ -139,6 +140,8 @@ export default function HousingPlanPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="financial" />
+
         {/* Why This Matters */}
         <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
           <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-amber mb-2">

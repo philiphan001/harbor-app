@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { saveTaskData } from "@/lib/utils/taskData";
+import Disclaimer from "@/components/Disclaimer";
 
 const ROOM_CHECKLISTS: { room: string; items: { id: string; label: string }[] }[] = [
   {
@@ -163,6 +164,8 @@ export default function HomeSafetyPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="general" />
+
         {/* What Is This? */}
         <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
           <div className="font-sans text-xs font-semibold tracking-[1.5px] uppercase text-amber mb-2">

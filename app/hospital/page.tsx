@@ -16,6 +16,7 @@ import OverviewTab from "./components/OverviewTab";
 import AskHarborTab from "./components/AskHarborTab";
 import NotesTab from "./components/NotesTab";
 import DischargeTab from "./components/DischargeTab";
+import Disclaimer from "@/components/Disclaimer";
 
 export default function HospitalPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -97,6 +98,8 @@ export default function HospitalPage() {
 
       {/* Tab Content */}
       <div className="flex-1 px-5 py-4 pb-8">
+        <Disclaimer type="emergency" className="mb-4" />
+
         {activeTab === "overview" && (
           <OverviewTab data={data} criticalGaps={criticalGaps} />
         )}

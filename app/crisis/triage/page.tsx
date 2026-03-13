@@ -11,6 +11,7 @@ import {
 } from "@/lib/utils/exportCareSummary";
 import { calculateReadinessScore } from "@/lib/utils/readinessScore";
 import { CRISIS_PLAYBOOKS, type CrisisType } from "@/lib/data/crisisPlaybooks";
+import Disclaimer from "@/components/Disclaimer";
 
 const ER_SECTIONS: ExportSection[] = [
   "patient-info",
@@ -134,6 +135,8 @@ export default function TriagePage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="emergency" />
+
         {/* Redirect Banner */}
         <Link
           href="/hospital"

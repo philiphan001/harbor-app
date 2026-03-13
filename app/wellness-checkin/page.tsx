@@ -14,6 +14,7 @@ import type {
   WellnessResponse,
   WellnessTrend,
 } from "@/lib/types/wellnessCheckin";
+import Disclaimer from "@/components/Disclaimer";
 
 const RESPONSE_OPTIONS: { value: WellnessResponse; label: string }[] = [
   { value: "doing_fine", label: "Doing fine" },
@@ -100,6 +101,8 @@ export default function WellnessCheckinPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="medical" />
+
         {/* Previous trend */}
         {trend && trend.checkins.length > 0 && (
           <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getParentProfile } from "@/lib/utils/parentProfile";
 import { getEnrichedMedications, type EnrichedMedication } from "@/lib/utils/medicationHelpers";
 import type { MedicationFinding, MedicationReviewResult } from "@/lib/ai/medicationReview";
+import Disclaimer from "@/components/Disclaimer";
 
 type SortMode = "name" | "urgency";
 
@@ -117,6 +118,8 @@ export default function MedicationsPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="medical" />
+
         {/* Polypharmacy Warning */}
         {medications.length >= 8 && (
           <div className="bg-coral/10 border border-coral/30 rounded-[14px] px-5 py-3.5 flex items-start gap-3">

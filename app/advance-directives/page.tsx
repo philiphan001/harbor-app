@@ -10,6 +10,7 @@ import {
   getFormComplexity,
 } from "@/lib/data/stateHealthcareProxyForms";
 import { US_STATES, normalizeStateCode } from "@/lib/constants/usStates";
+import Disclaimer from "@/components/Disclaimer";
 
 function getCaringInfoSlug(stateCode: string): string {
   const state = US_STATES.find((s) => s.code === stateCode);
@@ -122,6 +123,8 @@ export default function AdvanceDirectivePage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="legal" />
+
         {/* State Selector (if no state set) */}
         {!stateCode && (
           <div className="bg-white border-2 border-ocean rounded-[14px] px-5 py-4">

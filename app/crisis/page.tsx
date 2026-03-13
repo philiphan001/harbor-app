@@ -8,6 +8,7 @@ import ParentInfoForm from "@/components/ParentInfoForm";
 import { useRouter } from "next/navigation";
 import { gatherExportData, type ExportData } from "@/lib/utils/exportCareSummary";
 import { getParentProfile } from "@/lib/utils/parentProfile";
+import Disclaimer from "@/components/Disclaimer";
 
 function buildDataSummary(data: ExportData | null): string {
   const lines: string[] = ["HARBOR DATA STATUS:"];
@@ -168,6 +169,9 @@ Let's start with the most important question: What happened with your parent?`;
         <Link href="/crisis/triage" className="font-sans text-xs text-ocean hover:underline">
           Need the ER triage sheet? &rarr;
         </Link>
+      </div>
+      <div className="px-4 py-2 bg-warmWhite border-b border-sandDark">
+        <Disclaimer type="emergency" />
       </div>
       <div className="flex-1 min-h-0">
         <ChatInterface

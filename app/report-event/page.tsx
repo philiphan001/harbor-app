@@ -6,6 +6,7 @@ import { LIFE_EVENT_TEMPLATES } from "@/lib/data/lifeEventTemplates";
 import { reportLifeEvent } from "@/lib/utils/lifeEventEngine";
 import type { LifeEventType, LifeEventSeverity } from "@/lib/types/lifeEvents";
 import type { Task } from "@/lib/ai/claude";
+import Disclaimer from "@/components/Disclaimer";
 
 type Step = "select" | "details" | "confirm";
 
@@ -61,6 +62,8 @@ export default function ReportEventPage() {
       </div>
 
       <div className="flex-1 px-5 py-6">
+        <Disclaimer type="general" className="mb-4" />
+
         {/* Step 1: Select Event Type */}
         {step === "select" && (
           <>

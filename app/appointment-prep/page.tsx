@@ -15,6 +15,7 @@ import {
   generateContextualQuestions,
   type SuggestedQuestion,
 } from "@/lib/utils/appointmentQuestions";
+import Disclaimer from "@/components/Disclaimer";
 
 const APPT_SECTIONS: ExportSection[] = [
   "patient-info",
@@ -130,6 +131,8 @@ export default function AppointmentPrepPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="medical" />
+
         {/* Medications Card */}
         <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
           <div className="font-sans text-xs font-semibold tracking-[1px] uppercase text-ocean mb-3">

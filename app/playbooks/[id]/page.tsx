@@ -16,6 +16,7 @@ import type {
   CareTransitionStep,
   CareTransitionType,
 } from "@/lib/types/careTransitions";
+import Disclaimer from "@/components/Disclaimer";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -339,6 +340,8 @@ export default function PlaybookPage() {
       </div>
 
       <div className="flex-1 px-5 py-6 flex flex-col gap-4">
+        <Disclaimer type="general" />
+
         {/* Progress bar (active cascades only) */}
         {isActive && (
           <div className="bg-white border border-sandDark rounded-[14px] px-5 py-4">
