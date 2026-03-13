@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getActiveCascades } from "@/lib/utils/cascadeStorage";
-import { computePrioritizedNudges } from "@/lib/utils/nudgeStorage";
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ active: boolean }>;
-  badge?: boolean;
 }
 
 // Pages where the bottom nav should NOT appear
@@ -18,14 +14,6 @@ const HIDDEN_PATHS = ["/", "/login", "/signup"];
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const [hasReminders, setHasReminders] = useState(false);
-
-  useEffect(() => {
-    const cascadeCount = getActiveCascades().length;
-    const nudgeResult = computePrioritizedNudges();
-    const nudgeCount = nudgeResult.display.length + nudgeResult.queued.length;
-    setHasReminders(cascadeCount + nudgeCount > 0);
-  }, [pathname]);
 
   // Hide on landing, login, signup
   if (HIDDEN_PATHS.includes(pathname)) return null;
@@ -34,7 +22,7 @@ export default function BottomNav() {
     { href: "/dashboard", label: "Home", icon: HomeIcon },
     { href: "/tasks", label: "Tasks", icon: TasksIcon },
     { href: "/help", label: "Help", icon: ChatIcon },
-    { href: "/reminders", label: "Reminders", icon: RemindersIcon, badge: hasReminders },
+    { href: "/upload", label: "Upload", icon: UploadIcon },
     { href: "/profile", label: "Profile", icon: ProfileIcon },
   ];
 
@@ -49,10 +37,8 @@ export default function BottomNav() {
           const isActive =
             item.href === "/help"
               ? pathname.startsWith("/help")
-              : item.href === "/reminders"
-                ? pathname.startsWith("/reminders")
-                : pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              : pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
           return (
             <Link
@@ -65,12 +51,7 @@ export default function BottomNav() {
               }`}
               aria-current={isActive ? "page" : undefined}
             >
-              <div className="relative">
-                <item.icon active={isActive} />
-                {item.badge && (
-                  <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-coral rounded-full" />
-                )}
-              </div>
+              <item.icon active={isActive} />
               <span className="font-sans text-[10px] font-semibold tracking-wide">
                 {item.label}
               </span>
@@ -138,20 +119,21 @@ function ChatIcon({ active }: { active: boolean }) {
   );
 }
 
-function RemindersIcon({ active }: { active: boolean }) {
+function UploadIcon({ active }: { active: boolean }) {
   return (
     <svg
       width="22"
       height="22"
       viewBox="0 0 24 24"
-      fill={active ? "currentColor" : "none"}
+      fill="none"
       stroke="currentColor"
-      strokeWidth={active ? 1.5 : 1.75}
+      strokeWidth={active ? 2 : 1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 01-3.46 0" />
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   );
 }

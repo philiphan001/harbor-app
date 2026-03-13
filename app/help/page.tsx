@@ -58,6 +58,33 @@ export default function HelpPage() {
 
       {/* Main Content */}
       <div className="flex-1 px-5 py-6">
+        {/* Chat with Harbor — placeholder */}
+        <div className="mb-6">
+          <div className="bg-white border-2 border-ocean/30 rounded-[14px] px-5 py-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-ocean/10 rounded-xl flex items-center justify-center text-lg">
+                💬
+              </div>
+              <div>
+                <div className="font-sans text-sm font-semibold text-slate">Chat with Harbor</div>
+                <div className="font-sans text-xs text-slateMid">Ask anything about caregiving</div>
+              </div>
+            </div>
+            <div className="bg-sand/40 rounded-xl px-4 py-3 flex items-center gap-2 cursor-not-allowed">
+              <span className="font-sans text-sm text-slateMid flex-1">Type a question&hellip;</span>
+              <div className="w-8 h-8 bg-ocean/20 rounded-lg flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ocean/40">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              </div>
+            </div>
+            <div className="font-sans text-[10px] text-slateMid mt-2 text-center">
+              Coming soon — AI chat for personalized caregiving guidance
+            </div>
+          </div>
+        </div>
+
         {/* Recent Conversations */}
         <ConversationHistory />
 
