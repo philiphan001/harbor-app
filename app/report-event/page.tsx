@@ -41,7 +41,7 @@ export default function ReportEventPage() {
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
       {/* Header */}
-      <div className="relative bg-gradient-to-br from-amber to-[#B8862D] px-7 pt-10 pb-8">
+      <div className="relative bg-gradient-to-br from-coral to-[#9B2C2C] px-7 pt-10 pb-8">
         <div className="absolute -top-[60px] -right-10 w-[200px] h-[200px] rounded-full bg-white/[0.04] pointer-events-none" />
         <div className="absolute -bottom-[30px] -left-5 w-[120px] h-[120px] rounded-full bg-white/[0.03] pointer-events-none" />
         <div className="relative">
@@ -52,7 +52,7 @@ export default function ReportEventPage() {
             &larr; Dashboard
           </Link>
           <h1 className="font-serif text-[26px] font-semibold text-white tracking-tight">
-            Report a Life Event
+            Report a Crisis or Life Event
           </h1>
           <p className="font-sans text-sm text-white/80 mt-1">
             Harbor will generate relevant tasks to help you respond
@@ -84,6 +84,27 @@ export default function ReportEventPage() {
                 </button>
               ))}
             </div>
+
+            {/* Something Else — opens crisis chat */}
+            <Link
+              href="/crisis"
+              className="block mt-3 bg-white border-2 border-coral/30 rounded-[14px] px-4 py-4 hover:scale-[1.01] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-coral/10 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                  💬
+                </div>
+                <div>
+                  <div className="font-sans text-xs font-semibold text-slate mb-0.5">
+                    Something else
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid leading-tight">
+                    Describe what happened and Harbor will help you figure out next steps
+                  </div>
+                </div>
+                <div className="text-slateLight text-sm ml-auto">&rarr;</div>
+              </div>
+            </Link>
           </>
         )}
 
@@ -117,8 +138,8 @@ export default function ReportEventPage() {
                     onClick={() => setSeverity(opt.value)}
                     className={`rounded-[12px] px-4 py-3 text-left transition-all ${
                       severity === opt.value
-                        ? "bg-amber/10 border-2 border-amber"
-                        : "bg-white border border-sandDark hover:border-amber/40"
+                        ? "bg-coral/10 border-2 border-coral"
+                        : "bg-white border border-sandDark hover:border-coral/40"
                     }`}
                   >
                     <div className="font-sans text-sm font-semibold text-slate">{opt.label}</div>
@@ -137,7 +158,7 @@ export default function ReportEventPage() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any details about what happened..."
-                className="w-full font-sans text-sm border border-sandDark rounded-[12px] px-4 py-3 bg-white focus:outline-none focus:border-amber resize-none"
+                className="w-full font-sans text-sm border border-sandDark rounded-[12px] px-4 py-3 bg-white focus:outline-none focus:border-coral resize-none"
                 rows={3}
               />
             </div>
