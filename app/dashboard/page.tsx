@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 Guides
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                Worksheets
+                Guides &amp; playbooks
               </div>
             </div>
           </Link>

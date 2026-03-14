@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { CRISIS_PLAYBOOKS } from "@/lib/data/crisisPlaybooks";
+import { CARE_TRANSITION_PLAYBOOKS } from "@/lib/data/careTransitionPlaybooks";
+import { getCascadeForPlaybook } from "@/lib/utils/cascadeStorage";
+import type { CascadeInstance } from "@/lib/types/cascade";
 
 interface Guide {
   id: string;
@@ -19,7 +23,7 @@ const GUIDES: Guide[] = [
     id: "advance-directives",
     title: "Advance Directives",
     subtitle: "Healthcare wishes & living will",
-    icon: "\ud83d\udccb",
+    icon: "📋",
     color: "sage",
     bgClass: "bg-sage/15",
     href: "/advance-directives",
@@ -29,7 +33,7 @@ const GUIDES: Guide[] = [
     id: "power-of-attorney",
     title: "Power of Attorney",
     subtitle: "Legal & financial authority",
-    icon: "\u2696\ufe0f",
+    icon: "⚖️",
     color: "ocean",
     bgClass: "bg-ocean/15",
     href: "/power-of-attorney",
@@ -39,7 +43,7 @@ const GUIDES: Guide[] = [
     id: "hipaa-authorization",
     title: "HIPAA Authorization",
     subtitle: "Medical information access",
-    icon: "\ud83d\udd12",
+    icon: "🔒",
     color: "amber",
     bgClass: "bg-amber/15",
     href: "/hipaa-authorization",
@@ -49,7 +53,7 @@ const GUIDES: Guide[] = [
     id: "home-safety",
     title: "Home Safety",
     subtitle: "Room-by-room safety assessment",
-    icon: "\ud83c\udfe0",
+    icon: "🏠",
     color: "amber",
     bgClass: "bg-amber/15",
     href: "/home-safety",
@@ -59,7 +63,7 @@ const GUIDES: Guide[] = [
     id: "housing-plan",
     title: "Housing & Living",
     subtitle: "Costs, arrangement & transition plan",
-    icon: "\ud83c\udfe1",
+    icon: "🏡",
     color: "amber",
     bgClass: "bg-amber/15",
     href: "/housing-plan",
@@ -69,7 +73,7 @@ const GUIDES: Guide[] = [
     id: "transportation-plan",
     title: "Transportation Plan",
     subtitle: "Getting to appointments & errands",
-    icon: "\ud83d\ude97",
+    icon: "🚗",
     color: "ocean",
     bgClass: "bg-ocean/15",
     href: "/transportation-plan",
@@ -79,7 +83,7 @@ const GUIDES: Guide[] = [
     id: "social-care",
     title: "Social & Pet Care",
     subtitle: "Connections, check-ins & pet plans",
-    icon: "\ud83e\udd1d",
+    icon: "🤝",
     color: "sage",
     bgClass: "bg-sage/15",
     href: "/social-care",
@@ -88,14 +92,15 @@ const GUIDES: Guide[] = [
 ];
 
 const COMING_SOON = [
-  { title: "Medicare Enrollment", icon: "\ud83c\udfe5", subtitle: "Navigate enrollment periods" },
-  { title: "Medicaid Planning", icon: "\ud83d\udcca", subtitle: "Eligibility & applications" },
-  { title: "Veterans Benefits", icon: "\ud83c\uddfa\ud83c\uddf8", subtitle: "VA aid & attendance" },
-  { title: "Beneficiary Audit", icon: "\ud83d\udccb", subtitle: "Review & update designations" },
+  { title: "Medicare Enrollment", icon: "🏥", subtitle: "Navigate enrollment periods" },
+  { title: "Medicaid Planning", icon: "📊", subtitle: "Eligibility & applications" },
+  { title: "Veterans Benefits", icon: "🇺🇸", subtitle: "VA aid & attendance" },
+  { title: "Beneficiary Audit", icon: "📋", subtitle: "Review & update designations" },
 ];
 
 export default function GuidesPage() {
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
+  const [cascades, setCascades] = useState<Record<string, CascadeInstance | null>>({});
 
   useEffect(() => {
     const completed: Record<string, boolean> = {};
@@ -104,7 +109,17 @@ export default function GuidesPage() {
       completed[guide.id] = val === "true" || (val !== null && val !== "false" && val.startsWith("{"));
     }
     setCompletions(completed);
+
+    const cascadeState: Record<string, CascadeInstance | null> = {};
+    for (const pb of CARE_TRANSITION_PLAYBOOKS) {
+      cascadeState[pb.id] = getCascadeForPlaybook(pb.id);
+    }
+    setCascades(cascadeState);
   }, []);
+
+  const activeCascades = Object.values(cascades).filter(
+    (c): c is CascadeInstance => c !== null && c.status === "active",
+  );
 
   return (
     <div className="min-h-screen flex flex-col max-w-[420px] mx-auto border-l border-r border-sandDark bg-warmWhite">
@@ -120,16 +135,32 @@ export default function GuidesPage() {
             &larr; Dashboard
           </Link>
           <h1 className="font-serif text-[26px] font-semibold text-white tracking-tight">
-            Guides & Worksheets
+            Guides &amp; Playbooks
           </h1>
           <p className="font-sans text-sm text-white/80 mt-1">
-            Step-by-step guides for caregiving essentials
+            Planning, crisis response, and care transitions
           </p>
         </div>
       </div>
 
       <div className="flex-1 px-5 py-6">
-        {/* Guide Cards */}
+        {/* Active Transitions Banner */}
+        {activeCascades.length > 0 && (
+          <div className="bg-amber/10 border border-amber rounded-[14px] px-4 py-3.5 mb-6">
+            <div className="font-sans text-sm font-semibold text-slate">
+              You have {activeCascades.length} active response{" "}
+              {activeCascades.length === 1 ? "plan" : "plans"}
+            </div>
+            <div className="font-sans text-xs text-slateMid mt-0.5">
+              Scroll down to Care Transitions to continue
+            </div>
+          </div>
+        )}
+
+        {/* ── PLANNING ────────────────────────────────────────── */}
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-sage mb-3">
+          Planning
+        </div>
         <div className="grid grid-cols-2 gap-3 mb-8">
           {GUIDES.map((guide) => (
             <Link key={guide.id} href={guide.href} className="block">
@@ -153,7 +184,88 @@ export default function GuidesPage() {
           ))}
         </div>
 
-        {/* Coming Soon */}
+        {/* ── CRISIS RESPONSE ─────────────────────────────────── */}
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-coral mb-3">
+          Crisis Response
+        </div>
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          {CRISIS_PLAYBOOKS.map((pb) => (
+            <Link key={pb.id} href={`/guides/crisis/${pb.id}`} className="block">
+              <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+                <div className="w-10 h-10 bg-coral/15 rounded-xl flex items-center justify-center text-lg mb-3">
+                  {pb.icon}
+                </div>
+                <div className="font-sans text-[12px] font-semibold text-slate mb-0.5">
+                  {pb.label}
+                </div>
+                <div className="font-sans text-[10px] text-slateMid leading-tight">
+                  {pb.description.length > 50 ? pb.description.slice(0, 50) + "…" : pb.description}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* ── CARE TRANSITIONS ────────────────────────────────── */}
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-amber mb-3">
+          Care Transitions
+        </div>
+        <div className="flex flex-col gap-3 mb-8">
+          {CARE_TRANSITION_PLAYBOOKS.map((pb) => {
+            const cascade = cascades[pb.id];
+            const isActive = cascade?.status === "active";
+            const isResolved = cascade?.status === "resolved";
+            const completedSteps = cascade
+              ? Object.values(cascade.stepProgress).filter((s) => s === "completed").length
+              : 0;
+            const totalSteps = pb.steps.length;
+
+            return (
+              <Link key={pb.id} href={`/playbooks/${pb.id}`} className="block">
+                <div
+                  className={`bg-white rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.005] transition-transform ${
+                    isActive
+                      ? "border-2 border-amber"
+                      : "border border-sandDark"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber/15 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                      {pb.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="font-sans text-[12px] font-semibold text-slate">
+                          {pb.label}
+                        </div>
+                        {isActive && (
+                          <span className="font-sans text-[10px] font-semibold text-amber bg-amber/15 px-2 py-0.5 rounded-full">
+                            Active
+                          </span>
+                        )}
+                        {isResolved && (
+                          <div className="w-5 h-5 bg-sage/20 rounded-full flex items-center justify-center">
+                            <span className="text-sage text-[10px] font-bold">{"\u2713"}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="font-sans text-[10px] text-slateMid mt-0.5">
+                        {isActive
+                          ? `${completedSteps}/${totalSteps} steps completed`
+                          : isResolved
+                            ? "Completed"
+                            : "Reference guide"}
+                      </div>
+                    </div>
+                    <div className="text-slateLight text-sm">&rsaquo;</div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* ── COMING SOON ─────────────────────────────────────── */}
         <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
           Coming Soon
         </div>
