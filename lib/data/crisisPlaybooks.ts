@@ -1,6 +1,6 @@
 // Static playbook content for ER triage crisis types — no AI/API calls
 
-export type CrisisType = "fall" | "stroke-cardiac" | "cognitive-decline" | "hospitalization";
+export type CrisisType = "fall" | "stroke-cardiac" | "cognitive-decline" | "hospitalization" | "delirium" | "fall-no-er";
 
 export interface PlaybookStep {
   text: string;
@@ -170,6 +170,83 @@ export const CRISIS_PLAYBOOKS: CrisisPlaybook[] = [
           { text: "Set up the home recovery space", detail: "Bed on the main floor if needed, clear pathways, stock easy-to-prepare meals, organize medications.", urgent: false },
           { text: "Submit insurance claims and review bills", detail: "Keep all paperwork. Review the itemized bill for errors. Know your appeal rights.", urgent: false },
           { text: "Notify other family members and coordinate help", detail: "Create a schedule for visitors, meal deliveries, and care shifts. Don't try to do it all alone.", urgent: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: "delirium",
+    label: "Sudden Confusion / Delirium",
+    icon: "😵",
+    description: "Acute confusion, disorientation, or sudden personality change — often treatable",
+    sections: [
+      {
+        title: "Do Right Now",
+        steps: [
+          { text: "Tell the ER this is a sudden change, not baseline", detail: "Delirium is acute (hours/days). If your parent was functioning normally before, say so clearly — this changes the workup. Don't let staff assume it's dementia.", urgent: true },
+          { text: "Request bloodwork and urinalysis immediately", detail: "UTIs are the #1 cause of sudden confusion in elderly patients. Also check for infection, electrolyte imbalance, dehydration, and blood sugar.", urgent: true },
+          { text: "Provide the complete medication list", detail: "Anticholinergics, benzodiazepines, opioids, steroids, and sleep aids are common delirium triggers. Recent medication changes are especially suspect.", urgent: true },
+          { text: "Ask about recent medication changes or new prescriptions", detail: "A new drug started in the past 1–2 weeks is a common culprit. Even over-the-counter meds like Benadryl can cause delirium in seniors.", urgent: true },
+          { text: "Note when the confusion started and how it's fluctuating", detail: "Delirium waxes and wanes — they may seem fine one hour and confused the next. Track and document the pattern for the care team.", urgent: false },
+        ],
+      },
+      {
+        title: "While in the ER / Hospital",
+        steps: [
+          { text: "Push for a cause — don't accept 'just old age'", detail: "Delirium always has a cause. If the initial tests are negative, ask about CT scan, chest X-ray, or medication toxicity levels.", urgent: true },
+          { text: "Request a medication review by a pharmacist", detail: "Hospital pharmacists can identify drug interactions and medications known to cause confusion in elderly patients.", urgent: true },
+          { text: "Stay with your parent if possible", detail: "Familiar faces reduce agitation and disorientation. Bring familiar objects — glasses, hearing aids, family photos.", urgent: false },
+          { text: "Maintain day/night orientation", detail: "Keep blinds open during the day, lights low at night. Reorient them: 'It's Tuesday afternoon, you're at the hospital.'", urgent: false },
+          { text: "Ask about hydration and nutrition", detail: "Dehydration and malnutrition worsen confusion. Make sure they're getting adequate fluids and food.", urgent: false },
+        ],
+      },
+      {
+        title: "This Week",
+        steps: [
+          { text: "Follow up with PCP within 3–5 days", detail: "Delirium can take days to weeks to fully resolve. PCP should monitor recovery and re-evaluate medications.", urgent: false },
+          { text: "Review all medications with PCP or pharmacist", detail: "Use this event to do a thorough medication cleanup. Ask if each medication is still necessary.", urgent: false },
+          { text: "Monitor for recurrence", detail: "One delirium episode increases the risk of future episodes. Track mental status daily for the next 2 weeks.", urgent: false },
+          { text: "Ensure adequate hydration at home", detail: "Dehydration is a common and preventable trigger. Aim for 6–8 glasses of fluid daily unless restricted by a doctor.", urgent: false },
+          { text: "Consider a cognitive baseline test", detail: "After delirium resolves (2–4 weeks), a cognitive screening can establish whether there's any underlying decline.", urgent: false },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fall-no-er",
+    label: "Fall (No ER Visit)",
+    icon: "⚠️",
+    description: "Parent fell but didn't go to the ER — what to watch for and do next",
+    sections: [
+      {
+        title: "Do Right Now",
+        steps: [
+          { text: "Assess for hidden injuries", detail: "Check for pain in hips, wrists, ribs, and head. Seniors may minimize pain or not feel it immediately. Bruising may take hours to appear.", urgent: true },
+          { text: "Watch for head injury warning signs", detail: "Headache, confusion, dizziness, nausea, vision changes, or drowsiness in the next 24–72 hours could indicate a subdural hematoma. This can be fatal — go to the ER immediately if any appear.", urgent: true },
+          { text: "Check if they're on blood thinners", detail: "Warfarin, Eliquis, Xarelto, or aspirin increase bleeding risk. Even a minor head bump on blood thinners warrants medical evaluation. Call the doctor.", urgent: true },
+          { text: "Document what happened", detail: "Where did they fall? What were they doing? Did they trip, feel dizzy, or lose balance? Was there a loss of consciousness? This helps the doctor assess the cause.", urgent: false },
+          { text: "Help them rest and apply ice to any sore areas", detail: "Ice for 20 minutes on, 20 off. Monitor for increasing pain or swelling over the next few hours.", urgent: false },
+        ],
+      },
+      {
+        title: "Next 24–72 Hours",
+        steps: [
+          { text: "Call their primary care doctor", detail: "Report the fall even if your parent seems fine. Falls are a major red flag in geriatrics — the PCP should know and may want to see them.", urgent: true },
+          { text: "Continue monitoring for delayed symptoms", detail: "Subdural hematomas can appear 1–3 days after a fall. Watch for: increasing headache, confusion, one-sided weakness, difficulty speaking, excessive sleepiness.", urgent: true },
+          { text: "Watch for difficulty walking or bearing weight", detail: "Hairline fractures (especially hip) may not show obvious symptoms initially but worsen over 24–48 hours. If they can't bear weight, go to the ER.", urgent: false },
+          { text: "Check for new bruising", detail: "Large or spreading bruises, especially on the torso or head, may indicate internal bleeding. Call the doctor if concerning.", urgent: false },
+          { text: "Assess their confidence and fear of falling", detail: "Fear of falling after a fall often leads to reduced activity, which increases weakness and future fall risk. Acknowledge the fear and encourage gentle movement.", urgent: false },
+        ],
+      },
+      {
+        title: "This Week",
+        steps: [
+          { text: "Do a home safety walkthrough", detail: "Remove loose rugs, improve lighting, install grab bars in the bathroom, clear clutter from walkways, secure electrical cords. Use the Harbor Home Safety checklist.", urgent: false },
+          { text: "Request a medication fall-risk review", detail: "Ask the doctor or pharmacist to review all medications for fall risk: blood pressure meds, sleep aids, pain medications, and antidepressants are common culprits.", urgent: false },
+          { text: "Ask about physical therapy for balance", detail: "A PT evaluation can identify balance and strength deficits. Programs like Otago or Tai Chi reduce fall risk by 30–50%.", urgent: false },
+          { text: "Check their vision and hearing", detail: "When was their last eye exam? Poor vision and hearing loss both increase fall risk. Schedule appointments if overdue.", urgent: false },
+          { text: "Consider a medical alert device", detail: "If they live alone or fall when no one is around, a wearable alert device (Life Alert, Apple Watch fall detection) can be life-saving.", urgent: false },
+          { text: "Get proper footwear", detail: "Non-slip, well-fitting shoes worn at all times indoors. No walking in socks, slippers, or bare feet on smooth floors.", urgent: false },
         ],
       },
     ],
