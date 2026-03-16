@@ -101,6 +101,12 @@ const COMING_SOON = [
 export default function GuidesPage() {
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [cascades, setCascades] = useState<Record<string, CascadeInstance | null>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({
+    planning: false,
+    crisis: false,
+    transitions: false,
+    comingSoon: false,
+  });
 
   useEffect(() => {
     const completed: Record<string, boolean> = {};
@@ -116,6 +122,9 @@ export default function GuidesPage() {
     }
     setCascades(cascadeState);
   }, []);
+
+  const toggle = (section: string) =>
+    setExpanded((prev) => ({ ...prev, [section]: !prev[section] }));
 
   const activeCascades = Object.values(cascades).filter(
     (c): c is CascadeInstance => c !== null && c.status === "active",
@@ -158,135 +167,178 @@ export default function GuidesPage() {
         )}
 
         {/* ── PLANNING ────────────────────────────────────────── */}
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-sage mb-3">
-          Planning
-        </div>
-        <div className="grid grid-cols-2 gap-3 mb-8">
-          {GUIDES.map((guide) => (
-            <Link key={guide.id} href={guide.href} className="block">
-              <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full relative">
-                {completions[guide.id] && (
-                  <div className="absolute top-3 right-3 w-6 h-6 bg-sage/20 rounded-full flex items-center justify-center">
-                    <span className="text-sage text-xs font-bold">{"\u2713"}</span>
+        <button
+          onClick={() => toggle("planning")}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-sage">
+            Planning
+          </div>
+          <span className="text-slateMid text-sm transition-transform" style={{ transform: expanded.planning ? "rotate(90deg)" : "rotate(0deg)" }}>
+            &rsaquo;
+          </span>
+        </button>
+        {expanded.planning && (
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {GUIDES.map((guide) => (
+              <Link key={guide.id} href={guide.href} className="block">
+                <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full relative">
+                  {completions[guide.id] && (
+                    <div className="absolute top-3 right-3 w-6 h-6 bg-sage/20 rounded-full flex items-center justify-center">
+                      <span className="text-sage text-xs font-bold">{"\u2713"}</span>
+                    </div>
+                  )}
+                  <div className={`w-10 h-10 ${guide.bgClass} rounded-xl flex items-center justify-center text-lg mb-3`}>
+                    {guide.icon}
                   </div>
-                )}
-                <div className={`w-10 h-10 ${guide.bgClass} rounded-xl flex items-center justify-center text-lg mb-3`}>
-                  {guide.icon}
-                </div>
-                <div className="font-sans text-[12px] font-semibold text-slate mb-0.5">
-                  {guide.title}
-                </div>
-                <div className="font-sans text-[10px] text-slateMid leading-tight">
-                  {guide.subtitle}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* ── CRISIS RESPONSE ─────────────────────────────────── */}
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-coral mb-3">
-          Crisis Response
-        </div>
-        <div className="grid grid-cols-2 gap-3 mb-8">
-          {CRISIS_PLAYBOOKS.map((pb) => (
-            <Link key={pb.id} href={`/guides/crisis/${pb.id}`} className="block">
-              <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
-                <div className="w-10 h-10 bg-coral/15 rounded-xl flex items-center justify-center text-lg mb-3">
-                  {pb.icon}
-                </div>
-                <div className="font-sans text-[12px] font-semibold text-slate mb-0.5">
-                  {pb.label}
-                </div>
-                <div className="font-sans text-[10px] text-slateMid leading-tight">
-                  {pb.description.length > 50 ? pb.description.slice(0, 50) + "…" : pb.description}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        {/* ── CARE TRANSITIONS ────────────────────────────────── */}
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-amber mb-3">
-          Care Transitions
-        </div>
-        <div className="flex flex-col gap-3 mb-8">
-          {CARE_TRANSITION_PLAYBOOKS.map((pb) => {
-            const cascade = cascades[pb.id];
-            const isActive = cascade?.status === "active";
-            const isResolved = cascade?.status === "resolved";
-            const completedSteps = cascade
-              ? Object.values(cascade.stepProgress).filter((s) => s === "completed").length
-              : 0;
-            const totalSteps = pb.steps.length;
-
-            return (
-              <Link key={pb.id} href={`/playbooks/${pb.id}`} className="block">
-                <div
-                  className={`bg-white rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.005] transition-transform ${
-                    isActive
-                      ? "border-2 border-amber"
-                      : "border border-sandDark"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber/15 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
-                      {pb.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <div className="font-sans text-[12px] font-semibold text-slate">
-                          {pb.label}
-                        </div>
-                        {isActive && (
-                          <span className="font-sans text-[10px] font-semibold text-amber bg-amber/15 px-2 py-0.5 rounded-full">
-                            Active
-                          </span>
-                        )}
-                        {isResolved && (
-                          <div className="w-5 h-5 bg-sage/20 rounded-full flex items-center justify-center">
-                            <span className="text-sage text-[10px] font-bold">{"\u2713"}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="font-sans text-[10px] text-slateMid mt-0.5">
-                        {isActive
-                          ? `${completedSteps}/${totalSteps} steps completed`
-                          : isResolved
-                            ? "Completed"
-                            : "Reference guide"}
-                      </div>
-                    </div>
-                    <div className="text-slateLight text-sm">&rsaquo;</div>
+                  <div className="font-sans text-[12px] font-semibold text-slate mb-0.5">
+                    {guide.title}
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid leading-tight">
+                    {guide.subtitle}
                   </div>
                 </div>
               </Link>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
+        {!expanded.planning && <div className="mb-6" />}
+
+        {/* ── CRISIS RESPONSE ─────────────────────────────────── */}
+        <button
+          onClick={() => toggle("crisis")}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-coral">
+            Crisis Response
+          </div>
+          <span className="text-slateMid text-sm transition-transform" style={{ transform: expanded.crisis ? "rotate(90deg)" : "rotate(0deg)" }}>
+            &rsaquo;
+          </span>
+        </button>
+        {expanded.crisis && (
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            {CRISIS_PLAYBOOKS.map((pb) => (
+              <Link key={pb.id} href={`/guides/crisis/${pb.id}`} className="block">
+                <div className="bg-white border border-sandDark rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.01] transition-transform h-full">
+                  <div className="w-10 h-10 bg-coral/15 rounded-xl flex items-center justify-center text-lg mb-3">
+                    {pb.icon}
+                  </div>
+                  <div className="font-sans text-[12px] font-semibold text-slate mb-0.5">
+                    {pb.label}
+                  </div>
+                  <div className="font-sans text-[10px] text-slateMid leading-tight">
+                    {pb.description.length > 50 ? pb.description.slice(0, 50) + "…" : pb.description}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+        {!expanded.crisis && <div className="mb-6" />}
+
+        {/* ── CARE TRANSITIONS ────────────────────────────────── */}
+        <button
+          onClick={() => toggle("transitions")}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-amber">
+            Care Transitions
+          </div>
+          <span className="text-slateMid text-sm transition-transform" style={{ transform: expanded.transitions ? "rotate(90deg)" : "rotate(0deg)" }}>
+            &rsaquo;
+          </span>
+        </button>
+        {expanded.transitions && (
+          <div className="flex flex-col gap-3 mb-8">
+            {CARE_TRANSITION_PLAYBOOKS.map((pb) => {
+              const cascade = cascades[pb.id];
+              const isActive = cascade?.status === "active";
+              const isResolved = cascade?.status === "resolved";
+              const completedSteps = cascade
+                ? Object.values(cascade.stepProgress).filter((s) => s === "completed").length
+                : 0;
+              const totalSteps = pb.steps.length;
+
+              return (
+                <Link key={pb.id} href={`/playbooks/${pb.id}`} className="block">
+                  <div
+                    className={`bg-white rounded-[14px] px-4 py-4 cursor-pointer hover:scale-[1.005] transition-transform ${
+                      isActive
+                        ? "border-2 border-amber"
+                        : "border border-sandDark"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-amber/15 rounded-xl flex items-center justify-center text-lg flex-shrink-0">
+                        {pb.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-sans text-[12px] font-semibold text-slate">
+                            {pb.label}
+                          </div>
+                          {isActive && (
+                            <span className="font-sans text-[10px] font-semibold text-amber bg-amber/15 px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
+                          {isResolved && (
+                            <div className="w-5 h-5 bg-sage/20 rounded-full flex items-center justify-center">
+                              <span className="text-sage text-[10px] font-bold">{"\u2713"}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="font-sans text-[10px] text-slateMid mt-0.5">
+                          {isActive
+                            ? `${completedSteps}/${totalSteps} steps completed`
+                            : isResolved
+                              ? "Completed"
+                              : "Reference guide"}
+                        </div>
+                      </div>
+                      <div className="text-slateLight text-sm">&rsaquo;</div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        {!expanded.transitions && <div className="mb-6" />}
 
         {/* ── COMING SOON ─────────────────────────────────────── */}
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-3">
-          Coming Soon
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {COMING_SOON.map((item) => (
-            <div
-              key={item.title}
-              className="bg-sand/30 border border-sandDark/50 rounded-[14px] px-4 py-4 opacity-60"
-            >
-              <div className="w-10 h-10 bg-sand/50 rounded-xl flex items-center justify-center text-lg mb-3">
-                {item.icon}
+        <button
+          onClick={() => toggle("comingSoon")}
+          className="flex items-center justify-between w-full mb-3"
+        >
+          <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight">
+            Coming Soon
+          </div>
+          <span className="text-slateMid text-sm transition-transform" style={{ transform: expanded.comingSoon ? "rotate(90deg)" : "rotate(0deg)" }}>
+            &rsaquo;
+          </span>
+        </button>
+        {expanded.comingSoon && (
+          <div className="grid grid-cols-2 gap-3">
+            {COMING_SOON.map((item) => (
+              <div
+                key={item.title}
+                className="bg-sand/30 border border-sandDark/50 rounded-[14px] px-4 py-4 opacity-60"
+              >
+                <div className="w-10 h-10 bg-sand/50 rounded-xl flex items-center justify-center text-lg mb-3">
+                  {item.icon}
+                </div>
+                <div className="font-sans text-[12px] font-semibold text-slateMid mb-0.5">
+                  {item.title}
+                </div>
+                <div className="font-sans text-[10px] text-slateLight leading-tight">
+                  {item.subtitle}
+                </div>
               </div>
-              <div className="font-sans text-[12px] font-semibold text-slateMid mb-0.5">
-                {item.title}
-              </div>
-              <div className="font-sans text-[10px] text-slateLight leading-tight">
-                {item.subtitle}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
