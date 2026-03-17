@@ -53,8 +53,15 @@ export async function generateBriefingForSituation(
 
   const detections = alertsToDetections(alerts);
 
+  // 2b. Filter out dismissed/acknowledged alerts
+  const unhandledDetections = detections.filter((d) => !d.handled);
+  if (unhandledDetections.length === 0) {
+    log.info("All alerts dismissed, skipping briefing", { situationId });
+    return null;
+  }
+
   // 3. Score all signals
-  const scoredSignals = await scoreMultipleSignals(detections, context);
+  const scoredSignals = await scoreMultipleSignals(unhandledDetections, context);
 
   // 4. Filter to relevant signals (score >= 50)
   const relevantSignals = scoredSignals.filter((s) => s.relevanceScore >= 50);

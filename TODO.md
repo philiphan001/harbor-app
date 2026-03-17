@@ -94,6 +94,24 @@ Items below are ordered by recommended build sequence — #1 is the most differe
 - [ ] **Shareable summaries** — Not long reports, concise "here's where we stand" updates
 - [ ] **Single shared truth** — Eliminate repeated explanations and duplicated work
 
+## Exploration — Expert Marketplace
+
+Harbor currently guides families through *what* to do but doesn't connect them to *who* can do it. The opportunity is embedding vetted professionals at the point of need — not an expert network (research/knowledge), but orchestrated expertise at the moment of action.
+
+- [ ] **Identify first integration point** — Care transition playbook steps that naturally require a professional (e.g., "Confirm admission status" → hospital advocate, "Draft POA" → elder law attorney)
+- [ ] **Define professional categories** — Elder law attorneys, geriatric care managers, medical advocates, fiduciaries, benefits specialists
+- [ ] **Design "pre-briefed" handoff** — The key unlock is that a professional surfaced inside Harbor already has context (meds, legal status, housing). Spec out what that handoff looks like.
+- [ ] **Marketplace vs. referral model** — Decide whether Harbor facilitates transactions (marketplace) or curates trusted referrals. Different business models, different regulatory requirements.
+
+## Marketing — Landing Page Video
+
+4-scene AI-generated video (~45-60 sec) for landing page hero. Captures the emotional arc: panic → helplessness → realization → Harbor.
+
+- [ ] **Generate scenes via Veo 2** — Prompts drafted (ER arrival, doctor questions, phone call, Harbor resolution). Expect 3-5 iterations per scene for right feel.
+- [ ] **VO recording** — Use ElevenLabs, warm conversational female voice. Script: "You can't predict the emergency. But you can be ready for it."
+- [ ] **Scene 4 UI recording** — Actual Harbor app screen recording needed for the resolution scene (profile, readiness score, guides)
+- [ ] **Edit + music** — Stitch in CapCut/DaVinci, subtle piano underscore for scenes 1-3, warmer tone for scene 4
+
 ## Medium Priority
 
 - [ ] **Push notifications / reminders** — Nudge users to complete urgent tasks or update stale information
@@ -106,6 +124,14 @@ Items below are ordered by recommended build sequence — #1 is the most differe
 - [ ] **Offline mode** — localStorage-first means basic access works offline, but formalize this
 - [ ] **Multi-language support** — Many caregivers coordinate across language barriers
 - [ ] **Calendar integration** — Sync task deadlines and appointments to Google/Apple calendar
+
+## Architecture — Signal Unification
+
+The nudge system (client-side, localStorage) and briefing system (server-side, DB + Claude) grew independently but operate on overlapping data. Currently bridged with a filter that excludes dismissed/acknowledged alerts from briefing generation. Target architecture:
+
+- [ ] **Move nudge state to DB** — Consolidate localStorage nudge state (`harbor_nudge_instances`, `harbor_nudge_states`) into Postgres, aligned with `SituationAlertStatus`
+- [ ] **Single scoring pipeline** — Replace dual scoring (P0-P4 tiers + relevance 0-100) with one pass that feeds both nudge cards and briefing markdown
+- [ ] **Two renderers, one source** — Keep the real-time nudge banner and weekly digest as separate UX, but driven from unified signal state. Solve offline-first before fully consolidating.
 
 ## Technical Debt
 
