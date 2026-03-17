@@ -75,6 +75,11 @@ export default function Home() {
 
         <div className="space-y-6">
           <VisualValueProp
+            mockup={<AgentActivityMockup />}
+            title="Always on, always current"
+            description="Life doesn't stand still — neither does Harbor. Our agents monitor changes in your family's situation and the world around it, so your plan is never out of date."
+          />
+          <VisualValueProp
             mockup={<ReadinessScoreMockup />}
             title="Know where you stand"
             description="A 5-minute assessment scores your readiness across every domain that matters."
@@ -146,6 +151,55 @@ function VisualValueProp({
       </div>
       <div className="font-sans text-[13px] text-slateMid leading-relaxed">
         {description}
+      </div>
+    </div>
+  );
+}
+
+function AgentActivityMockup() {
+  const items = [
+    {
+      text: "Verified Medicare Part D plan still optimal",
+      time: "2h ago",
+      icon: "✓",
+    },
+    {
+      text: "Updated med list after Dr. Chen visit",
+      time: "Yesterday",
+      icon: "✓",
+    },
+    {
+      text: "Flagged new VA benefit eligibility",
+      time: "3 days ago",
+      icon: "✓",
+    },
+  ];
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-sage animate-pulse" />
+        <span className="font-sans text-[11px] font-semibold text-sage uppercase tracking-wide">
+          Harbor is working
+        </span>
+      </div>
+      <div className="space-y-2">
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="flex items-start gap-2.5 bg-oceanLight/50 rounded-lg px-3 py-2.5"
+          >
+            <span className="text-ocean text-[12px] font-bold mt-0.5 shrink-0">
+              {item.icon}
+            </span>
+            <span className="font-sans text-[12px] text-slate leading-snug flex-1">
+              {item.text}
+            </span>
+            <span className="font-sans text-[10px] text-slateLight whitespace-nowrap mt-0.5">
+              {item.time}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
