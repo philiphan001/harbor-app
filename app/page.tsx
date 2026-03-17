@@ -41,6 +41,18 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Video Placeholder */}
+      <div className="px-5 pt-8">
+        <div className="relative aspect-video bg-gradient-to-br from-ocean to-[#164F5C] rounded-[14px] overflow-hidden flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3">
+            <div className="text-white text-3xl ml-1">▶</div>
+          </div>
+          <div className="font-sans text-[13px] text-white/60">
+            Video coming soon
+          </div>
+        </div>
+      </div>
+
       {/* Primary CTA */}
       <div className="px-5 pt-8">
         <Link href="/get-started">
@@ -55,32 +67,32 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Value Propositions */}
-      <div className="px-5 pt-6 pb-8">
-        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-4">
+      {/* Visual Value Propositions */}
+      <div className="px-5 pt-8 pb-8">
+        <div className="font-sans text-[11px] font-semibold tracking-[1.5px] uppercase text-slateLight mb-5">
           What you get with Harbor
         </div>
 
-        <div className="space-y-4">
-          <ValueProp
-            icon="📋"
-            title="Readiness Assessment"
-            description="Find out where you stand in 5 minutes. We score your preparedness across medical, legal, financial, and housing — and show you exactly what's missing."
+        <div className="space-y-6">
+          <VisualValueProp
+            mockup={<ReadinessScoreMockup />}
+            title="Know where you stand"
+            description="A 5-minute assessment scores your readiness across every domain that matters."
           />
-          <ValueProp
-            icon="📊"
-            title="Personalized Care Roadmap"
-            description="Get a step-by-step action plan tailored to your parent's situation. Every task is prioritized so you know what to tackle first."
+          <VisualValueProp
+            mockup={<CrisisMockup />}
+            title="ER support in seconds"
+            description="When a crisis hits, Harbor builds an action plan from what you already know."
           />
-          <ValueProp
-            icon="🔔"
-            title="Proactive Monitoring"
-            description="Harbor tracks deadlines, insurance changes, and emerging care needs so nothing falls through the cracks — even when life gets busy."
+          <VisualValueProp
+            mockup={<RoadmapMockup />}
+            title="A plan, not a to-do list"
+            description="Prioritized next steps so you always know what to tackle first."
           />
-          <ValueProp
-            icon="🚨"
-            title="Crisis Support When It Hits"
-            description="If an emergency happens, our AI helps you triage the situation, organize what you know, and build an action plan in minutes."
+          <VisualValueProp
+            mockup={<AlertMockup />}
+            title="Nothing falls through the cracks"
+            description="Deadlines, renewals, and emerging needs — tracked automatically."
           />
         </div>
       </div>
@@ -99,30 +111,190 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Bottom CTA */}
+      <div className="px-5 pb-8">
+        <Link href="/get-started">
+          <div className="w-full bg-ocean text-white rounded-[14px] px-6 py-5 cursor-pointer hover:scale-[1.01] transition-transform text-center">
+            <div className="font-serif text-[20px] font-semibold mb-1.5">
+              Get Started
+            </div>
+            <div className="font-sans text-[13px] opacity-80">
+              Free readiness assessment or crisis support &rarr;
+            </div>
+          </div>
+        </Link>
+      </div>
     </div>
   );
 }
 
-function ValueProp({
-  icon,
+function VisualValueProp({
+  mockup,
   title,
   description,
 }: {
-  icon: string;
+  mockup: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 bg-ocean/10 rounded-lg flex items-center justify-center text-xl shrink-0">
-        {icon}
+    <div className="bg-white rounded-[14px] p-5 shadow-sm">
+      <div className="mb-4">{mockup}</div>
+      <div className="font-serif text-[17px] font-semibold text-slate mb-1">
+        {title}
       </div>
-      <div className="flex-1">
-        <div className="font-sans text-sm font-semibold text-slate mb-0.5">
-          {title}
+      <div className="font-sans text-[13px] text-slateMid leading-relaxed">
+        {description}
+      </div>
+    </div>
+  );
+}
+
+function ReadinessScoreMockup() {
+  const domains = [
+    { label: "Medical", pct: 80, color: "bg-sage" },
+    { label: "Legal", pct: 30, color: "bg-coral" },
+    { label: "Financial", pct: 55, color: "bg-amber" },
+    { label: "Housing", pct: 70, color: "bg-ocean" },
+  ];
+
+  return (
+    <div className="flex items-center gap-5">
+      {/* Donut chart */}
+      <div className="relative w-[80px] h-[80px] shrink-0">
+        <div
+          className="w-full h-full rounded-full"
+          style={{
+            background:
+              "conic-gradient(#1B6B7D 0% 62%, #E8E0D0 62% 100%)",
+          }}
+        />
+        <div className="absolute inset-[10px] rounded-full bg-white flex items-center justify-center">
+          <span className="font-serif text-[22px] font-bold text-slate">
+            62
+          </span>
         </div>
-        <div className="font-sans text-xs text-slateMid leading-relaxed">
-          {description}
+      </div>
+
+      {/* Domain bars */}
+      <div className="flex-1 space-y-2">
+        {domains.map((d) => (
+          <div key={d.label}>
+            <div className="flex justify-between mb-0.5">
+              <span className="font-sans text-[11px] text-slateMid">
+                {d.label}
+              </span>
+              <span className="font-sans text-[11px] text-slateLight">
+                {d.pct}%
+              </span>
+            </div>
+            <div className="h-[5px] bg-sandDark rounded-full overflow-hidden">
+              <div
+                className={`h-full ${d.color} rounded-full`}
+                style={{ width: `${d.pct}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CrisisMockup() {
+  const items = [
+    { text: "Call 911 — confirm ambulance en route", done: true, urgent: true },
+    { text: "Grab insurance card from wallet", done: true, urgent: false },
+    { text: "List current medications", done: false, urgent: false },
+  ];
+
+  return (
+    <div className="border-l-[3px] border-coral bg-coralLight/50 rounded-r-lg p-3">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-[14px]">🦴</span>
+        <span className="font-sans text-[13px] font-semibold text-slate">
+          Fall / Fracture
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {items.map((item, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <div
+              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                item.done
+                  ? "bg-ocean border-ocean"
+                  : "border-sandDark bg-white"
+              }`}
+            >
+              {item.done && (
+                <span className="text-white text-[10px] font-bold">✓</span>
+              )}
+            </div>
+            <span
+              className={`font-sans text-[12px] leading-snug ${
+                item.done
+                  ? "text-slateLight line-through"
+                  : "text-slate font-semibold"
+              }`}
+            >
+              {item.text}
+            </span>
+            {item.urgent && (
+              <span className="ml-auto px-1.5 py-0.5 bg-coral/15 text-coral text-[9px] font-bold rounded uppercase">
+                Urgent
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RoadmapMockup() {
+  const tasks = [
+    { text: "Confirm POA status", dot: "bg-coral", done: true },
+    { text: "Upload insurance card", dot: "bg-amber", done: true },
+    { text: "Schedule follow-up", dot: "bg-sage", done: false },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {tasks.map((task, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 bg-sand/60 rounded-lg px-3 py-2.5"
+        >
+          <div className={`w-2.5 h-2.5 rounded-full ${task.dot} shrink-0`} />
+          <span
+            className={`font-sans text-[12.5px] flex-1 ${
+              task.done ? "text-slateLight line-through" : "text-slate font-medium"
+            }`}
+          >
+            {task.text}
+          </span>
+          {task.done && (
+            <span className="text-ocean text-[13px] font-bold">✓</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AlertMockup() {
+  return (
+    <div className="border border-amber/30 bg-amber/10 rounded-lg p-3">
+      <div className="flex items-start gap-2.5">
+        <span className="text-[16px]">🔔</span>
+        <div className="flex-1">
+          <div className="font-sans text-[12.5px] font-semibold text-slate leading-snug">
+            Medicare enrollment window opens in 14 days
+          </div>
+          <div className="font-sans text-[11px] text-slateLight mt-1.5">
+            Snooze · Dismiss
+          </div>
         </div>
       </div>
     </div>
