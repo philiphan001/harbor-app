@@ -65,39 +65,8 @@ export default function DashboardPage() {
       await hydrateTasksFromDb(profile.id);
     }
 
-    let storedTasks = getTasks();
-
-    // Deduplicate tasks once per session
-    if (!sessionStorage.getItem("harbor_dedup_ran") && storedTasks.length >= 2) {
-      try {
-        const dedupRes = await fetch("/api/deduplicate-tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tasks: storedTasks.map((t) => ({
-              title: t.title,
-              domain: t.domain,
-              priority: t.priority,
-            })),
-          }),
-        });
-        if (dedupRes.ok) {
-          const { removeTitles } = await dedupRes.json();
-          if (Array.isArray(removeTitles) && removeTitles.length > 0) {
-            for (const title of removeTitles) {
-              removeTask(title);
-            }
-            storedTasks = getTasks();
-          }
-        }
-      } catch (err) {
-        console.warn("Task deduplication failed:", err);
-      }
-      sessionStorage.setItem("harbor_dedup_ran", "1");
-    }
-
+    const storedTasks = getTasks();
     const readinessScore = calculateReadinessScore();
-
     const taskData = getAllTaskData();
     const domains = buildDomainStatuses(taskData);
 
@@ -118,6 +87,37 @@ export default function DashboardPage() {
     const unhandled = activity.recentDetections.filter(d => !d.handled).length;
     setUnhandledDetections(unhandled);
 
+    setActiveCascades(getActiveCascades());
+    setIsLoading(false);
+
+    // --- Background work: dedup + scans (non-blocking) ---
+
+    // Deduplicate tasks once per session
+    if (!sessionStorage.getItem("harbor_dedup_ran") && storedTasks.length >= 2) {
+      sessionStorage.setItem("harbor_dedup_ran", "1");
+      fetch("/api/deduplicate-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasks: storedTasks.map((t) => ({
+            title: t.title,
+            domain: t.domain,
+            priority: t.priority,
+          })),
+        }),
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.removeTitles?.length) {
+            for (const title of data.removeTitles) {
+              removeTask(title);
+            }
+            setTasks(getTasks());
+          }
+        })
+        .catch((err) => console.warn("Task deduplication failed:", err));
+    }
+
     // Run benefit eligibility scan once per session
     if (!sessionStorage.getItem("harbor_benefit_scan_last")) {
       try {
@@ -137,9 +137,6 @@ export default function DashboardPage() {
         console.warn("Lifecycle milestone scan failed:", err);
       }
     }
-
-    setActiveCascades(getActiveCascades());
-    setIsLoading(false);
   };
 
   useEffect(() => {

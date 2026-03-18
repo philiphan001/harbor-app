@@ -180,7 +180,7 @@ function AgentActivityMockup() {
       <div className="flex items-center gap-2 mb-3">
         <div className="w-2 h-2 rounded-full bg-sage animate-pulse" />
         <span className="font-sans text-[11px] font-semibold text-sage uppercase tracking-wide">
-          Harbor is working
+          Harbor AI Agents in Action
         </span>
       </div>
       <div className="space-y-2">
