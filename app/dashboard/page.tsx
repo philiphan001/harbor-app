@@ -195,7 +195,7 @@ export default function DashboardPage() {
                 </Link>
               ) : null}
               <h1 className="font-serif text-[28px] font-semibold text-white tracking-tight">
-                {parentProfile?.name ? `${parentProfile.name}'s Care Dashboard` : "Your Care Dashboard"}
+                {parentProfile?.name ? `${parentProfile.name}'s Care` : "Care Dashboard"}
               </h1>
             </div>
 
@@ -268,16 +268,16 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="font-sans text-xs text-slateMid">
-                    Tap to read your personalized care update
+                    Tap to read
                   </div>
                 </div>
               ) : (
                 <div>
                   <div className="font-sans text-sm text-slate mb-1">
-                    Your weekly care update will appear here
+                    Weekly care update
                   </div>
                   <div className="font-sans text-xs text-slateMid">
-                    Briefings are generated based on your parent&apos;s situation and any new developments
+                    Based on your parent&apos;s latest situation
                   </div>
                 </div>
               )}
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                       href={`/playbooks/${cascade.playbookId}`}
                       className="inline-block mt-2 font-sans text-xs font-semibold text-ocean hover:underline"
                     >
-                      View response plan &rarr;
+                      View plan &rarr;
                     </Link>
                   </div>
                 </div>
@@ -348,7 +348,7 @@ export default function DashboardPage() {
                 Reminders
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                Alerts & nudges
+                Alerts
               </div>
             </div>
           </Link>
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 Guides
               </div>
               <div className="font-sans text-[10px] text-slateMid">
-                Guides &amp; playbooks
+                How-to
               </div>
             </div>
           </Link>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-coral/15 rounded-lg flex items-center justify-center text-coral text-sm">🏥</div>
-                  <div className="font-sans text-sm text-slate">Hospital Companion</div>
+                  <div className="font-sans text-sm text-slate">Hospital mode</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -445,7 +445,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-sage/10 rounded-lg flex items-center justify-center text-sage text-sm">🩺</div>
-                  <div className="font-sans text-sm text-slate">Doctor appointment prep</div>
+                  <div className="font-sans text-sm text-slate">Appt prep</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -454,7 +454,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-amber/15 rounded-lg flex items-center justify-center text-amber text-sm">⚡</div>
-                  <div className="font-sans text-sm text-slate">Report a crisis or life event</div>
+                  <div className="font-sans text-sm text-slate">Report event</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
               <div className="w-full bg-sand/50 rounded-xl px-4 py-3 cursor-pointer hover:translate-x-1 transition-transform flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-ocean/10 rounded-lg flex items-center justify-center text-ocean text-sm">📤</div>
-                  <div className="font-sans text-sm text-slate">Export & share care info</div>
+                  <div className="font-sans text-sm text-slate">Export & share</div>
                 </div>
                 <div className="text-slateLight text-sm">&rarr;</div>
               </div>
