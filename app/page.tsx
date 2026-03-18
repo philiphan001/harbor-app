@@ -35,8 +35,8 @@ export default function Home() {
           <p className="font-serif text-[19px] text-white/90 leading-relaxed font-light">
             A steady hand when your family needs it most.
           </p>
-          <p className="font-sans text-[14px] text-white/70 leading-relaxed mt-4">
-            AI-powered care coordination for families navigating the unexpected complexity of elder care.
+          <p className="font-sans text-[13px] text-white/60 leading-relaxed mt-3">
+            Care coordination that keeps up with real life.
           </p>
         </div>
       </div>
@@ -61,7 +61,7 @@ export default function Home() {
               Get Started
             </div>
             <div className="font-sans text-[13px] opacity-80">
-              Free readiness assessment or crisis support &rarr;
+              5-minute readiness check &rarr;
             </div>
           </div>
         </Link>
@@ -77,7 +77,7 @@ export default function Home() {
           <VisualValueProp
             mockup={<AgentActivityMockup />}
             title="Always on, always current"
-            description="Life doesn't stand still — neither does Harbor. Our agents monitor changes in your family's situation and the world around it, so your plan is never out of date."
+            description="Harbor's agents track what changes — in your family and the world — so your plan stays current."
           />
           <VisualValueProp
             mockup={<ReadinessScoreMockup />}
@@ -106,13 +106,13 @@ export default function Home() {
       <div className="px-5 py-7 mt-auto border-t border-sandDark">
         <div className="bg-sand rounded-xl p-5">
           <div className="font-serif text-[15px] font-semibold text-slate mb-2 leading-snug">
-            Most families aren&apos;t ready for what&apos;s coming.
+            Most families aren&apos;t ready.
           </div>
           <div className="font-sans text-[12.5px] text-slateMid leading-relaxed mb-3">
-            A parent falls. A diagnosis lands. Suddenly you need medical records, legal documents, insurance details, and a plan &mdash; and none of it is in one place. 80% of adult children say they feel unprepared when a caregiving crisis hits.
+            A parent falls. A diagnosis lands. Suddenly you need records, documents, and a plan &mdash; and none of it is in one place.
           </div>
           <div className="font-sans text-[12.5px] text-slate leading-relaxed font-medium">
-            Harbor helps you get organized before the emergency &mdash; and guides you through it when it arrives.
+            Harbor gets you ready &mdash; and stays with you when it hits.
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function Home() {
               Get Started
             </div>
             <div className="font-sans text-[13px] opacity-80">
-              Free readiness assessment or crisis support &rarr;
+              5-minute readiness check &rarr;
             </div>
           </div>
         </Link>
