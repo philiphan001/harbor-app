@@ -8,6 +8,7 @@ import { AgentDetection } from "@/lib/types/agents";
 import { applyRateLimit, BRIEFING_LIMIT } from "@/lib/utils/rateLimit";
 import { requireAuth } from "@/lib/supabase/auth";
 import { getSituationIdForAuthUser } from "@/lib/db/profiles";
+import { saveBriefingToDb } from "@/lib/db/briefings";
 import { sendBriefingEmail } from "@/lib/email/send";
 import { createLogger } from "@/lib/utils/logger";
 
@@ -57,6 +58,18 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      // Persist to DB (fire-and-forget)
+      saveBriefingToDb(situationId, {
+        parentId: briefing.parentId,
+        parentName: briefing.parentName,
+        weekOf: briefing.weekOf,
+        generatedAt: briefing.generatedAt,
+        content: briefing.content,
+        signalCount: briefing.signalCount,
+        urgentCount: briefing.urgentCount,
+        importantCount: briefing.importantCount,
+      }).catch(() => {});
 
       // Send briefing email (fire-and-forget)
       if (auth.user.email) {
@@ -112,6 +125,21 @@ export async function POST(request: NextRequest) {
     const briefing = await generateWeeklyBriefing(context, relevantSignals);
 
     log.info("Briefing generated successfully");
+
+    // Persist to DB (fire-and-forget)
+    const detectionSituationId = await getSituationIdForAuthUser(auth.user.id, parentId);
+    if (detectionSituationId) {
+      saveBriefingToDb(detectionSituationId, {
+        parentId: briefing.parentId,
+        parentName: briefing.parentName,
+        weekOf: briefing.weekOf,
+        generatedAt: briefing.generatedAt,
+        content: briefing.content,
+        signalCount: briefing.signalCount,
+        urgentCount: briefing.urgentCount,
+        importantCount: briefing.importantCount,
+      }).catch(() => {});
+    }
 
     // Send briefing email (fire-and-forget)
     if (auth.user.email) {

@@ -66,6 +66,7 @@ model Situation {
   alertStatuses       SituationAlertStatus[]
   documents           Document[]
   readinessHistory    ReadinessHistory[]
+  briefings           Briefing[]
 
   @@map("situations")
 }
@@ -372,4 +373,25 @@ model ReadinessHistory {
   situation Situation @relation(fields: [situationId], references: [id])
 
   @@map("readiness_history")
+}
+
+// Weekly Briefings
+
+model Briefing {
+  id             String   @id @default(uuid())
+  situationId    String
+  parentId       String
+  parentName     String
+  weekOf         DateTime
+  generatedAt    DateTime @default(now())
+  content        String
+  signalCount    Int      @default(0)
+  urgentCount    Int      @default(0)
+  importantCount Int      @default(0)
+
+  situation Situation @relation(fields: [situationId], references: [id])
+
+  @@unique([situationId, weekOf], name: "uq_briefing_week")
+  @@index([situationId])
+  @@map("briefings")
 }

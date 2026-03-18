@@ -299,6 +299,7 @@ export async function deleteProfile(parentId: string): Promise<boolean> {
       prisma.alert.deleteMany({ where: { situationId: situation.id } }),
       prisma.document.deleteMany({ where: { situationId: situation.id } }),
       prisma.readinessHistory.deleteMany({ where: { situationId: situation.id } }),
+      prisma.briefing.deleteMany({ where: { situationId: situation.id } }),
       prisma.situationMember.deleteMany({ where: { situationId: situation.id } }),
       prisma.situation.delete({ where: { id: situation.id } }),
     ]);

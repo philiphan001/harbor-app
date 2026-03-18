@@ -15,7 +15,7 @@ import {
 } from "@/lib/utils/parentProfile";
 import { deleteTasksForParent, assignOrphanedTasks } from "@/lib/utils/taskStorage";
 import { deleteTaskDataForParent, getAllTaskData } from "@/lib/utils/taskData";
-import { deleteBriefingsForParent } from "@/lib/utils/briefingStorage";
+import { deleteBriefingsForParent, hydrateBriefingsFromDb } from "@/lib/utils/briefingStorage";
 import { calculateReadinessScore, type ReadinessBreakdown } from "@/lib/utils/readinessScore";
 import { getBriefingsForParent } from "@/lib/utils/briefingStorage";
 import { getAgentActivity } from "@/lib/utils/agentStorage";
@@ -63,6 +63,7 @@ export default function DashboardPage() {
     if (profile?.id) {
       assignOrphanedTasks(profile.id);
       await hydrateTasksFromDb(profile.id);
+      await hydrateBriefingsFromDb(profile.id);
     }
 
     const storedTasks = getTasks();
