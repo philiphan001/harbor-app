@@ -43,7 +43,7 @@ export default function Home() {
 
       {/* Video Placeholder */}
       <div className="px-5 pt-8">
-        <div className="relative aspect-[9/16] bg-gradient-to-br from-ocean to-[#164F5C] rounded-[14px] overflow-hidden flex flex-col items-center justify-center">
+        <div className="relative aspect-video bg-gradient-to-br from-ocean to-[#164F5C] rounded-[14px] overflow-hidden flex flex-col items-center justify-center">
           <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mb-3">
             <div className="text-white text-3xl ml-1">▶</div>
           </div>
